@@ -68,6 +68,31 @@ export const constantRoutes: RouteRecordRaw[] = [
           },
         ],
       },
+      {
+        path: 'production',
+        redirect: '/production/order',
+        meta: { title: '生产管理', icon: 'Factory' },
+        children: [
+          {
+            path: 'plan',
+            name: 'ProductionPlan',
+            component: () => import('@/views/production/ProductionPlanView.vue'),
+            meta: { title: '生产订单', icon: 'ClipboardList', keepAlive: true },
+          },
+          {
+            path: 'order',
+            name: 'Order',
+            component: () => import('@/views/order/OrderListView.vue'),
+            meta: { title: '生产工单', icon: 'Factory', keepAlive: true },
+          },
+          {
+            path: 'order/:id',
+            name: 'OrderDetail',
+            component: () => import('@/views/order/OrderDetailView.vue'),
+            meta: { title: '工单详情', hidden: true },
+          },
+        ],
+      },
     ],
   },
   {

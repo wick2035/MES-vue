@@ -50,6 +50,15 @@ try {
 } catch {
   log(`LOGIN FAILED (url=${page.url()})`)
 }
+// 等待看板图表渲染（ECharts canvas）
+try {
+  await page.waitForSelector('canvas', { timeout: 10000 })
+  await page.waitForTimeout(1500)
+  const charts = await page.locator('canvas').count()
+  log(`dashboard charts rendered: ${charts}`)
+} catch {
+  log('dashboard charts NOT rendered')
+}
 await page.screenshot({ path: path.join(OUT, '01-dashboard.png'), fullPage: true })
 
 async function visit(name, url, waitSel) {

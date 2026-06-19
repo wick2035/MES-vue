@@ -89,7 +89,38 @@ export interface Order extends BaseEntity {
   workStatusName?: string
   completeStatusName?: string
   deliveryStatusName?: string
+  dispatchStatusName?: string
+  workStartTime?: string
+  completeTime?: string
+  completeUsername?: string
+  deliveryTime?: string
+  deliveryUsername?: string
+  sourceOrderNo?: string
+  sourceBomCode?: string
+  sourceBomVersion?: string
+  canComplete?: boolean
+  canDeliver?: boolean
+  completeBlockReason?: string
+  deliveryBlockReason?: string
   remark?: string
+}
+
+/** 生产订单（计划层，工单的上游来源） */
+export interface ProductionOrder extends BaseEntity {
+  orderNo?: string
+  sourceType?: string
+  customerName?: string
+  businessType?: string
+  orderDate?: string
+  status?: string
+  approvalStatus?: string
+  operationStatus?: string
+  itemCount?: number
+  totalQty?: number
+  firstProductName?: string
+  firstProductMateriel?: string
+  firstPlanDeliveryDate?: string
+  mrpStatus?: string
 }
 
 /** 设备 */

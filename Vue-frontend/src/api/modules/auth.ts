@@ -33,9 +33,9 @@ export function login(payload: LoginPayload) {
   })
 }
 
-/** 拉取当前登录用户与角色 */
+/** 拉取当前登录用户与角色（后端该接口仅注册了 POST） */
 export function getCurrentUser() {
-  return http.get<CurrentUser>('/admin/sys/profile/current')
+  return http.post<CurrentUser>('/admin/sys/profile/current')
 }
 
 /** 按角色过滤的菜单树（用于侧栏与权限） */

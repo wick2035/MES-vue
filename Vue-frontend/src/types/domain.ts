@@ -172,6 +172,50 @@ export interface Inventory extends BaseEntity {
   stockStatus?: string
 }
 
+/** BOM 头 */
+export interface Bom extends BaseEntity {
+  bomCode?: string
+  materielCode?: string
+  materielDesc?: string
+  versionNumber?: string
+  state?: string
+  factory?: string
+  bomLevel?: number
+  lockStatus?: string
+  validity?: string
+}
+
+/** BOM 子项 */
+export interface BomItem extends BaseEntity {
+  bomHeadId?: string
+  materielItemCode?: string
+  materielItemDesc?: string
+  lineNo?: string
+  itemNum?: number
+  itemUnit?: string
+  operTyper?: string
+  childBomCode?: string
+  itemMatType?: string
+}
+
+/** 工序 */
+export interface Oper extends BaseEntity {
+  oper?: string
+  operDesc?: string
+  unitId?: string
+  operHours?: number
+  manuCycle?: number
+  genPlan?: string
+  remark?: string
+}
+
+/** 流程/工艺路线 */
+export interface Flow extends BaseEntity {
+  flow?: string
+  flowDesc?: string
+  process?: string
+}
+
 /** 大屏聚合数据 */
 export interface DashboardData {
   overview: {

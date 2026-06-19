@@ -93,6 +93,37 @@ export const constantRoutes: RouteRecordRaw[] = [
           },
         ],
       },
+      {
+        path: 'technology',
+        redirect: '/technology/bom',
+        meta: { title: '工艺技术', icon: 'GitBranch' },
+        children: [
+          {
+            path: 'bom',
+            name: 'Bom',
+            component: () => import('@/views/technology/bom/BomListView.vue'),
+            meta: { title: '产品 BOM', icon: 'Boxes', keepAlive: true },
+          },
+          {
+            path: 'bom/:id',
+            name: 'BomDetail',
+            component: () => import('@/views/technology/bom/BomDetailView.vue'),
+            meta: { title: 'BOM 结构', hidden: true },
+          },
+          {
+            path: 'oper',
+            name: 'Oper',
+            component: () => import('@/views/technology/oper/OperListView.vue'),
+            meta: { title: '工序定义', icon: 'Cpu', keepAlive: true },
+          },
+          {
+            path: 'flow',
+            name: 'Flow',
+            component: () => import('@/views/technology/flow/FlowListView.vue'),
+            meta: { title: '工艺路线', icon: 'GitBranch', keepAlive: true },
+          },
+        ],
+      },
     ],
   },
   {

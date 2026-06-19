@@ -23,8 +23,9 @@ const { loading, list, total, query, load, onPageChange, onSizeChange, search, r
   useTable<Order>(pageOrders, { orderCodeLike: '', materielDescLike: '', statue: undefined })
 onMounted(load)
 
+const ALL = 'ALL'
 const statueOptions = [
-  { label: '全部状态', value: '' },
+  { label: '全部状态', value: ALL },
   { label: '待审批', value: '1' },
   { label: '已审批', value: '2' },
   { label: '已下发', value: '5' },
@@ -88,8 +89,8 @@ function onReset() {
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">状态</Label>
         <Select
-          :model-value="query.statue != null ? String(query.statue) : ''"
-          @update:model-value="query.statue = $event ? Number($event) : undefined"
+          :model-value="query.statue != null ? String(query.statue) : ALL"
+          @update:model-value="query.statue = $event && $event !== ALL ? Number($event) : undefined"
         >
           <SelectTrigger class="w-36"><SelectValue placeholder="全部状态" /></SelectTrigger>
           <SelectContent>

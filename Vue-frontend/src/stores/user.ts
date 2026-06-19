@@ -30,9 +30,9 @@ export const useUserStore = defineStore('user', {
     /** 登录：校验通过后建立会话并拉取用户档案 */
     async login(payload: LoginPayload) {
       await apiLogin(payload)
-      // 登录成功，生成本地登录态标记（真实会话在 Cookie）
-      this.token = `mes-${payload.username}-${Date.now()}`
+      // 先拉取用户档案，成功后再标记登录态，避免“半登录”（有 token 无用户信息）
       await this.fetchProfile()
+      this.token = `mes-${payload.username}-${Date.now()}`
     },
 
     /** 拉取当前用户与角色 */

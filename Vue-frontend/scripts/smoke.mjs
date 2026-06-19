@@ -170,6 +170,27 @@ try {
   log(`notify center FAIL: ${e.message}`)
 }
 
+// M10 AI 助手：SSE 流式对话（接真实 DashScope）
+try {
+  await page.goto(`${BASE}/assistant`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('textarea', { timeout: 8000 })
+  await page.fill('textarea', '查询库存低于安全库存的物料')
+  await page.keyboard.press('Enter')
+  // 等待助手气泡出现非空 Markdown 内容（流式增量）；两轮 LLM 调用较慢，给足 90s
+  await page.waitForFunction(
+    () => Array.from(document.querySelectorAll('.md-body')).some((b) => (b.textContent || '').trim().length > 0),
+    undefined,
+    { timeout: 90000 },
+  )
+  await page.waitForTimeout(2500)
+  const answer = (await page.locator('.md-body').last().textContent()) || ''
+  await page.screenshot({ path: path.join(OUT, '21-assistant.png'), fullPage: true })
+  log(`assistant answered (${answer.trim().length} chars): ${answer.slice(0, 50).replace(/\s+/g, ' ')}`)
+} catch (e) {
+  log(`assistant FAIL: ${e.message}`)
+  await page.screenshot({ path: path.join(OUT, '21-assistant-FAIL.png'), fullPage: true }).catch(() => {})
+}
+
 fs.writeFileSync(path.join(OUT, 'result.json'), JSON.stringify({ steps, consoleErrors, pageErrors, failed }, null, 2))
 console.log('\n===== SUMMARY =====')
 console.log('console errors:', consoleErrors.length)

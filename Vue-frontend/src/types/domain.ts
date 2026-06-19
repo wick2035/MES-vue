@@ -216,6 +216,21 @@ export interface Flow extends BaseEntity {
   process?: string
 }
 
+/** SN 工序采集记录 */
+export interface SnRecord extends BaseEntity {
+  sn?: string
+  orderId?: string
+  orderCode?: string
+  flowId?: string
+  operId?: string
+  oper?: string
+  operDesc?: string
+  stepNo?: number
+  /** OK / NG */
+  status?: string
+  remark?: string
+}
+
 /** 大屏聚合数据 */
 export interface DashboardData {
   overview: {

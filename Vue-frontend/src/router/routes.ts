@@ -124,6 +124,25 @@ export const constantRoutes: RouteRecordRaw[] = [
           },
         ],
       },
+      {
+        path: 'wip',
+        redirect: '/wip/records',
+        meta: { title: '在制管理', icon: 'ScanLine' },
+        children: [
+          {
+            path: 'records',
+            name: 'SnRecords',
+            component: () => import('@/views/wip/SnRecordsView.vue'),
+            meta: { title: '工序采集', icon: 'ScanLine', keepAlive: true },
+          },
+          {
+            path: 'trace/:sn',
+            name: 'SnTrace',
+            component: () => import('@/views/wip/SnTraceView.vue'),
+            meta: { title: 'SN 追溯', hidden: true },
+          },
+        ],
+      },
     ],
   },
   {

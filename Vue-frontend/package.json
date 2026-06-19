@@ -12,7 +12,9 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
-    "@vueuse/core": "^11.1.0",
+    "@lucide/vue": "^1.21.0",
+    "@vee-validate/zod": "^4.15.1",
+    "@vueuse/core": "^11.3.0",
     "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -21,11 +23,14 @@
     "nprogress": "^0.2.0",
     "pinia": "^3.0.1",
     "pinia-plugin-persistedstate": "^4.1.1",
+    "reka-ui": "^2.9.10",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
+    "vee-validate": "^4.15.1",
     "vue": "^3.5.12",
     "vue-router": "^4.4.5",
-    "vue-sonner": "^1.2.5"
+    "vue-sonner": "^1.2.5",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.7.5",

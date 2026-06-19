@@ -87,6 +87,20 @@ public class SpBomController extends BaseController {
         return Result.success(result);
     }
 
+    @ApiOperation("产品BOM详情（头信息）")
+    @PostMapping("/detail")
+    @ResponseBody
+    public Result detail(SpBom req) {
+        if (req == null || StringUtils.isEmpty(req.getId())) {
+            return Result.failure("请选择BOM");
+        }
+        SpBom bom = iSpBomService.getById(req.getId());
+        if (bom == null) {
+            return Result.failure("BOM不存在");
+        }
+        return Result.success(bom);
+    }
+
     @ApiOperation("产品BOM修改、新增（仅头信息）")
     @PostMapping("/add-or-update")
     @ResponseBody

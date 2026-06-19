@@ -71,6 +71,22 @@ await visit('03-equipment', '/basedata/equipment', 'table')
 await visit('04-inventory', '/basedata/inventory', 'table')
 await visit('05-plan', '/production/plan', 'table')
 await visit('06-orders', '/production/order', 'table')
+await visit('10-bom', '/technology/bom', 'table')
+await visit('11-oper', '/technology/oper', 'table')
+await visit('12-flow', '/technology/flow', 'table')
+
+// BOM 详情
+try {
+  await page.goto(`${BASE}/technology/bom`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('tbody tr', { timeout: 10000 })
+  await page.locator('tbody tr').first().getByTitle('查看结构').click()
+  await page.waitForURL('**/technology/bom/*', { timeout: 10000 })
+  await page.waitForTimeout(900)
+  await page.screenshot({ path: path.join(OUT, '13-bom-detail.png'), fullPage: true })
+  log(`bom detail OK (${page.url()})`)
+} catch (e) {
+  log(`bom detail FAIL: ${e.message}`)
+}
 
 // 工单详情
 try {

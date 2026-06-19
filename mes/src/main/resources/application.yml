@@ -3,6 +3,11 @@ server:
 spring:
   profiles:
     active: dev
+  mvc:
+    async:
+      # SSE 流式对话两轮调用（工具规划 + 流式作答）耗时可能超过默认 30s，
+      # 放宽异步请求超时，避免 emitter 提前 complete 导致 delta 发送失败
+      request-timeout: 300000
   cache:
     type: ehcache
     ehcache:

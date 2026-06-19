@@ -26,6 +26,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { title: '数据看板', icon: 'LayoutDashboard', keepAlive: true },
       },
       {
+        path: 'assistant',
+        name: 'Assistant',
+        component: () => import('@/views/assistant/AssistantView.vue'),
+        meta: { title: '智能助手', icon: 'Bot', keepAlive: true },
+      },
+      {
         path: 'profile',
         name: 'Profile',
         component: () => import('@/views/profile/ProfileView.vue'),

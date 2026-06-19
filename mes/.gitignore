@@ -4,6 +4,11 @@ target/
 !**/src/main/**
 !**/src/test/**
 
+# 旧前端代码（layui + FreeMarker），Vue 重构后不再纳入版本控制
+# 置于 !**/src/main/** 之后以覆盖该再包含规则
+src/main/resources/static/
+src/main/resources/templates/
+
 ### STS ###
 .apt_generated
 .classpath

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Moon, Sun, PanelLeftClose, PanelLeft, Bell, LogOut, UserCog } from 'lucide-vue-next'
+import { Search, Moon, Sun, PanelLeftClose, PanelLeft, LogOut, UserCog } from 'lucide-vue-next'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import AppBreadcrumb from './AppBreadcrumb.vue'
+import NotificationBell from './NotificationBell.vue'
 import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
 import { useCommandPalette } from '@/composables/useCommandPalette'
@@ -56,13 +57,8 @@ async function handleLogout() {
         <kbd class="hidden rounded border bg-muted px-1.5 text-[10px] sm:inline">Ctrl K</kbd>
       </button>
 
-      <!-- 通知（M9 接入 WebSocket） -->
-      <button
-        class="relative rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-        title="通知"
-      >
-        <Bell class="h-5 w-5" />
-      </button>
+      <!-- 实时通知中心（WebSocket） -->
+      <NotificationBell />
 
       <!-- 主题切换 -->
       <button

@@ -1,21 +1,27 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { onMounted, onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
 import AppTabs from './AppTabs.vue'
 import CommandPalette from './CommandPalette.vue'
 import { useTabsStore } from '@/stores/tabs'
+import { useNotifyStore } from '@/stores/notify'
 
 // 主框架：侧栏 + 头部 + 多页签 + keep-alive 内容区 + 全局命令面板
 const route = useRoute()
 const tabsStore = useTabsStore()
+const notifyStore = useNotifyStore()
 
 watch(
   () => route.fullPath,
   () => tabsStore.addTab(route),
   { immediate: true },
 )
+
+// 进入应用框架即建立实时通知长连接；登出（框架卸载）时断开
+onMounted(() => notifyStore.connect())
+onBeforeUnmount(() => notifyStore.disconnect())
 </script>
 
 <template>

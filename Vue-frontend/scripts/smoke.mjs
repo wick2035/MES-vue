@@ -150,6 +150,26 @@ try {
   log(`theme toggle FAIL: ${e.message}`)
 }
 
+// M9 实时通知中心：连接后即收到“连接成功”系统消息，铃铛出现未读角标；打开面板查看
+try {
+  await page.goto(`${BASE}/dashboard`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('button[title^="通知中心"]', { timeout: 8000 })
+  // 等待 WebSocket 建连 + 至少一轮广播（initialDelay 8s + fixedDelay 12s）
+  await page.waitForTimeout(11000)
+  const online = (await page.locator('button[title="通知中心（实时在线）"]').count()) > 0
+  // 关闭可能遮挡铃铛的 toast（与铃铛同处右上角），避免拦截点击
+  await page.evaluate(() => document.querySelectorAll('[data-sonner-toast]').forEach((t) => t.remove()))
+  await page.locator('button[title^="通知中心"]').click({ force: true })
+  await page.waitForTimeout(800)
+  const realtimeChip = await page.getByText('实时', { exact: true }).count()
+  const notifyItems = await page.locator('p.line-clamp-2').count()
+  await page.screenshot({ path: path.join(OUT, '20-notify.png') })
+  log(`notify center: online=${online} realtimeChip=${realtimeChip} items=${notifyItems}`)
+  await page.keyboard.press('Escape')
+} catch (e) {
+  log(`notify center FAIL: ${e.message}`)
+}
+
 fs.writeFileSync(path.join(OUT, 'result.json'), JSON.stringify({ steps, consoleErrors, pageErrors, failed }, null, 2))
 console.log('\n===== SUMMARY =====')
 console.log('console errors:', consoleErrors.length)

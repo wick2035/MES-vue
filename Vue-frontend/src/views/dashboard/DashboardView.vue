@@ -2,6 +2,8 @@
 import { Gauge } from 'lucide-vue-next'
 // 占位页：完整的 ECharts 多图数据看板在 M8 接入。
 
+defineOptions({ name: 'Dashboard' })
+
 const placeholders = [
   { label: '工单总数', value: '—' },
   { label: '计划产量', value: '—' },

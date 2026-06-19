@@ -96,6 +96,9 @@ export interface Order extends BaseEntity {
 export interface Equipment extends BaseEntity {
   equipmentCode?: string
   equipmentName?: string
+  equipmentModel?: string
+  purpose?: string
+  spec?: string
   equipmentGroupId?: string
   status?: string
   remark?: string
@@ -105,6 +108,7 @@ export interface Equipment extends BaseEntity {
 export interface Team extends BaseEntity {
   teamCode?: string
   teamName?: string
+  teamDesc?: string
   remark?: string
 }
 
@@ -112,15 +116,29 @@ export interface Team extends BaseEntity {
 export interface Warehouse extends BaseEntity {
   warehouseCode?: string
   warehouseName?: string
+  warehouseType?: string
+  warehouseDesc?: string
+  specGroup?: number
+  specRow?: number
+  specLayer?: number
+  specColumn?: number
   remark?: string
 }
 
 /** 库存 */
 export interface Inventory extends BaseEntity {
   warehouseId?: string
+  warehouseCode?: string
+  warehouseName?: string
+  locationId?: string
+  locationCode?: string
+  materielId?: string
   materielCode?: string
   materielDesc?: string
+  batchNo?: string
   qty?: number
+  unit?: string
+  stockStatus?: string
 }
 
 /** 大屏聚合数据 */

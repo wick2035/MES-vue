@@ -31,6 +31,43 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/profile/ProfileView.vue'),
         meta: { title: '个人中心', hidden: true },
       },
+      {
+        path: 'basedata',
+        redirect: '/basedata/material',
+        meta: { title: '基础数据', icon: 'Database' },
+        children: [
+          {
+            path: 'material',
+            name: 'Material',
+            component: () => import('@/views/basedata/material/MaterialListView.vue'),
+            meta: { title: '物料管理', icon: 'Package', keepAlive: true },
+          },
+          {
+            path: 'equipment',
+            name: 'Equipment',
+            component: () => import('@/views/basedata/equipment/EquipmentListView.vue'),
+            meta: { title: '设备管理', icon: 'Cpu', keepAlive: true },
+          },
+          {
+            path: 'team',
+            name: 'Team',
+            component: () => import('@/views/basedata/team/TeamListView.vue'),
+            meta: { title: '班组管理', icon: 'Users', keepAlive: true },
+          },
+          {
+            path: 'warehouse',
+            name: 'Warehouse',
+            component: () => import('@/views/basedata/warehouse/WarehouseListView.vue'),
+            meta: { title: '库房管理', icon: 'Warehouse', keepAlive: true },
+          },
+          {
+            path: 'inventory',
+            name: 'Inventory',
+            component: () => import('@/views/basedata/inventory/InventoryListView.vue'),
+            meta: { title: '库存管理', icon: 'Boxes', keepAlive: true },
+          },
+        ],
+      },
     ],
   },
   {

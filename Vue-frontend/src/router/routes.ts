@@ -143,6 +143,38 @@ export const constantRoutes: RouteRecordRaw[] = [
           },
         ],
       },
+      {
+        path: 'system',
+        redirect: '/system/user',
+        // 角色校验：仅管理员可见/可进入（路由守卫 + 侧栏过滤共同生效）
+        meta: { title: '系统管理', icon: 'Settings', roles: ['admin', '888888'] },
+        children: [
+          {
+            path: 'user',
+            name: 'User',
+            component: () => import('@/views/system/user/UserListView.vue'),
+            meta: { title: '用户管理', icon: 'Users', roles: ['admin', '888888'], keepAlive: true },
+          },
+          {
+            path: 'role',
+            name: 'Role',
+            component: () => import('@/views/system/role/RoleListView.vue'),
+            meta: { title: '角色管理', icon: 'ShieldCheck', roles: ['admin', '888888'], keepAlive: true },
+          },
+          {
+            path: 'menu',
+            name: 'Menu',
+            component: () => import('@/views/system/menu/MenuTreeView.vue'),
+            meta: { title: '菜单管理', icon: 'ListTree', roles: ['admin', '888888'], keepAlive: true },
+          },
+          {
+            path: 'dept',
+            name: 'Dept',
+            component: () => import('@/views/system/dept/DeptTreeView.vue'),
+            meta: { title: '部门管理', icon: 'Building2', roles: ['admin', '888888'], keepAlive: true },
+          },
+        ],
+      },
     ],
   },
   {

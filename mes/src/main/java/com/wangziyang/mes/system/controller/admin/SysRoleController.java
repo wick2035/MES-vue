@@ -128,6 +128,13 @@ public class SysRoleController extends BaseController {
         return Result.success();
     }
 
+    /** 角色已授权菜单树（JSON，含 checked），供前端授权弹窗回显 */
+    @PostMapping("/menu-tree")
+    @ResponseBody
+    public Result menuTree(@RequestParam String roleId) throws Exception {
+        return Result.success(sysMenuService.listMenuTreeWithRoleCheck(roleId));
+    }
+
     // ========== 数据权限 ==========
 
     @GetMapping("/data-scope-ui")

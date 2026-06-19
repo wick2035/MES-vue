@@ -74,6 +74,20 @@ await visit('06-orders', '/production/order', 'table')
 await visit('10-bom', '/technology/bom', 'table')
 await visit('11-oper', '/technology/oper', 'table')
 await visit('12-flow', '/technology/flow', 'table')
+await visit('14-sn-records', '/wip/records', 'table')
+
+// SN 追溯（取第一条记录的 SN）
+try {
+  await page.goto(`${BASE}/wip/records`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('tbody tr', { timeout: 10000 })
+  await page.locator('tbody tr').first().getByTitle('SN 追溯').click()
+  await page.waitForURL('**/wip/trace/*', { timeout: 10000 })
+  await page.waitForTimeout(900)
+  await page.screenshot({ path: path.join(OUT, '15-sn-trace.png'), fullPage: true })
+  log(`sn trace OK (${page.url()})`)
+} catch (e) {
+  log(`sn trace FAIL: ${e.message}`)
+}
 
 // BOM 详情
 try {

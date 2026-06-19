@@ -14,7 +14,7 @@ export interface TableColumn {
 export interface FormField {
   field: string
   label: string
-  type: 'input' | 'textarea' | 'number' | 'select'
+  type: 'input' | 'textarea' | 'number' | 'select' | 'password'
   placeholder?: string
   options?: { label: string; value: string | number }[]
   required?: boolean

@@ -75,6 +75,10 @@ await visit('10-bom', '/technology/bom', 'table')
 await visit('11-oper', '/technology/oper', 'table')
 await visit('12-flow', '/technology/flow', 'table')
 await visit('14-sn-records', '/wip/records', 'table')
+await visit('16-users', '/system/user', 'table')
+await visit('17-roles', '/system/role', 'table')
+await visit('18-menus', '/system/menu', 'main')
+await visit('19-depts', '/system/dept', 'main')
 
 // SN 追溯（取第一条记录的 SN）
 try {

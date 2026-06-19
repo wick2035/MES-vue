@@ -15,6 +15,9 @@ import {
   UserCog,
   Bot,
   Activity,
+  ShieldCheck,
+  ListTree,
+  Building2,
 } from 'lucide-vue-next'
 
 /**
@@ -37,6 +40,9 @@ export const iconMap: Record<string, Component> = {
   UserCog,
   Bot,
   Activity,
+  ShieldCheck,
+  ListTree,
+  Building2,
 }
 
 export function resolveIcon(name?: string): Component | undefined {

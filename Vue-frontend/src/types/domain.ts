@@ -231,6 +231,17 @@ export interface SnRecord extends BaseEntity {
   remark?: string
 }
 
+/** 通用树节点（对齐后端 TreeVO） */
+export interface TreeNode {
+  id: string
+  name: string
+  checked?: boolean
+  icon?: string
+  type?: string
+  url?: string
+  children?: TreeNode[]
+}
+
 /** 大屏聚合数据 */
 export interface DashboardData {
   overview: {

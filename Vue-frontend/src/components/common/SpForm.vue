@@ -87,7 +87,7 @@ defineExpose({ validate })
       </Select>
       <Input
         v-else
-        :type="f.type === 'number' ? 'number' : 'text'"
+        :type="f.type === 'number' ? 'number' : f.type === 'password' ? 'password' : 'text'"
         :model-value="model[f.field]"
         :placeholder="f.placeholder"
         :readonly="f.readonly"

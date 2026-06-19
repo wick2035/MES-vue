@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangziyang.mes.technology.mapper.SpBomItemMapper">
+
+    <select id="listByBomHeadId" resultType="com.wangziyang.mes.technology.entity.SpBomItem">
+        SELECT bi.id, bi.bom_head_id, bi.materiel_item_code, bi.materiel_item_desc,
+               bi.line_no, bi.item_num, bi.item_unit, bi.oper_typer,
+               bi.child_bom_id, bi.item_mat_type,
+               cb.bom_code AS child_bom_code,
+               bi.create_time, bi.create_username, bi.update_time, bi.update_username
+        FROM sp_bom_item bi
+        LEFT JOIN sp_bom cb ON cb.id = bi.child_bom_id
+        WHERE bi.bom_head_id = #{bomHeadId}
+        ORDER BY CAST(bi.line_no AS UNSIGNED)
+    </select>
+
+</mapper>

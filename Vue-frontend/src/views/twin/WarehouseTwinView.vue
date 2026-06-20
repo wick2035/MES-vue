@@ -122,20 +122,15 @@ onBeforeUnmount(() => {
         >
           <div class="flex items-center gap-2.5">
             <span
-              class="flex h-9 w-9 items-center justify-center rounded-md bg-slate-900 text-amber-300 shadow"
+              class="flex h-9 w-9 items-center justify-center rounded-md bg-slate-800 text-slate-100 shadow-sm"
             >
               <Warehouse class="h-5 w-5" />
             </span>
             <div>
               <h2 class="text-base font-semibold leading-tight text-slate-900">仓储控制台</h2>
               <p class="flex items-center gap-1.5 text-[11px] text-slate-500">
-                <span class="relative flex h-2 w-2">
-                  <span
-                    class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
-                  />
-                  <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                高位货架 · 库位占用实时映射 · 数据源自库存台账
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                库位占用实时映射
               </p>
             </div>
           </div>

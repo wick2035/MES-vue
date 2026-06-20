@@ -51,22 +51,22 @@ export class WarehouseTwinScene {
     depthTest: false,
   })
   private hoverFrame = new THREE.Mesh(this.hoverGeo, this.hoverMat)
-  // 共享结构件材质
+  // 共享结构件材质（统一冷灰钢调，去撞色）
   private steelMat = new THREE.MeshStandardMaterial({
-    color: 0xf97316,
-    metalness: 0.5,
-    roughness: 0.5,
-  }) // 橙色货架
+    color: 0x9aa6b6,
+    metalness: 0.35,
+    roughness: 0.55,
+  }) // 立柱/踢脚：浅钢灰
   private beamMat = new THREE.MeshStandardMaterial({
-    color: 0x2563eb,
-    metalness: 0.4,
-    roughness: 0.5,
-  }) // 蓝色横梁
+    color: 0x5f6b7a,
+    metalness: 0.3,
+    roughness: 0.6,
+  }) // 横梁：深钢灰（与立柱低对比两色）
   private palletMat = new THREE.MeshStandardMaterial({
-    color: 0xb07a45,
-    metalness: 0.05,
-    roughness: 0.9,
-  }) // 木托盘
+    color: 0xc2b39a,
+    metalness: 0.04,
+    roughness: 0.92,
+  }) // 木托盘：中性木灰
   private pickMat = new THREE.MeshBasicMaterial({
     transparent: true,
     opacity: 0,
@@ -83,12 +83,15 @@ export class WarehouseTwinScene {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.setSize(w, h, false)
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
+    // 电影级色调映射 + 柔和阴影：更干净、有高级感的渲染
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping
+    this.renderer.toneMappingExposure = 1.05
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(0xeef2f8)
-    this.scene.fog = new THREE.Fog(0xeef2f8, 70, 160)
+    this.scene.background = new THREE.Color(0xeef1f6)
+    this.scene.fog = new THREE.Fog(0xeef1f6, 80, 170)
 
     this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 400)
     this.camera.position.set(28, 26, 34)
@@ -116,30 +119,34 @@ export class WarehouseTwinScene {
   }
 
   private buildLights() {
-    const hemi = new THREE.HemisphereLight(0xffffff, 0xb9c4d6, 0.95)
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xc4ccd8, 0.85)
     this.scene.add(hemi)
-    const dir = new THREE.DirectionalLight(0xffffff, 0.95)
-    dir.position.set(22, 34, 20)
+    const ambient = new THREE.AmbientLight(0xffffff, 0.25)
+    this.scene.add(ambient)
+    const dir = new THREE.DirectionalLight(0xffffff, 1.05)
+    dir.position.set(26, 38, 22)
     dir.castShadow = true
-    dir.shadow.mapSize.set(1024, 1024)
+    dir.shadow.mapSize.set(2048, 2048)
     dir.shadow.camera.near = 1
-    dir.shadow.camera.far = 140
+    dir.shadow.camera.far = 160
     dir.shadow.camera.left = -60
     dir.shadow.camera.right = 60
     dir.shadow.camera.top = 40
     dir.shadow.camera.bottom = -40
+    dir.shadow.bias = -0.0005
+    dir.shadow.normalBias = 0.02
     this.scene.add(dir)
-    const fill = new THREE.DirectionalLight(0xdce6ff, 0.35)
-    fill.position.set(-20, 16, -16)
+    const fill = new THREE.DirectionalLight(0xdce6ff, 0.3)
+    fill.position.set(-22, 18, -18)
     this.scene.add(fill)
   }
 
   private buildFloor() {
     const floorGeo = new THREE.PlaneGeometry(240, 180)
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0xf6f8fc,
-      metalness: 0.05,
-      roughness: 0.95,
+      color: 0xeef1f6,
+      metalness: 0.04,
+      roughness: 0.96,
     })
     const floor = new THREE.Mesh(floorGeo, floorMat)
     floor.rotation.x = -Math.PI / 2
@@ -148,26 +155,25 @@ export class WarehouseTwinScene {
     this.scene.add(floor)
     this.disposables.push(floorGeo, floorMat)
 
-    const grid = new THREE.GridHelper(240, 96, 0xc2cee0, 0xdde5f0)
+    const grid = new THREE.GridHelper(240, 96, 0xcdd6e2, 0xe2e8f1)
     ;(grid.material as THREE.Material).transparent = true
-    ;(grid.material as THREE.Material).opacity = 0.5
+    ;(grid.material as THREE.Material).opacity = 0.32
     this.scene.add(grid)
     this.disposables.push(grid.geometry, grid.material as THREE.Material)
   }
 
   private buildGoodsPalette() {
-    const make = (color: number, emissive = 0x000000) =>
+    // 单一蓝色色阶（低→中→满），与底部图例一致，去自发光更克制
+    const make = (color: number) =>
       new THREE.MeshStandardMaterial({
         color,
-        emissive,
-        emissiveIntensity: emissive ? 0.18 : 0,
-        metalness: 0.1,
-        roughness: 0.7,
+        metalness: 0.0,
+        roughness: 0.68,
       })
     this.goodsPalette = {
-      low: make(0xbfdbfe),
-      mid: make(0x3b82f6, 0x1d4ed8),
-      high: make(0x1d4ed8, 0x1e40af),
+      low: make(0x93c5fd),
+      mid: make(0x3b82f6),
+      high: make(0x1d4ed8),
     }
     Object.values(this.goodsPalette).forEach((m) => this.disposables.push(m))
   }
@@ -374,9 +380,9 @@ export class WarehouseTwinScene {
     const diagLen = Math.sqrt(totalH * totalH + colSpan * colSpan)
     const diagGeo = new THREE.BoxGeometry(0.04, diagLen, 0.04)
     const diagMat = new THREE.MeshStandardMaterial({
-      color: 0xc2410c,
-      metalness: 0.4,
-      roughness: 0.6,
+      color: 0x7c8a9c,
+      metalness: 0.3,
+      roughness: 0.62,
     })
     const angle = Math.atan2(totalH, colSpan)
     for (const sign of [1, -1]) {
@@ -469,9 +475,8 @@ export class WarehouseTwinScene {
     totalX: number,
   ) {
     const lineMat = new THREE.MeshStandardMaterial({
-      color: 0xfbbf24,
-      emissive: 0xfbbf24,
-      emissiveIntensity: 0.2,
+      color: 0xe0b34a,
+      roughness: 0.8,
     })
     const lineGeo = new THREE.BoxGeometry(totalX + 4, 0.01, 0.12)
 
@@ -575,11 +580,11 @@ export class WarehouseTwinScene {
     group.position.set(x, 0, z)
     group.rotation.y = -0.25
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0xf59e0b,
-      metalness: 0.22,
-      roughness: 0.48,
+      color: 0xc99a3f,
+      metalness: 0.2,
+      roughness: 0.52,
     })
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.5 })
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x2a3340, roughness: 0.55 })
     const forkMat = new THREE.MeshStandardMaterial({
       color: 0x475569,
       metalness: 0.72,
@@ -623,14 +628,14 @@ export class WarehouseTwinScene {
     group.position.set(x, 0, z)
     group.rotation.y = Math.PI / 2
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0x0f766e,
-      metalness: 0.35,
-      roughness: 0.45,
+      color: 0x5b7e8c,
+      metalness: 0.3,
+      roughness: 0.5,
     })
     const glowMat = new THREE.MeshStandardMaterial({
-      color: 0x22d3ee,
-      emissive: 0x22d3ee,
-      emissiveIntensity: 0.75,
+      color: 0x9ec7d4,
+      emissive: 0x6aa6ba,
+      emissiveIntensity: 0.25,
     })
     const bodyGeo = new THREE.BoxGeometry(1.7, 0.32, 1.0)
     const lampGeo = new THREE.BoxGeometry(0.18, 0.08, 0.72)
@@ -698,7 +703,7 @@ export class WarehouseTwinScene {
     const lampPanelMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       emissive: 0xffffff,
-      emissiveIntensity: 0.7,
+      emissiveIntensity: 0.4,
     })
     const step = 6
     for (let lx = -halfX + 3; lx <= halfX - 3; lx += step) {
@@ -749,58 +754,6 @@ export class WarehouseTwinScene {
       this.rackGroup.add(label)
     }
     this.disposables.push(doorGeo, doorMat)
-
-    // 红色消防管线与喷淋头
-    const pipeMat = new THREE.MeshStandardMaterial({
-      color: 0xdc2626,
-      metalness: 0.3,
-      roughness: 0.48,
-    })
-    const pipeGeo = new THREE.CylinderGeometry(0.055, 0.055, spanX - 5, 12)
-    for (const pz of [-halfZ + 3, 0, halfZ - 3]) {
-      const pipe = new THREE.Mesh(pipeGeo, pipeMat)
-      pipe.rotation.z = Math.PI / 2
-      pipe.position.set(0, roofY - 1.1, pz)
-      this.rackGroup.add(pipe)
-    }
-    const headGeo = new THREE.CylinderGeometry(0.04, 0.11, 0.16, 10)
-    for (let hx = -halfX + 5; hx <= halfX - 5; hx += 8) {
-      const head = new THREE.Mesh(headGeo, pipeMat)
-      head.position.set(hx, roofY - 1.35, 0)
-      this.rackGroup.add(head)
-    }
-    this.disposables.push(pipeMat, pipeGeo, headGeo)
-
-    // 角落监控摄像头
-    const camGeo = new THREE.BoxGeometry(0.42, 0.22, 0.28)
-    const lensGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.12, 12)
-    const camMat = new THREE.MeshStandardMaterial({
-      color: 0x334155,
-      metalness: 0.5,
-      roughness: 0.42,
-    })
-    const lensMat = new THREE.MeshStandardMaterial({
-      color: 0x111827,
-      metalness: 0.4,
-      roughness: 0.32,
-    })
-    for (const [cx, cz] of [
-      [-halfX + 0.9, -halfZ + 0.9],
-      [halfX - 0.9, -halfZ + 0.9],
-      [-halfX + 0.9, halfZ - 0.9],
-      [halfX - 0.9, halfZ - 0.9],
-    ] as [number, number][]) {
-      const cam = new THREE.Group()
-      const body = new THREE.Mesh(camGeo, camMat)
-      const lens = new THREE.Mesh(lensGeo, lensMat)
-      lens.rotation.x = Math.PI / 2
-      lens.position.z = -0.22
-      cam.add(body, lens)
-      cam.position.set(cx, roofY - 1.45, cz)
-      cam.lookAt(0, 1.6, 0)
-      this.rackGroup.add(cam)
-    }
-    this.disposables.push(camGeo, lensGeo, camMat, lensMat)
   }
 
   private makeTextSprite(text: string): THREE.Sprite {
@@ -808,11 +761,11 @@ export class WarehouseTwinScene {
     c.width = 256
     c.height = 128
     const ctx = c.getContext('2d')!
-    ctx.fillStyle = 'rgba(22,163,74,0.9)'
-    roundRect(ctx, 8, 8, 240, 112, 14)
+    ctx.fillStyle = 'rgba(30,41,59,0.82)'
+    roundRect(ctx, 8, 8, 240, 112, 16)
     ctx.fill()
-    ctx.fillStyle = '#ffffff'
-    ctx.font = 'bold 48px "Microsoft YaHei", sans-serif'
+    ctx.fillStyle = '#e8edf5'
+    ctx.font = '600 46px "Microsoft YaHei", sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(text, 128, 64)

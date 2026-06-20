@@ -303,4 +303,82 @@ public class SysUserController extends BaseController {
         sysUserService.updateById(update);
         return Result.success();
     }
+
+    // ========== 个人中心：更新资料 ==========
+
+    @PostMapping("/update-profile")
+    @ResponseBody
+    public Result updateProfile(@RequestParam(required = false) String name,
+                                @RequestParam(required = false) String email,
+                                @RequestParam(required = false) String mobile) {
+        SysUser current = getSysUser();
+        if (current == null) {
+            return Result.failure("登录已过期，请重新登录");
+        }
+        name = StringUtils.trimToEmpty(name);
+        email = StringUtils.trimToEmpty(email);
+        mobile = StringUtils.trimToEmpty(mobile);
+
+        if (StringUtils.isEmpty(name)) {
+            return Result.failure("姓名不能为空");
+        }
+        if (StringUtils.length(name) > 64) {
+            return Result.failure("姓名不能超过64位");
+        }
+        if (StringUtils.isNotEmpty(email) && !EMAIL_PATTERN.matcher(email).matches()) {
+            return Result.failure("邮箱格式不正确");
+        }
+        if (StringUtils.isNotEmpty(mobile) && !MOBILE_PATTERN.matcher(mobile).matches()) {
+            return Result.failure("手机号必须是11位中国大陆手机号");
+        }
+        // 手机号唯一性（排除自身）
+        if (StringUtils.isNotEmpty(mobile)) {
+            QueryWrapper<SysUser> mobileQw = new QueryWrapper<SysUser>()
+                    .eq("mobile", mobile).ne("id", current.getId());
+            if (sysUserService.count(mobileQw) > 0) {
+                return Result.failure("手机号已被占用");
+            }
+        }
+
+        SysUser update = new SysUser();
+        update.setId(current.getId());
+        update.setName(name);
+        update.setEmail(email);
+        update.setMobile(mobile);
+        sysUserService.updateById(update);
+        return Result.success("资料已更新");
+    }
+
+    // ========== 个人中心：修改密码 ==========
+
+    @PostMapping("/change-password")
+    @ResponseBody
+    public Result changePassword(@RequestParam String oldPassword,
+                                 @RequestParam String newPassword) {
+        SysUser current = getSysUser();
+        if (current == null) {
+            return Result.failure("登录已过期，请重新登录");
+        }
+        if (StringUtils.isEmpty(oldPassword) || StringUtils.isEmpty(newPassword)) {
+            return Result.failure("密码不能为空");
+        }
+        if (newPassword.length() < 6 || newPassword.length() > 32) {
+            return Result.failure("新密码长度需为6-32位");
+        }
+        // 与 SysUserServiceImpl.save 一致：Md5Hash(password, username, 3)
+        SysUser dbUser = sysUserService.getById(current.getId());
+        if (dbUser == null) {
+            return Result.failure("用户不存在");
+        }
+        String oldHashed = new Md5Hash(oldPassword, dbUser.getUsername(), 3).toString();
+        if (!StringUtils.equals(oldHashed, dbUser.getPassword())) {
+            return Result.failure("当前密码不正确");
+        }
+        String newHashed = new Md5Hash(newPassword, dbUser.getUsername(), 3).toString();
+        SysUser update = new SysUser();
+        update.setId(current.getId());
+        update.setPassword(newHashed);
+        sysUserService.updateById(update);
+        return Result.success("密码修改成功");
+    }
 }

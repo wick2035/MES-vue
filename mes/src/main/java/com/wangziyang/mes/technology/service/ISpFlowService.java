@@ -13,5 +13,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ISpFlowService extends IService<SpFlow> {
 
+    /**
+     * 生成下一个工艺路线编码（前缀 GY + 6 位流水）
+     */
+    String nextFlowCode();
 
 }

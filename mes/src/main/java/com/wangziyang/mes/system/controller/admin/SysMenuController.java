@@ -1,6 +1,7 @@
 package com.wangziyang.mes.system.controller.admin;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
@@ -16,6 +17,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.List;
@@ -59,8 +61,36 @@ public class SysMenuController extends BaseController {
     @PostMapping("/add-or-update")
     @ResponseBody
     public Result addOrUpdate(SysMenu record) {
+        if (StringUtils.isEmpty(record.getName())) {
+            return Result.failure("菜单名称不能为空");
+        }
+        if (record.getSortNum() == null) {
+            record.setSortNum(100);
+        }
+        // 顶级菜单的 parentId 设为 "0"
+        if (StringUtils.isEmpty(record.getParentId())) {
+            record.setParentId("0");
+        }
+        // 不能将自己设为上级菜单
+        if (StringUtils.isNotEmpty(record.getId()) && record.getId().equals(record.getParentId())) {
+            return Result.failure("不能将自己设为上级菜单");
+        }
         sysMenuService.saveOrUpdate(record);
         return Result.success(record.getId());
+    }
+
+    @ApiOperation("删除菜单")
+    @PostMapping("/delete")
+    @ResponseBody
+    public Result delete(@RequestParam String id) {
+        // 检查是否有子菜单
+        QueryWrapper<SysMenu> childQw = new QueryWrapper<>();
+        childQw.eq("parent_id", id);
+        if (sysMenuService.count(childQw) > 0) {
+            return Result.failure("该菜单下存在子菜单，请先删除子菜单");
+        }
+        sysMenuService.removeById(id);
+        return Result.success();
     }
 
     @ApiOperation("系统管理菜单树表格数据")

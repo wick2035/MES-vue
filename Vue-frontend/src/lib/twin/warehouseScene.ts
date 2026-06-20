@@ -308,7 +308,7 @@ export class WarehouseTwinScene {
     }
 
     // 3) 通道黄线 + 装卸区 + 环境
-    this.buildAisleMarkings(maxGroup, rowsPerGroup, stepZ, groupGap, offsetZ, totalX)
+    this.buildAisleMarkings(maxGroup, rowsPerGroup, stepZ, groupGap, offsetZ, totalX, totalZ)
     this.buildWarehouseEnvironment(totalX, totalZ, rackHeight)
     this.buildRackLabels(
       maxGroup,
@@ -546,6 +546,7 @@ export class WarehouseTwinScene {
     groupGap: number,
     offsetZ: number,
     totalX: number,
+    totalZ: number,
   ) {
     const lineMat = new THREE.MeshStandardMaterial({
       color: 0xe0b34a,
@@ -569,40 +570,44 @@ export class WarehouseTwinScene {
     }
     this.disposables.push(lineGeo, lineMat)
 
-    // 装卸区（场景前方）
-    const zoneZ = offsetZ - rowsPerGroup * stepZ - 2
+    // 装卸区对齐前墙月台门外侧，保持“车辆在门外靠月台”的空间关系
+    const spanZ = Math.max(totalZ + 20, 24)
+    const zoneW = 11.8
+    const zoneD = 4.8
+    const zoneX = 0
+    const zoneZ = -spanZ / 2 - zoneD / 2 - 0.9
     const zoneMat = new THREE.MeshStandardMaterial({
       color: 0x22c55e,
       transparent: true,
       opacity: 0.12,
     })
-    const zoneGeo = new THREE.PlaneGeometry(6, 4)
+    const zoneGeo = new THREE.PlaneGeometry(zoneW, zoneD)
     const zone = new THREE.Mesh(zoneGeo, zoneMat)
     zone.rotation.x = -Math.PI / 2
-    zone.position.set(-totalX / 2 - 5, 0.013, zoneZ)
+    zone.position.set(zoneX, 0.013, zoneZ)
     this.rackGroup.add(zone)
     this.disposables.push(zoneGeo, zoneMat)
 
     // 装卸区边框
     const borderMat = new THREE.MeshStandardMaterial({ color: 0x16a34a })
-    const hGeo = new THREE.BoxGeometry(6, 0.015, 0.08)
-    const vGeo = new THREE.BoxGeometry(0.08, 0.015, 4)
+    const hGeo = new THREE.BoxGeometry(zoneW, 0.015, 0.08)
+    const vGeo = new THREE.BoxGeometry(0.08, 0.015, zoneD)
     const positions: [THREE.BoxGeometry, number, number][] = [
-      [hGeo, 0, -2],
-      [hGeo, 0, 2],
-      [vGeo, -3, 0],
-      [vGeo, 3, 0],
+      [hGeo, 0, -zoneD / 2],
+      [hGeo, 0, zoneD / 2],
+      [vGeo, -zoneW / 2, 0],
+      [vGeo, zoneW / 2, 0],
     ]
     for (const [geo, dx, dz] of positions) {
       const border = new THREE.Mesh(geo, borderMat)
-      border.position.set(-totalX / 2 - 5 + dx, 0.014, zoneZ + dz)
+      border.position.set(zoneX + dx, 0.014, zoneZ + dz)
       this.rackGroup.add(border)
     }
     this.disposables.push(hGeo, vGeo, borderMat)
 
     // 装卸区标签
     const label = this.makeTextSprite('装卸区')
-    label.position.set(-totalX / 2 - 5, 2.2, zoneZ)
+    label.position.set(zoneX, 2.2, zoneZ)
     label.scale.set(3.2, 1.6, 1)
     this.rackGroup.add(label)
   }
@@ -778,6 +783,11 @@ export class WarehouseTwinScene {
       transparent: true,
       opacity: 0.42,
     })
+    const doorHeight = 3.1
+    const doorWidth = 3.4
+    const doorStep = 4.25
+    const firstDoorX = -doorStep
+    const dockZ = -halfZ - 0.08
     const backWallGeo = new THREE.BoxGeometry(spanX, roofY, 0.18)
     const backWall = new THREE.Mesh(backWallGeo, wallMat)
     backWall.position.set(0, roofY / 2, halfZ)
@@ -788,9 +798,43 @@ export class WarehouseTwinScene {
       sideWall.position.set(sx, roofY / 2, 0)
       this.rackGroup.add(sideWall)
     }
-    this.disposables.push(wallMat, backWallGeo, sideWallGeo)
 
-    const doorHeight = 3.1
+    // 前墙按月台门洞分段建模，避免“只有门框没有墙”的空架子观感
+    const frontWallGeos: THREE.BoxGeometry[] = []
+    const frontWallZ = -halfZ
+    const lowerWallHeight = doorHeight + 0.35
+    const doorOpenings = [0, 1, 2].map((i) => {
+      const center = firstDoorX + i * doorStep
+      return {
+        left: center - doorWidth / 2 - 0.24,
+        right: center + doorWidth / 2 + 0.24,
+      }
+    })
+    let cursor = -halfX
+    const addFrontWallSegment = (left: number, right: number) => {
+      const width = right - left
+      if (width <= 0.25) return
+      const geo = new THREE.BoxGeometry(width, lowerWallHeight, 0.18)
+      const wall = new THREE.Mesh(geo, wallMat)
+      wall.position.set((left + right) / 2, lowerWallHeight / 2, frontWallZ)
+      this.rackGroup.add(wall)
+      frontWallGeos.push(geo)
+    }
+    for (const opening of doorOpenings) {
+      addFrontWallSegment(cursor, opening.left)
+      cursor = opening.right
+    }
+    addFrontWallSegment(cursor, halfX)
+
+    const topWallHeight = Math.max(0.2, roofY - lowerWallHeight)
+    const frontTopWallGeo = new THREE.BoxGeometry(spanX, topWallHeight, 0.18)
+    const frontTopWall = new THREE.Mesh(frontTopWallGeo, wallMat)
+    frontTopWall.position.set(0, lowerWallHeight + topWallHeight / 2, frontWallZ)
+    this.rackGroup.add(frontTopWall)
+    frontWallGeos.push(frontTopWallGeo)
+
+    this.disposables.push(wallMat, backWallGeo, sideWallGeo, ...frontWallGeos)
+
     const doorGeo = new THREE.BoxGeometry(3.4, doorHeight, 0.16)
     const doorMat = new THREE.MeshStandardMaterial({
       color: 0x64748b,
@@ -804,9 +848,6 @@ export class WarehouseTwinScene {
     })
     const lintelGeo = new THREE.BoxGeometry(3.8, 0.16, 0.22)
     const sideFrameGeo = new THREE.BoxGeometry(0.16, 3.42, 0.22)
-    const dockZ = -halfZ - 0.08
-    const doorStep = 4.25
-    const firstDoorX = -doorStep
     for (let i = 0; i < 3; i++) {
       const door = new THREE.Mesh(doorGeo, doorMat)
       door.position.set(firstDoorX + i * doorStep, doorHeight / 2, dockZ)

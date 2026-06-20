@@ -5,9 +5,11 @@ import com.wangziyang.mes.basedata.entity.SpInventory;
 import com.wangziyang.mes.basedata.entity.SpTeam;
 import com.wangziyang.mes.basedata.entity.SpTeamEmployee;
 import com.wangziyang.mes.basedata.entity.SpWarehouse;
+import com.wangziyang.mes.basedata.entity.SpWarehouseLocation;
 import com.wangziyang.mes.basedata.service.ISpInventoryService;
 import com.wangziyang.mes.basedata.service.ISpTeamEmployeeService;
 import com.wangziyang.mes.basedata.service.ISpTeamService;
+import com.wangziyang.mes.basedata.service.ISpWarehouseLocationService;
 import com.wangziyang.mes.basedata.service.ISpWarehouseService;
 import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
@@ -59,6 +61,9 @@ public class DashboardController extends BaseController {
     private ISpWarehouseService warehouseService;
 
     @Autowired
+    private ISpWarehouseLocationService warehouseLocationService;
+
+    @Autowired
     private ISpTeamService teamService;
 
     @Autowired
@@ -88,6 +93,102 @@ public class DashboardController extends BaseController {
         data.put("defect", buildDefect(records));
         data.put("inventory", buildInventory());
         data.put("personnel", buildPersonnel());
+        return Result.success(data);
+    }
+
+    /**
+     * 数字孪生库房：返回各库房的网格规格与逐库位占用/库存，供前端 3D 库位网格渲染。
+     * 数据源：sp_warehouse（网格规格）、sp_warehouse_location（库位坐标）、sp_inventory（占用/库存）。
+     */
+    @ApiOperation("数字孪生库房数据")
+    @PostMapping("/warehouse-twin")
+    @ResponseBody
+    public Result warehouseTwin() {
+        QueryWrapper<SpWarehouse> wq = new QueryWrapper<>();
+        wq.ne("is_deleted", "1");
+        wq.orderByAsc("warehouse_code");
+        List<SpWarehouse> warehouses = warehouseService.list(wq);
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SpWarehouse w : warehouses) {
+            // 库位坐标
+            QueryWrapper<SpWarehouseLocation> lq = new QueryWrapper<>();
+            lq.eq("warehouse_id", w.getId()).ne("is_deleted", "1");
+            List<SpWarehouseLocation> locs = warehouseLocationService.list(lq);
+
+            // 逐库位库存量与物料（listByWarehouse 已回填坐标/物料描述，仅取正常库存）
+            Map<String, BigDecimal> qtyByLoc = new HashMap<>();
+            Map<String, String> topMatByLoc = new HashMap<>();
+            Map<String, BigDecimal> topQtyByLoc = new HashMap<>();
+            BigDecimal warehouseTotal = BigDecimal.ZERO;
+            for (SpInventory inv : inventoryService.listByWarehouse(w.getId())) {
+                String locId = inv.getLocationId();
+                BigDecimal qty = inv.getQty() == null ? BigDecimal.ZERO : inv.getQty();
+                warehouseTotal = warehouseTotal.add(qty);
+                if (locId == null) {
+                    continue;
+                }
+                qtyByLoc.merge(locId, qty, BigDecimal::add);
+                // 记录该库位占比最大的物料用于展示
+                if (qty.compareTo(topQtyByLoc.getOrDefault(locId, BigDecimal.valueOf(-1))) > 0) {
+                    topQtyByLoc.put(locId, qty);
+                    topMatByLoc.put(locId, inv.getMaterielDesc() != null ? inv.getMaterielDesc() : inv.getMaterielCode());
+                }
+            }
+
+            List<Map<String, Object>> locations = new ArrayList<>();
+            int occupied = 0;
+            int maxLoc = 600; // 防止单库房库位过多导致前端 3D 负担
+            for (SpWarehouseLocation loc : locs) {
+                if (locations.size() >= maxLoc) {
+                    break;
+                }
+                BigDecimal qty = qtyByLoc.getOrDefault(loc.getId(), BigDecimal.ZERO);
+                boolean isOccupied = qty.compareTo(BigDecimal.ZERO) > 0;
+                if (isOccupied) {
+                    occupied++;
+                }
+                Map<String, Object> item = new HashMap<>();
+                item.put("code", loc.getLocationCode());
+                item.put("group", loc.getGroupNo() == null ? 1 : loc.getGroupNo());
+                item.put("row", loc.getRowNo() == null ? 1 : loc.getRowNo());
+                item.put("layer", loc.getLayerNo() == null ? 1 : loc.getLayerNo());
+                item.put("column", loc.getColumnNo() == null ? 1 : loc.getColumnNo());
+                item.put("qty", qty);
+                item.put("occupied", isOccupied);
+                item.put("disabled", "2".equals(loc.getStatus()));
+                item.put("materiel", topMatByLoc.get(loc.getId()));
+                locations.add(item);
+            }
+
+            Map<String, Object> dims = new HashMap<>();
+            dims.put("group", w.getSpecGroup() == null ? 1 : w.getSpecGroup());
+            dims.put("row", w.getSpecRow() == null ? 1 : w.getSpecRow());
+            dims.put("layer", w.getSpecLayer() == null ? 1 : w.getSpecLayer());
+            dims.put("column", w.getSpecColumn() == null ? 1 : w.getSpecColumn());
+
+            Map<String, Object> summary = new HashMap<>();
+            int locCount = locations.size();
+            summary.put("locationCount", locCount);
+            summary.put("occupiedCount", occupied);
+            summary.put("totalQty", warehouseTotal);
+            summary.put("occupancyRate", locCount > 0
+                    ? BigDecimal.valueOf(occupied * 100.0 / locCount).setScale(1, RoundingMode.HALF_UP).doubleValue()
+                    : 0d);
+
+            Map<String, Object> wh = new HashMap<>();
+            wh.put("id", w.getId());
+            wh.put("code", w.getWarehouseCode());
+            wh.put("name", w.getWarehouseName());
+            wh.put("type", w.getWarehouseType());
+            wh.put("dims", dims);
+            wh.put("summary", summary);
+            wh.put("locations", locations);
+            result.add(wh);
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("warehouses", result);
         return Result.success(data);
     }
 

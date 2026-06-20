@@ -19,6 +19,10 @@ import {
   ListTree,
   Building2,
   Box,
+  ClipboardCheck,
+  FileClock,
+  ArrowLeftRight,
+  PackageOpen,
 } from 'lucide-vue-next'
 
 /**
@@ -45,6 +49,10 @@ export const iconMap: Record<string, Component> = {
   ListTree,
   Building2,
   Box,
+  ClipboardCheck,
+  FileClock,
+  ArrowLeftRight,
+  PackageOpen,
 }
 
 export function resolveIcon(name?: string): Component | undefined {

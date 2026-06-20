@@ -192,6 +192,21 @@ public class SpWorkflowTaskServiceImpl extends ServiceImpl<SpWorkflowTaskMapper,
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result rejectOrderApprovalByBusinessId(String orderId, String opinion, SysUser user) {
+        SpWorkflowTask task = getOne(new QueryWrapper<SpWorkflowTask>()
+                .eq("business_type", WorkflowConstants.BUSINESS_ORDER_APPROVAL)
+                .eq("business_id", orderId)
+                .eq("status", WorkflowConstants.TASK_TODO)
+                .orderByDesc("create_time")
+                .last("limit 1"));
+        if (task == null) {
+            return Result.failure("该订单没有待审批流程任务");
+        }
+        return reject(task.getId(), opinion, user);
+    }
+
+    @Override
     public boolean canHandle(SpWorkflowTask task, SysUser user) {
         if (task == null || user == null) {
             return false;

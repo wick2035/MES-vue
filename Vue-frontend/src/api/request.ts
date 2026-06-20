@@ -41,8 +41,10 @@ service.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     typeof config.data === 'object' &&
     !(config.data instanceof FormData) &&
     !(config.data instanceof URLSearchParams)
+  // 调用方已显式声明 JSON（用于后端 @RequestBody 接口，含嵌套对象/数组）则保持 JSON，由 axios 序列化
+  const wantsJson = String(config.headers?.get?.('Content-Type') || '').includes('application/json')
 
-  if (isWriteMethod && isPlainObject) {
+  if (isWriteMethod && isPlainObject && !wantsJson) {
     config.headers.set('Content-Type', 'application/x-www-form-urlencoded')
     config.data = toFormUrlEncoded(config.data as Record<string, unknown>)
   }
@@ -88,6 +90,18 @@ export const http = {
     request<T>({ ...config, url, method: 'get', params }),
   post: <T = unknown>(url: string, data?: Record<string, unknown>, config?: AxiosRequestConfig) =>
     request<T>({ ...config, url, method: 'post', data }),
+  /** 发送 JSON 请求体（用于后端 @RequestBody 接口，data 可含嵌套对象/数组） */
+  postJson: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    request<T>({
+      ...config,
+      url,
+      method: 'post',
+      data,
+      headers: {
+        ...(config?.headers as Record<string, string>),
+        'Content-Type': 'application/json',
+      },
+    }),
 }
 
 export default service

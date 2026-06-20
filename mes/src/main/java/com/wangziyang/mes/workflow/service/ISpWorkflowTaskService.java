@@ -22,5 +22,7 @@ public interface ISpWorkflowTaskService extends IService<SpWorkflowTask> {
 
     Result completeOrderApprovalByBusinessId(String orderId, String opinion, SysUser user);
 
+    Result rejectOrderApprovalByBusinessId(String orderId, String opinion, SysUser user);
+
     boolean canHandle(SpWorkflowTask task, SysUser user);
 }

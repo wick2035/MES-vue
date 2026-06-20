@@ -16,6 +16,9 @@ export function saveOrder(data: Order) {
 export function approveOrder(id: string) {
   return http.post(`${BASE}/approve`, { id })
 }
+export function rejectOrder(id: string, opinion?: string) {
+  return http.post(`${BASE}/reject`, { id, opinion: opinion ?? '审批驳回' })
+}
 export function startWorkOrder(id: string) {
   return http.post(`${BASE}/start-work`, { id })
 }

@@ -19,6 +19,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -70,6 +74,51 @@ public class SysProfileController extends BaseController {
         // 角色名（取自登录态主体，多个用「、」拼接）
         model.addAttribute("roleNames", resolveRoleNames(principal));
         return "admin/system/profile/setting";
+    }
+
+    /**
+     * 当前登录用户（JSON）。供 Vue 前端登录后获取用户信息与角色，做 RBAC。
+     */
+    @PostMapping("/current")
+    @GetMapping("/current")
+    @ResponseBody
+    public Result current() {
+        SysUser principal = getSysUser();
+        if (principal == null) {
+            return Result.failure("未登录");
+        }
+        SysUser db = sysUserService.getById(principal.getId());
+        SysUser user = db != null ? db : principal;
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("id", user.getId());
+        data.put("username", user.getUsername());
+        data.put("name", user.getName());
+        data.put("picId", user.getPicId());
+        data.put("deptId", user.getDeptId());
+        data.put("email", user.getEmail());
+        data.put("mobile", user.getMobile());
+
+        List<String> roleCodes = new ArrayList<>();
+        List<Map<String, Object>> roles = new ArrayList<>();
+        if (principal instanceof SysUserDTO) {
+            SysUserDTO dto = (SysUserDTO) principal;
+            if (CollectionUtils.isNotEmpty(dto.getSysRoleDTOs())) {
+                for (SysRoleDTO r : dto.getSysRoleDTOs()) {
+                    if (StringUtils.isNotEmpty(r.getCode())) {
+                        roleCodes.add(r.getCode());
+                    }
+                    Map<String, Object> rm = new LinkedHashMap<>();
+                    rm.put("code", r.getCode());
+                    rm.put("name", r.getName());
+                    roles.add(rm);
+                }
+            }
+        }
+        data.put("roleCodes", roleCodes);
+        data.put("roles", roles);
+        data.put("roleNames", resolveRoleNames(principal));
+        return Result.success(data);
     }
 
     /**

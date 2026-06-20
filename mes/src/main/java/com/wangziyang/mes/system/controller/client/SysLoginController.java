@@ -114,6 +114,20 @@ public class SysLoginController {
     }
 
     /**
+     * 注销（JSON）。供 Vue 前端调用以失效当前会话。
+     */
+    @PostMapping("/client/logout")
+    @ResponseBody
+    public Result logout() {
+        try {
+            SecurityUtils.getSubject().logout();
+        } catch (Exception e) {
+            logger.warn("注销失败", e);
+        }
+        return Result.success();
+    }
+
+    /**
      * 404页面
      *
      * @param model

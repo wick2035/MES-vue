@@ -129,6 +129,21 @@ public class SpOrderController extends BaseController {
         return Result.success(result);
     }
 
+    @ApiOperation("Production order detail")
+    @PostMapping("/detail")
+    @ResponseBody
+    public Result detail(SpOrder req) {
+        if (req == null || StringUtils.isEmpty(req.getId())) {
+            return Result.failure("请选择工单");
+        }
+        SpOrder order = orderService.getById(req.getId());
+        if (order == null) {
+            return Result.failure("工单不存在");
+        }
+        enrichOrders(Collections.singletonList(order));
+        return Result.success(order);
+    }
+
     @ApiOperation("Production order add/update")
     @PostMapping("/add-or-update")
     @ResponseBody

@@ -1,0 +1,20 @@
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { ShieldX } from 'lucide-vue-next'
+
+const router = useRouter()
+</script>
+
+<template>
+  <div class="flex h-full min-h-screen flex-col items-center justify-center gap-4 bg-background">
+    <ShieldX class="h-16 w-16 text-destructive" />
+    <h1 class="text-2xl font-semibold">403 · 无权访问</h1>
+    <p class="text-sm text-muted-foreground">您没有访问该页面的权限，请联系管理员。</p>
+    <button
+      class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+      @click="router.replace('/')"
+    >
+      返回首页
+    </button>
+  </div>
+</template>

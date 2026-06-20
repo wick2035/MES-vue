@@ -50,7 +50,7 @@ function toggleGroup(path: string) {
     <!-- 品牌 -->
     <div class="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
       <Factory class="h-6 w-6 shrink-0 text-primary" />
-      <span v-show="!collapsed" class="truncate text-base font-semibold">MES 智造中心</span>
+      <span v-show="!collapsed" class="truncate text-base font-semibold">MES 智造执行系统</span>
     </div>
 
     <!-- 菜单 -->

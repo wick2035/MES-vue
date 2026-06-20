@@ -1,4 +1,4 @@
-# MES 智造中心 · Vue 3 工业互联网前端
+# MES 智造执行系统 · Vue 3 工业互联网前端
 
 面向制造执行系统（MES）的现代化 Web 前端，基于 **Vue 3 + TypeScript + Vite + shadcn-vue**，
 对接同仓库的 Spring Boot 后端真实接口，覆盖从基础数据、工艺工单到工序采集、数据看板的完整制造业务闭环，

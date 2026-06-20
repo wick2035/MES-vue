@@ -35,20 +35,24 @@ const table = reactive(
 )
 
 const columns: TableColumn[] = [
+  { key: 'select', title: '选择', slot: 'select', width: '64px', align: 'center' },
   { key: 'productionOrderNo', title: '生产订单', width: '160px' },
   {
     key: 'productName',
     title: '产品',
+    slot: 'product',
+    width: '140px',
     formatter: (r) => r.productName || r.productMateriel || '—',
   },
-  { key: 'materialCode', title: '需求物料', slot: 'material', width: '220px' },
+  { key: 'materialCode', title: '需求物料', slot: 'material', width: '240px' },
   { key: 'grossRequirement', title: '毛需求', align: 'right', width: '90px' },
   { key: 'availableStock', title: '可用库存', align: 'right', width: '90px' },
-  { key: 'netRequirement', title: '净需求', slot: 'net', align: 'right', width: '90px' },
+  { key: 'netRequirement', title: '净需求', slot: 'net', align: 'right', width: '100px' },
   { key: 'requirementDate', title: '需求日期', width: '120px' },
   { key: 'deliveryStatus', title: '下发', slot: 'delivery', width: '90px', align: 'center' },
   { key: 'inboundStatus', title: '入库', slot: 'inbound', width: '90px', align: 'center' },
   { key: 'outboundStatus', title: '出库', slot: 'outbound', width: '90px', align: 'center' },
+  { key: 'action', title: '操作', slot: 'action', width: '110px', align: 'center' },
 ]
 
 const hasOrderContext = computed(() => !!table.query.productionOrderId)
@@ -205,21 +209,35 @@ onMounted(table.load)
           </Button>
         </div>
       </template>
+      <template #select="{ row }">
+        <input
+          type="checkbox"
+          class="h-4 w-4 rounded border-input accent-primary"
+          aria-label="选择当前物料计划"
+          :checked="isSelected(row.id)"
+          @change="toggle(row.id, ($event.target as HTMLInputElement).checked)"
+        />
+      </template>
+      <template #product="{ row }">
+        <span
+          class="block max-w-[140px] truncate"
+          :title="row.productName || row.productMateriel || ''"
+        >
+          {{ row.productName || row.productMateriel || '—' }}
+        </span>
+      </template>
       <template #material="{ row }">
-        <label class="flex items-start gap-2">
-          <input
-            type="checkbox"
-            class="mt-1 h-4 w-4 accent-primary"
-            :checked="isSelected(row.id)"
-            @change="toggle(row.id, ($event.target as HTMLInputElement).checked)"
-          />
-          <span>
-            <span class="block font-mono text-xs">{{ row.materialCode || '—' }}</span>
-            <span class="block text-xs text-muted-foreground">{{
-              row.materialName || '未维护名称'
-            }}</span>
+        <div class="max-w-[240px] leading-tight">
+          <span class="block truncate font-mono text-xs" :title="row.materialCode || ''">
+            {{ row.materialCode || '—' }}
           </span>
-        </label>
+          <span
+            class="block truncate text-xs text-muted-foreground"
+            :title="row.materialName || ''"
+          >
+            {{ row.materialName || '未维护名称' }}
+          </span>
+        </div>
       </template>
       <template #net="{ row, value }">
         <span :class="Number(value || 0) > 0 ? 'font-semibold text-warning' : 'text-success'">
@@ -238,22 +256,24 @@ onMounted(table.load)
           :text="statusText[value] || value || '未处理'"
         />
       </template>
-      <template #outbound="{ row, value }">
-        <div class="flex items-center justify-center gap-1">
-          <SpStatusBadge
-            :tone="value === 'COMPLETED' || value === 'CONFIRMED' ? 'success' : 'muted'"
-            :text="statusText[value] || value || '未处理'"
-          />
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            title="生成配套出库单"
-            :disabled="!!operating"
-            @click="kittingRequest(row)"
-          >
-            <Send class="h-4 w-4" />
-          </Button>
-        </div>
+      <template #outbound="{ value }">
+        <SpStatusBadge
+          :tone="value === 'COMPLETED' || value === 'CONFIRMED' ? 'success' : 'muted'"
+          :text="statusText[value] || value || '未处理'"
+        />
+      </template>
+      <template #action="{ row }">
+        <Button
+          size="sm"
+          variant="ghost"
+          class="h-8 px-2 text-xs text-primary hover:bg-primary/10 hover:text-primary"
+          title="生成配套出库单"
+          :disabled="!!operating"
+          @click="kittingRequest(row)"
+        >
+          <Send class="h-4 w-4" />
+          出库单
+        </Button>
       </template>
     </SpDataTable>
   </div>

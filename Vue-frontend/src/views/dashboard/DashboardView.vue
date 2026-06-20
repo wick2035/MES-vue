@@ -40,12 +40,42 @@ onUnmounted(() => timer && clearInterval(timer))
 
 const ov = computed(() => data.value?.overview)
 const kpis = computed(() => [
-  { label: '工单总数', value: ov.value?.orderCount ?? 0, icon: ClipboardList, gradient: 'from-blue-500 to-indigo-500' },
-  { label: '计划产量', value: ov.value?.planQty ?? 0, icon: Boxes, gradient: 'from-violet-500 to-purple-500' },
-  { label: '完工数量', value: ov.value?.completedQty ?? 0, icon: CheckCircle2, gradient: 'from-emerald-500 to-green-500' },
-  { label: '在制数量', value: ov.value?.inProcessQty ?? 0, icon: Loader, gradient: 'from-amber-500 to-orange-500' },
-  { label: '报废数量', value: ov.value?.scrappedQty ?? 0, icon: Trash2, gradient: 'from-rose-500 to-red-500' },
-  { label: '良品率', value: `${ov.value?.yieldRate ?? 0}%`, icon: Gauge, gradient: 'from-cyan-500 to-sky-500' },
+  {
+    label: '工单总数',
+    value: ov.value?.orderCount ?? 0,
+    icon: ClipboardList,
+    gradient: 'from-blue-500 to-indigo-500',
+  },
+  {
+    label: '计划产量',
+    value: ov.value?.planQty ?? 0,
+    icon: Boxes,
+    gradient: 'from-violet-500 to-purple-500',
+  },
+  {
+    label: '完工数量',
+    value: ov.value?.completedQty ?? 0,
+    icon: CheckCircle2,
+    gradient: 'from-emerald-500 to-green-500',
+  },
+  {
+    label: '在制数量',
+    value: ov.value?.inProcessQty ?? 0,
+    icon: Loader,
+    gradient: 'from-amber-500 to-orange-500',
+  },
+  {
+    label: '报废数量',
+    value: ov.value?.scrappedQty ?? 0,
+    icon: Trash2,
+    gradient: 'from-rose-500 to-red-500',
+  },
+  {
+    label: '良品率',
+    value: `${ov.value?.yieldRate ?? 0}%`,
+    icon: Gauge,
+    gradient: 'from-cyan-500 to-sky-500',
+  },
 ])
 
 const orderStatusOption = computed<EChartsOption>(() => ({
@@ -104,7 +134,13 @@ const defectOption = computed<EChartsOption>(() => {
     xAxis: { type: 'category', data: p.map((x) => x.operDesc) },
     yAxis: { type: 'value' },
     series: [
-      { type: 'line', smooth: true, areaStyle: { opacity: 0.15 }, color: '#DC2626', data: p.map((x) => x.defectRate) },
+      {
+        type: 'line',
+        smooth: true,
+        areaStyle: { opacity: 0.15 },
+        color: '#DC2626',
+        data: p.map((x) => x.defectRate),
+      },
     ],
   }
 })
@@ -131,19 +167,52 @@ const personnelOption = computed<EChartsOption>(() => {
     grid: { left: 10, right: 16, top: 20, bottom: 30, containLabel: true },
     xAxis: { type: 'category', data: p.map((x) => x.name) },
     yAxis: { type: 'value' },
-    series: [{ type: 'bar', data: p.map((x) => x.value), itemStyle: { borderRadius: [4, 4, 0, 0] }, barWidth: '50%' }],
+    series: [
+      {
+        type: 'bar',
+        data: p.map((x) => x.value),
+        itemStyle: { borderRadius: [4, 4, 0, 0] },
+        barWidth: '50%',
+      },
+    ],
   }
 })
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-semibold">智能制造数据中心</h2>
-        <p class="text-sm text-muted-foreground">全部指标来自真实业务数据，每 30 秒自动刷新</p>
+    <!-- 英雄区：渐变品牌带 + 实时状态 -->
+    <div
+      class="relative overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/95 via-primary to-indigo-600 px-6 py-5 text-white shadow-sp-lg"
+    >
+      <div
+        class="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl"
+      />
+      <div
+        class="pointer-events-none absolute -bottom-20 right-24 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl"
+      />
+      <div class="relative flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-xl font-semibold tracking-tight">智能制造数据中心</h2>
+          <p class="mt-1 flex items-center gap-2 text-sm text-white/80">
+            <span class="relative flex h-2 w-2">
+              <span
+                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75"
+              />
+              <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-300" />
+            </span>
+            全部指标来自真实业务数据 · 每 30 秒自动刷新
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          class="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+          @click="load()"
+        >
+          <RefreshCw class="h-4 w-4" />刷新
+        </Button>
       </div>
-      <Button variant="outline" size="sm" @click="load()"><RefreshCw class="h-4 w-4" />刷新</Button>
     </div>
 
     <!-- KPI -->
@@ -151,13 +220,13 @@ const personnelOption = computed<EChartsOption>(() => {
       <Card
         v-for="k in kpis"
         :key="k.label"
-        class="group relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+        class="group relative overflow-hidden rounded-2xl ring-1 ring-transparent transition-all duration-200 hover:-translate-y-1 hover:shadow-sp-lg hover:ring-primary/20"
       >
-        <div :class="['absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r opacity-70', k.gradient]" />
+        <div :class="['absolute inset-x-0 top-0 h-1 bg-gradient-to-r', k.gradient]" />
         <CardContent class="flex items-center gap-3 p-4">
           <div
             :class="[
-              'flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm transition-transform duration-200 group-hover:scale-105',
+              'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm transition-transform duration-200 group-hover:scale-110',
               k.gradient,
             ]"
           >

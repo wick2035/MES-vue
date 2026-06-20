@@ -33,9 +33,22 @@ export const constantRoutes: RouteRecordRaw[] = [
       },
       {
         path: 'twin',
-        name: 'DigitalTwin',
-        component: () => import('@/views/twin/DigitalTwinView.vue'),
+        redirect: '/twin/line',
         meta: { title: '数字孪生', icon: 'Box' },
+        children: [
+          {
+            path: 'line',
+            name: 'DigitalTwinLine',
+            component: () => import('@/views/twin/DigitalTwinView.vue'),
+            meta: { title: '数字孪生产线', icon: 'Factory' },
+          },
+          {
+            path: 'warehouse',
+            name: 'DigitalTwinWarehouse',
+            component: () => import('@/views/twin/WarehouseTwinView.vue'),
+            meta: { title: '数字孪生库房', icon: 'Warehouse' },
+          },
+        ],
       },
       {
         path: 'profile',
@@ -98,10 +111,35 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: { title: '生产工单', icon: 'Factory', keepAlive: true },
           },
           {
+            path: 'approval',
+            name: 'ApprovalCenter',
+            component: () => import('@/views/approval/ApprovalCenterView.vue'),
+            meta: { title: '审批中心', icon: 'ClipboardCheck', keepAlive: true },
+          },
+          {
+            path: 'change',
+            name: 'WorkOrderChange',
+            component: () => import('@/views/order/WorkOrderChangeView.vue'),
+            meta: { title: '工单变更', icon: 'FileClock', keepAlive: true },
+          },
+          {
             path: 'order/:id',
             name: 'OrderDetail',
             component: () => import('@/views/order/OrderDetailView.vue'),
             meta: { title: '工单详情', hidden: true },
+          },
+        ],
+      },
+      {
+        path: 'warehouse',
+        redirect: '/warehouse/request',
+        meta: { title: '仓储管理', icon: 'PackageOpen' },
+        children: [
+          {
+            path: 'request',
+            name: 'WarehouseRequest',
+            component: () => import('@/views/warehouse/WarehouseRequestView.vue'),
+            meta: { title: '出入库管理', icon: 'ArrowLeftRight', keepAlive: true },
           },
         ],
       },
@@ -171,19 +209,34 @@ export const constantRoutes: RouteRecordRaw[] = [
             path: 'role',
             name: 'Role',
             component: () => import('@/views/system/role/RoleListView.vue'),
-            meta: { title: '角色管理', icon: 'ShieldCheck', roles: ['admin', '888888'], keepAlive: true },
+            meta: {
+              title: '角色管理',
+              icon: 'ShieldCheck',
+              roles: ['admin', '888888'],
+              keepAlive: true,
+            },
           },
           {
             path: 'menu',
             name: 'Menu',
             component: () => import('@/views/system/menu/MenuTreeView.vue'),
-            meta: { title: '菜单管理', icon: 'ListTree', roles: ['admin', '888888'], keepAlive: true },
+            meta: {
+              title: '菜单管理',
+              icon: 'ListTree',
+              roles: ['admin', '888888'],
+              keepAlive: true,
+            },
           },
           {
             path: 'dept',
             name: 'Dept',
             component: () => import('@/views/system/dept/DeptTreeView.vue'),
-            meta: { title: '部门管理', icon: 'Building2', roles: ['admin', '888888'], keepAlive: true },
+            meta: {
+              title: '部门管理',
+              icon: 'Building2',
+              roles: ['admin', '888888'],
+              keepAlive: true,
+            },
           },
         ],
       },

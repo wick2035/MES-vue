@@ -108,10 +108,14 @@ export interface Order extends BaseEntity {
 /** 生产订单（计划层，工单的上游来源） */
 export interface ProductionOrder extends BaseEntity {
   orderNo?: string
+  /** DEMAND 需求 / FORECAST 预测 */
   sourceType?: string
   customerName?: string
   businessType?: string
   orderDate?: string
+  /** REVERSE 逆向排产 / FORWARD 正向排产 */
+  schedulingMethod?: string
+  remark?: string
   status?: string
   approvalStatus?: string
   operationStatus?: string
@@ -121,6 +125,41 @@ export interface ProductionOrder extends BaseEntity {
   firstProductMateriel?: string
   firstPlanDeliveryDate?: string
   mrpStatus?: string
+}
+
+/** 生产订单产品明细行 */
+export interface ProductionOrderItem extends BaseEntity {
+  orderId?: string
+  productMateriel?: string
+  productName?: string
+  bomCode?: string
+  bomVersion?: string
+  model?: string
+  specification?: string
+  qty?: number
+  planDeliveryDate?: string
+  planStartDate?: string
+  leadTimeDays?: number
+  workOrderId?: string
+  workOrderCode?: string
+}
+
+/** 工单变更记录 */
+export interface WorkOrderChange extends BaseEntity {
+  workOrderId?: string
+  workOrderCode?: string
+  productionOrderId?: string
+  beforeQty?: number
+  afterQty?: number
+  beforePlanStartTime?: string
+  afterPlanStartTime?: string
+  beforePlanEndTime?: string
+  afterPlanEndTime?: string
+  beforeRemark?: string
+  afterRemark?: string
+  /** APPROVING/APPROVED/REJECTED/APPLIED */
+  status?: string
+  applyTime?: string
 }
 
 /** 设备 */
@@ -170,6 +209,43 @@ export interface Inventory extends BaseEntity {
   qty?: number
   unit?: string
   stockStatus?: string
+}
+
+/** 出入库单 */
+export interface WarehouseRequest extends BaseEntity {
+  requestNo?: string
+  businessType?: string
+  sourceNo?: string
+  warehouseId?: string
+  warehouseName?: string
+  status?: string
+  itemCount?: number
+  totalQty?: number
+  confirmedCount?: number
+  applyUsername?: string
+  applyTime?: string
+  confirmUsername?: string
+  confirmTime?: string
+  remark?: string
+}
+
+/** 库存事务台账 */
+export interface WarehouseTransaction extends BaseEntity {
+  transactionNo?: string
+  requestNo?: string
+  direction?: string
+  businessType?: string
+  warehouseId?: string
+  warehouseName?: string
+  materialId?: string
+  materialCode?: string
+  materialName?: string
+  batchNo?: string
+  qty?: number
+  beforeQty?: number
+  afterQty?: number
+  operatorUsername?: string
+  operateTime?: string
 }
 
 /** BOM 头 */
@@ -257,8 +333,21 @@ export interface DashboardData {
     status: Array<{ name: string; value: number }>
     type: Array<{ name: string; value: number; qty: number }>
   }
-  processFlow: Array<{ oper: string; operDesc: string; stepNo: number; ok: number; ng: number; total: number }>
-  achievement: Array<{ orderCode: string; desc: string; planQty: number; completedQty: number; rate: number }>
+  processFlow: Array<{
+    oper: string
+    operDesc: string
+    stepNo: number
+    ok: number
+    ng: number
+    total: number
+  }>
+  achievement: Array<{
+    orderCode: string
+    desc: string
+    planQty: number
+    completedQty: number
+    rate: number
+  }>
   defect: {
     overallYield: number
     overallDefect: number
@@ -269,6 +358,35 @@ export interface DashboardData {
     topMateriel: Array<{ name: string; value: number }>
   }
   personnel: Array<{ name: string; value: number }>
+}
+
+/** 数字孪生库房：单个库位 */
+export interface TwinLocation {
+  code?: string
+  group: number
+  row: number
+  layer: number
+  column: number
+  qty: number
+  occupied: boolean
+  disabled: boolean
+  materiel?: string
+}
+
+/** 数字孪生库房：单个库房 */
+export interface TwinWarehouse {
+  id: string
+  code?: string
+  name?: string
+  type?: string
+  dims: { group: number; row: number; layer: number; column: number }
+  summary: { locationCount: number; occupiedCount: number; totalQty: number; occupancyRate: number }
+  locations: TwinLocation[]
+}
+
+/** 数字孪生库房聚合数据 */
+export interface WarehouseTwinData {
+  warehouses: TwinWarehouse[]
 }
 
 /** 实时通知 */

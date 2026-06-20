@@ -1,11 +1,27 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, RotateCcw, Eye, CheckCircle2, Trash2 } from 'lucide-vue-next'
+import {
+  Search,
+  RotateCcw,
+  Eye,
+  CheckCircle2,
+  Trash2,
+  BadgeCheck,
+  PlayCircle,
+  Flag,
+  Truck,
+} from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import SpDataTable from '@/components/common/SpDataTable.vue'
 import SpStatusBadge from '@/components/common/SpStatusBadge.vue'
 import SpConfirm from '@/components/common/SpConfirm.vue'
@@ -23,6 +39,49 @@ const { loading, list, total, query, load, onPageChange, onSizeChange, search, r
   useTable<Order>(pageOrders, { orderCodeLike: '', materielDescLike: '', statue: undefined })
 onMounted(load)
 
+// 四联状态汇总（本页工单口径）：已审批 / 未动工 / 待完工 / 待交付
+const summary = computed(() => {
+  const rows = list.value ?? []
+  const approved = rows.filter((r) => (r.statue ?? 0) >= 2).length
+  const notStarted = rows.filter((r) => r.workStatus !== 'STARTED').length
+  const notCompleted = rows.filter((r) => r.completeStatus !== 'COMPLETED').length
+  const notDelivered = rows.filter((r) => r.deliveryStatus !== 'DELIVERED').length
+  return [
+    {
+      label: '已审批',
+      value: approved,
+      icon: BadgeCheck,
+      tint: 'text-primary',
+      ring: 'ring-primary/15',
+      bg: 'bg-primary/10',
+    },
+    {
+      label: '未动工',
+      value: notStarted,
+      icon: PlayCircle,
+      tint: 'text-muted-foreground',
+      ring: 'ring-border',
+      bg: 'bg-muted',
+    },
+    {
+      label: '待完工',
+      value: notCompleted,
+      icon: Flag,
+      tint: 'text-warning',
+      ring: 'ring-warning/20',
+      bg: 'bg-warning/10',
+    },
+    {
+      label: '待交付',
+      value: notDelivered,
+      icon: Truck,
+      tint: 'text-success',
+      ring: 'ring-success/20',
+      bg: 'bg-success/10',
+    },
+  ]
+})
+
 const ALL = 'ALL'
 const statueOptions = [
   { label: '全部状态', value: ALL },
@@ -37,7 +96,13 @@ const columns: TableColumn[] = [
   { key: 'orderCode', title: '工单编号', width: '170px' },
   { key: 'materielDesc', title: '物料' },
   { key: 'qty', title: '数量', width: '80px', align: 'right' },
-  { key: 'orderType', title: '类型', width: '80px', align: 'center', formatter: (r) => orderTypeName(r.orderType) },
+  {
+    key: 'orderType',
+    title: '类型',
+    width: '80px',
+    align: 'center',
+    formatter: (r) => orderTypeName(r.orderType),
+  },
   { key: 'mainStatusName', title: '审批状态', slot: 'statue', width: '110px', align: 'center' },
   { key: 'workStatusName', title: '动工', slot: 'work', width: '90px', align: 'center' },
   { key: 'completeStatusName', title: '完工', slot: 'complete', width: '90px', align: 'center' },
@@ -77,14 +142,46 @@ function onReset() {
 
 <template>
   <div class="space-y-4">
+    <!-- 四联状态汇总条：始终单行排满不折行 -->
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div
+        v-for="s in summary"
+        :key="s.label"
+        :class="[
+          'flex items-center gap-3 whitespace-nowrap rounded-xl border bg-card p-3 shadow-sp ring-1 transition-colors',
+          s.ring,
+        ]"
+      >
+        <div
+          :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', s.bg, s.tint]"
+        >
+          <component :is="s.icon" class="h-5 w-5" />
+        </div>
+        <div class="min-w-0">
+          <div class="text-xs text-muted-foreground">{{ s.label }}</div>
+          <div :class="['text-xl font-bold tabular-nums leading-tight', s.tint]">{{ s.value }}</div>
+        </div>
+      </div>
+    </div>
+
     <div class="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4 shadow-sp">
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">工单编号</Label>
-        <Input v-model="query.orderCodeLike" placeholder="编号" class="w-40" @keyup.enter="search" />
+        <Input
+          v-model="query.orderCodeLike"
+          placeholder="编号"
+          class="w-40"
+          @keyup.enter="search"
+        />
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">物料</Label>
-        <Input v-model="query.materielDescLike" placeholder="物料名称" class="w-40" @keyup.enter="search" />
+        <Input
+          v-model="query.materielDescLike"
+          placeholder="物料名称"
+          class="w-40"
+          @keyup.enter="search"
+        />
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">状态</Label>
@@ -94,7 +191,9 @@ function onReset() {
         >
           <SelectTrigger class="w-36"><SelectValue placeholder="全部状态" /></SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="o in statueOptions" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+            <SelectItem v-for="o in statueOptions" :key="o.value" :value="o.value">{{
+              o.label
+            }}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -114,7 +213,9 @@ function onReset() {
     >
       <template #toolbar>
         <span class="text-sm font-medium">生产工单</span>
-        <span class="text-xs text-muted-foreground">工单由生产订单下发产生，此处执行审批与全生命周期流转</span>
+        <span class="text-xs text-muted-foreground"
+          >工单由生产订单下发产生，此处执行审批与全生命周期流转</span
+        >
       </template>
       <template #statue="{ row }">
         <SpStatusBadge :tone="statueTone(row.statue)" :text="row.mainStatusName" />

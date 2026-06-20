@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
+import com.wangziyang.mes.notification.service.ISpNotificationService;
 import com.wangziyang.mes.order.entity.SpOrder;
 import com.wangziyang.mes.order.entity.SpOrderOperAssign;
 import com.wangziyang.mes.order.request.SpOrderReq;
@@ -89,6 +90,9 @@ public class SpOrderController extends BaseController {
 
     @Autowired
     private ISpOrderOperAssignService employeeAssignService;
+
+    @Autowired
+    private ISpNotificationService notificationService;
 
     @ApiOperation("Production order release page")
     @GetMapping("/list-ui")
@@ -202,11 +206,48 @@ public class SpOrderController extends BaseController {
         }
 
         Result result = workflowTaskService.completeOrderApprovalByBusinessId(order.getId(), "订单审批通过", currentUser());
-        if ((Integer) result.get("code") == 0) {
-            return result;
+        if ((Integer) result.get("code") != 0) {
+            workflowInstanceService.startOrderApproval(order, currentUser());
+            result = workflowTaskService.completeOrderApprovalByBusinessId(order.getId(), "订单审批通过", currentUser());
         }
-        workflowInstanceService.startOrderApproval(order, currentUser());
-        return workflowTaskService.completeOrderApprovalByBusinessId(order.getId(), "订单审批通过", currentUser());
+        if ((Integer) result.get("code") == 0) {
+            notificationService.push(ISpNotificationService.TYPE_ORDER, "工单审批通过",
+                    "工单 " + order.getOrderCode() + " 已审批通过，进入派工/下发", "WORK_ORDER", order.getId());
+        }
+        return result;
+    }
+
+    @ApiOperation("Reject production order")
+    @PostMapping("/reject")
+    @ResponseBody
+    public Result reject(SpOrder req, @RequestParam(required = false) String opinion) {
+        if (!canApproveOrder()) {
+            return Result.failure("当前用户没有工单审批权限");
+        }
+        if (req == null || StringUtils.isEmpty(req.getId())) {
+            return Result.failure("请选择要驳回的工单");
+        }
+        SpOrder order = orderService.getById(req.getId());
+        if (order == null) {
+            return Result.failure("工单不存在");
+        }
+        if (order.getStatue() == null || order.getStatue() != STATUE_CREATED_PENDING_APPROVAL) {
+            return Result.failure("只有待审批工单可以驳回");
+        }
+        // 驳回工作流任务（无流程任务时忽略），并将工单置为已终结
+        workflowTaskService.rejectOrderApprovalByBusinessId(order.getId(),
+                StringUtils.defaultIfBlank(opinion, "审批驳回"), currentUser());
+        SpOrder update = new SpOrder();
+        update.setId(order.getId());
+        update.setStatue(4);
+        update.setApproveUsername(displayUsername(currentUser()));
+        update.setApproveTime(now());
+        update.setRemark(StringUtils.defaultIfBlank(opinion, "审批驳回"));
+        orderService.updateById(update);
+        notificationService.push(ISpNotificationService.TYPE_ALARM, "工单审批驳回",
+                "工单 " + order.getOrderCode() + " 被驳回：" + StringUtils.defaultIfBlank(opinion, "审批驳回"),
+                "WORK_ORDER", order.getId());
+        return Result.success(null, "工单已驳回");
     }
 
     @ApiOperation("Start dispatched production order")
@@ -262,6 +303,10 @@ public class SpOrderController extends BaseController {
                 .and(w -> w.ne("delivery_status", DELIVERY_STATUS_DELIVERED)
                         .or().isNull("delivery_status")
                         .or().eq("delivery_status", "")));
+        if (updated) {
+            notificationService.push(ISpNotificationService.TYPE_ORDER, "工单完工",
+                    "工单 " + order.getOrderCode() + " 已完工", "WORK_ORDER", order.getId());
+        }
         return updated ? Result.success(null, "工单已完工") : Result.failure("工单状态已变化，请刷新后重试");
     }
 
@@ -290,6 +335,10 @@ public class SpOrderController extends BaseController {
                 .and(w -> w.ne("delivery_status", DELIVERY_STATUS_DELIVERED)
                         .or().isNull("delivery_status")
                         .or().eq("delivery_status", "")));
+        if (updated) {
+            notificationService.push(ISpNotificationService.TYPE_ORDER, "工单交付",
+                    "工单 " + order.getOrderCode() + " 已交付完成", "WORK_ORDER", order.getId());
+        }
         return updated ? Result.success(null, "工单已交付") : Result.failure("工单状态已变化，请刷新后重试");
     }
 

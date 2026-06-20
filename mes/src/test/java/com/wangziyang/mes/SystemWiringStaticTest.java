@@ -250,6 +250,9 @@ public class SystemWiringStaticTest {
         assertTrue(scene.contains("const hasLiveProcessData = list.some((st) => st.total > 0)"));
         assertTrue(scene.contains("if (hasLiveProcessData)"));
         assertTrue(scene.contains("st.total > 0 ? `良率 ${st.yieldRate.toFixed(1)}%` : '暂无'"));
+        assertTrue(scene.contains("buildProductionDownlights"));
+        assertTrue(scene.contains("new THREE.SpotLight"));
+        assertTrue(scene.contains("makeDownlightCone"));
 
         assertTrue(twinView.contains("s.total > 0 ? s.yieldRate.toFixed(0) + '%' : '暂无'"));
     }

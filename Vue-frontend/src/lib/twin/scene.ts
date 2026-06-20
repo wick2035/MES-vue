@@ -80,6 +80,7 @@ export class ProductionTwinScene {
     this.buildLights()
     this.buildFloor()
     this.buildFactoryEnvironment()
+    this.buildProductionDownlights()
     this.scene.add(this.stationGroup)
 
     this.animate()
@@ -129,6 +130,29 @@ export class ProductionTwinScene {
     ;(grid.material as THREE.Material).opacity = 0.3
     this.scene.add(grid)
     this.disposables.push(grid.geometry, grid.material as THREE.Material)
+  }
+
+  private buildProductionDownlights() {
+    const xs = [-28, -14, 0, 14, 28]
+    xs.forEach((x, index) => {
+      const target = new THREE.Object3D()
+      target.position.set(x, 0.45, 0)
+      this.scene.add(target)
+
+      const spot = new THREE.SpotLight(0xf4f8ff, 2.2, 28, Math.PI / 8, 0.42, 1.15)
+      spot.position.set(x, 9.15, index % 2 === 0 ? -0.35 : 0.35)
+      spot.target = target
+      spot.castShadow = true
+      spot.shadow.mapSize.set(1024, 1024)
+      spot.shadow.bias = -0.0004
+      this.scene.add(spot)
+
+      const cone = this.makeDownlightCone()
+      cone.position.set(x, 4.85, 0)
+      this.scene.add(cone)
+
+      this.disposables.push(cone.geometry, cone.material as THREE.Material)
+    })
   }
 
   /** 厂房环境：立柱 + 天花板梁 + 工业灯 + 地面安全线 */
@@ -212,6 +236,19 @@ export class ProductionTwinScene {
     this.buildHazardStripes(env, -46, 48, -3.4, 3.4)
 
     this.scene.add(env)
+  }
+
+  private makeDownlightCone(): THREE.Mesh {
+    const geo = new THREE.ConeGeometry(2.35, 8.4, 48, 1, true)
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xdbeafe,
+      transparent: true,
+      opacity: 0.09,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    })
+    return new THREE.Mesh(geo, mat)
   }
 
   private buildHazardStripes(parent: THREE.Group, x1: number, x2: number, z1: number, z2: number) {

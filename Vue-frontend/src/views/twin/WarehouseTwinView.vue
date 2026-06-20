@@ -254,7 +254,7 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- 悬停库位详情 -->
-        <div class="rounded-lg border border-white bg-white/96 p-3 shadow-[0_18px_42px_rgba(15,23,42,0.16)] ring-1 ring-slate-950/5 backdrop-blur-sm">
+        <div class="rounded-lg border border-white bg-white p-3 shadow-[0_18px_42px_rgba(15,23,42,0.16)] ring-1 ring-slate-950/5">
           <div class="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-800">
             <span>库位详情</span>
             <span

@@ -24,7 +24,7 @@ const bom = ref<Bom | null>(null)
 const items = ref<BomItem[]>([])
 const loading = ref(true)
 
-const isLocked = (s?: string) => s === '1' || s === 'Y'
+const isLocked = (s?: string) => s === 'locked' || s === '1' || s === 'Y'
 const locked = computed(() => isLocked(bom.value?.lockStatus))
 
 const itemColumns: TableColumn[] = [

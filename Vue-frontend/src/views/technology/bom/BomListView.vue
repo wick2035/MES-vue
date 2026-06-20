@@ -22,7 +22,7 @@ const { loading, list, total, query, load, onPageChange, onSizeChange, search, r
   useTable<Bom>(pageBoms, { materielCodeLike: '' })
 onMounted(load)
 
-const isLocked = (s?: string) => s === '1' || s === 'Y'
+const isLocked = (s?: string) => s === 'locked' || s === '1' || s === 'Y'
 
 const columns: TableColumn[] = [
   { key: 'bomCode', title: 'BOM 编码', width: '170px' },

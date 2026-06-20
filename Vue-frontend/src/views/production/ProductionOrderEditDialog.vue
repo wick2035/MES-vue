@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -177,7 +178,7 @@ async function doSave(submit: boolean) {
         </div>
         <div class="space-y-1">
           <Label class="text-xs text-muted-foreground">下单日期</Label>
-          <Input v-model="header.orderDate" type="date" />
+          <DatePicker v-model="header.orderDate" />
         </div>
         <div class="space-y-1">
           <Label class="text-xs text-muted-foreground">备注</Label>
@@ -218,13 +219,12 @@ async function doSave(submit: boolean) {
                   <Input v-model.number="it.qty" type="number" min="1" class="h-8 text-right" />
                 </td>
                 <td class="px-2 py-1.5">
-                  <Input
+                  <DatePicker
                     v-if="header.schedulingMethod === 'FORWARD'"
                     v-model="it.planStartDate"
-                    type="date"
                     class="h-8"
                   />
-                  <Input v-else v-model="it.planDeliveryDate" type="date" class="h-8" />
+                  <DatePicker v-else v-model="it.planDeliveryDate" class="h-8" />
                 </td>
                 <td class="px-2 py-1.5 text-center">
                   <Button variant="ghost" size="icon-sm" title="删除" @click="removeItem(i)">

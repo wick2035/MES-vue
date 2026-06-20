@@ -240,8 +240,11 @@ public class SystemWiringStaticTest {
         String twinView = read("../Vue-frontend/src/views/twin/DigitalTwinView.vue");
 
         assertTrue(dashboardController.contains("buildProcessFlowFromOperPlans"));
+        assertTrue(dashboardController.contains("buildProcessFlowFromProductFlows"));
         assertTrue(dashboardController.contains("buildProcessFlowFromLockedRoutes"));
         assertTrue(dashboardController.contains("productionOrderOperPlanService"));
+        assertTrue(dashboardController.contains("flowOperRelationService"));
+        assertTrue(dashboardController.contains("materileService"));
         assertTrue(dashboardController.contains("processRouteService"));
 
         assertTrue(scene.contains("const hasLiveProcessData = list.some((st) => st.total > 0)"));

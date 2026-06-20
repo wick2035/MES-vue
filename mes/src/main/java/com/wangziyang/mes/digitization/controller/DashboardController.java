@@ -6,7 +6,9 @@ import com.wangziyang.mes.basedata.entity.SpTeam;
 import com.wangziyang.mes.basedata.entity.SpTeamEmployee;
 import com.wangziyang.mes.basedata.entity.SpWarehouse;
 import com.wangziyang.mes.basedata.entity.SpWarehouseLocation;
+import com.wangziyang.mes.basedata.entity.SpMaterile;
 import com.wangziyang.mes.basedata.service.ISpInventoryService;
+import com.wangziyang.mes.basedata.service.ISpMaterileService;
 import com.wangziyang.mes.basedata.service.ISpTeamEmployeeService;
 import com.wangziyang.mes.basedata.service.ISpTeamService;
 import com.wangziyang.mes.basedata.service.ISpWarehouseLocationService;
@@ -19,8 +21,10 @@ import com.wangziyang.mes.productionorder.entity.SpProductionOrderItem;
 import com.wangziyang.mes.productionorder.entity.SpProductionOrderOperPlan;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderItemService;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderOperPlanService;
+import com.wangziyang.mes.technology.entity.SpFlowOperRelation;
 import com.wangziyang.mes.technology.entity.SpOper;
 import com.wangziyang.mes.technology.entity.SpProcessRoute;
+import com.wangziyang.mes.technology.service.ISpFlowOperRelationService;
 import com.wangziyang.mes.technology.service.ISpOperService;
 import com.wangziyang.mes.technology.service.ISpProcessRouteService;
 import com.wangziyang.mes.wip.entity.SpSnProcessRecord;
@@ -80,6 +84,9 @@ public class DashboardController extends BaseController {
     private ISpTeamEmployeeService teamEmployeeService;
 
     @Autowired
+    private ISpMaterileService materileService;
+
+    @Autowired
     private ISpProductionOrderOperPlanService productionOrderOperPlanService;
 
     @Autowired
@@ -87,6 +94,9 @@ public class DashboardController extends BaseController {
 
     @Autowired
     private ISpProcessRouteService processRouteService;
+
+    @Autowired
+    private ISpFlowOperRelationService flowOperRelationService;
 
     @Autowired
     private ISpOperService operService;
@@ -405,6 +415,9 @@ public class DashboardController extends BaseController {
             flow = buildProcessFlowFromOperPlans();
         }
         if (flow.isEmpty()) {
+            flow = buildProcessFlowFromProductFlows();
+        }
+        if (flow.isEmpty()) {
             flow = buildProcessFlowFromLockedRoutes();
         }
         return flow;
@@ -426,6 +439,56 @@ public class DashboardController extends BaseController {
                     oper,
                     StringUtils.defaultIfBlank(plan.getOperDesc(), oper),
                     plan.getSortNum() == null ? flow.size() + 1 : plan.getSortNum()));
+        }
+        return flow;
+    }
+
+    private List<Map<String, Object>> buildProcessFlowFromProductFlows() {
+        List<SpProductionOrderItem> items = productionOrderItemService.list(new QueryWrapper<SpProductionOrderItem>()
+                .isNotNull("product_materiel")
+                .ne("product_materiel", "")
+                .orderByDesc("update_time"));
+
+        Set<String> flowIds = new LinkedHashSet<>();
+        for (SpProductionOrderItem item : items) {
+            SpMaterile materile = materileService.getOne(new QueryWrapper<SpMaterile>()
+                    .eq("materiel", item.getProductMateriel())
+                    .ne("is_deleted", "1")
+                    .last("LIMIT 1"));
+            if (materile != null && StringUtils.isNotBlank(materile.getFlowId())) {
+                flowIds.add(materile.getFlowId());
+            }
+        }
+
+        for (String flowId : flowIds) {
+            List<SpFlowOperRelation> relations = flowOperRelationService.list(new QueryWrapper<SpFlowOperRelation>()
+                    .eq("flow_id", flowId)
+                    .orderByAsc("sort_num"));
+            List<Map<String, Object>> flow = buildIdleFlowFromRelations(relations);
+            if (!flow.isEmpty()) {
+                return flow;
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    private List<Map<String, Object>> buildIdleFlowFromRelations(List<SpFlowOperRelation> relations) {
+        List<Map<String, Object>> flow = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        if (relations == null) {
+            return flow;
+        }
+        for (SpFlowOperRelation rel : relations) {
+            String oper = StringUtils.defaultIfBlank(rel.getOper(), rel.getOperId());
+            if (StringUtils.isBlank(oper) || !seen.add(oper)) {
+                continue;
+            }
+            SpOper op = StringUtils.isBlank(rel.getOperId()) ? null : operService.getById(rel.getOperId());
+            String operDesc = op == null ? oper : StringUtils.defaultIfBlank(op.getOperDesc(), oper);
+            flow.add(idleProcessFlowItem(
+                    oper,
+                    operDesc,
+                    rel.getSortNum() == null ? flow.size() + 1 : rel.getSortNum()));
         }
         return flow;
     }

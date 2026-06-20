@@ -12,6 +12,7 @@ import com.wangziyang.mes.productionorder.request.SpProductionOrderImportDTO;
 import com.wangziyang.mes.productionorder.request.SpProductionOrderReq;
 import com.wangziyang.mes.productionorder.request.SpProductionOrderSaveReq;
 import com.wangziyang.mes.system.entity.SysUser;
+import com.wangziyang.mes.technology.entity.SpBom;
 
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,8 @@ public interface ISpProductionOrderService extends IService<SpProductionOrder> {
     Result syncFromErp(SpProductionOrderErpSyncReq req, SysUser user);
 
     List<SpProductionOrderOperPlan> listOperationPlans(String orderId, String itemId);
+
+    List<SpBom> listSelectableProductBoms(String keyword);
 
     List<SpProductionOrderItem> generateForecastItems(SpProductionOrderForecastReq req);
 

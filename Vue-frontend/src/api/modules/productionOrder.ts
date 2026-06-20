@@ -4,6 +4,7 @@ import type {
   MaterialRequirementPlan,
   ProductionDispatchRow,
   ProductionDispatchTask,
+  Bom,
   ProductionOrder,
   ProductionOrderItem,
 } from '@/types/domain'
@@ -23,6 +24,11 @@ export function pageProductionOrders(params: Record<string, any>) {
 /** 订单明细 */
 export function getProductionOrderItems(id: string) {
   return http.post<ProductionOrderItem[]>(`${BASE}/items`, { id })
+}
+
+/** 可用于新建生产订单的最新定版产品 BOM */
+export function listProductionOrderSelectableBoms(keyword?: string) {
+  return http.post<Bom[]>(`${BASE}/selectable-boms`, { keyword: keyword ?? '' })
 }
 
 /** 保存草稿（@RequestBody，需 JSON） */

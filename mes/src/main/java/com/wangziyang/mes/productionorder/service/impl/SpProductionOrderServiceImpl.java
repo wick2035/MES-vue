@@ -471,6 +471,31 @@ public class SpProductionOrderServiceImpl extends ServiceImpl<SpProductionOrderM
     }
 
     @Override
+    public List<SpBom> listSelectableProductBoms(String keyword) {
+        QueryWrapper<SpBom> qw = new QueryWrapper<>();
+        qw.ne("is_deleted", "1")
+                .eq("bom_level", 0)
+                .eq("lock_status", "locked")
+                .eq("state", "pass")
+                .eq("validity", "有效");
+        String kw = StringUtils.trimToEmpty(keyword);
+        if (StringUtils.isNotBlank(kw)) {
+            qw.and(w -> w.like("bom_code", kw)
+                    .or().like("materiel_code", kw)
+                    .or().like("materiel_desc", kw));
+        }
+        qw.orderByAsc("materiel_code")
+                .orderByDesc("version_number")
+                .orderByDesc("update_time");
+        List<SpBom> rows = bomService.list(qw);
+        Map<String, SpBom> latestByMateriel = new LinkedHashMap<>();
+        for (SpBom bom : rows) {
+            latestByMateriel.putIfAbsent(bom.getMaterielCode(), bom);
+        }
+        return new ArrayList<>(latestByMateriel.values());
+    }
+
+    @Override
     public List<SpProductionOrderItem> generateForecastItems(SpProductionOrderForecastReq req) {
         int months = req.getMonths() == null ? 6 : req.getMonths();
         if (months != 3 && months != 6 && months != 12) {

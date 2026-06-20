@@ -132,6 +132,13 @@ public class SpProductionOrderController extends BaseController {
         return Result.success(productionOrderService.listItems(id));
     }
 
+    @ApiOperation("生产订单可选产品BOM")
+    @PostMapping("/selectable-boms")
+    @ResponseBody
+    public Result selectableBoms(@RequestParam(required = false) String keyword) {
+        return Result.success(productionOrderService.listSelectableProductBoms(keyword));
+    }
+
     @ApiOperation("保存生产订单草稿")
     @PostMapping("/add-or-update")
     @ResponseBody

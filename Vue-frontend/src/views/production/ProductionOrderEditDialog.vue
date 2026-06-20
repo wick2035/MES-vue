@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
-import { Plus, Trash2, LoaderCircle } from 'lucide-vue-next'
+import { Check, LoaderCircle, Plus, Search, Trash2 } from 'lucide-vue-next'
 import {
   Dialog,
   DialogContent,
@@ -23,10 +23,11 @@ import {
 import { notify } from '@/lib/toast'
 import {
   getProductionOrderItems,
+  listProductionOrderSelectableBoms,
   saveProductionOrder,
   submitProductionOrder,
 } from '@/api/modules/productionOrder'
-import type { ProductionOrder, ProductionOrderItem } from '@/types/domain'
+import type { Bom, ProductionOrder, ProductionOrderItem } from '@/types/domain'
 
 const props = defineProps<{ open: boolean; order: ProductionOrder | null }>()
 const emit = defineEmits<{ (e: 'update:open', v: boolean): void; (e: 'saved'): void }>()
@@ -36,6 +37,11 @@ const header = reactive<ProductionOrder>({})
 const items = ref<ProductionOrderItem[]>([])
 const saving = ref(false)
 const isEdit = ref(false)
+const bomPickerOpen = ref(false)
+const bomPickerLoading = ref(false)
+const bomKeyword = ref('')
+const bomOptions = ref<Bom[]>([])
+const pickingIndex = ref(-1)
 
 function blankItem(): ProductionOrderItem {
   return { productMateriel: '', productName: '', qty: 1, planDeliveryDate: '', planStartDate: '' }
@@ -78,6 +84,40 @@ function removeItem(i: number) {
   if (items.value.length === 0) items.value.push(blankItem())
 }
 
+async function openBomPicker(i: number) {
+  pickingIndex.value = i
+  bomKeyword.value = items.value[i]?.productMateriel || ''
+  bomPickerOpen.value = true
+  await loadBomOptions()
+}
+
+async function loadBomOptions() {
+  bomPickerLoading.value = true
+  try {
+    const res = await listProductionOrderSelectableBoms(bomKeyword.value.trim())
+    bomOptions.value = res.data ?? []
+  } finally {
+    bomPickerLoading.value = false
+  }
+}
+
+function selectBom(bom: Bom) {
+  const item = items.value[pickingIndex.value]
+  if (!item) return
+  item.bomId = bom.id
+  item.bomCode = bom.bomCode
+  item.bomVersion = bom.versionNumber
+  item.productMateriel = bom.materielCode
+  item.productName = bom.materielDesc
+  bomPickerOpen.value = false
+}
+
+function clearBomLink(item: ProductionOrderItem) {
+  item.bomId = ''
+  item.bomCode = ''
+  item.bomVersion = ''
+}
+
 function validate(): boolean {
   if (header.sourceType === 'DEMAND' && !header.customerName?.trim()) {
     notify.error('需求订单必须填写客户名称')
@@ -88,8 +128,8 @@ function validate(): boolean {
     return false
   }
   for (const it of items.value) {
-    if (!it.productMateriel?.trim()) {
-      notify.error('请填写产品物料编码（需已维护最新定版 BOM）')
+    if (!it.productMateriel?.trim() || !it.bomId?.trim()) {
+      notify.error('请选择产品物料与最新定版 BOM')
       return false
     }
     if (!it.qty || it.qty <= 0) {
@@ -130,7 +170,7 @@ async function doSave(submit: boolean) {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="max-h-[88vh] max-w-3xl overflow-y-auto">
+    <DialogContent class="max-h-[88vh] max-w-5xl overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{{ isEdit ? '编辑生产订单' : '新建生产订单' }}</DialogTitle>
         <DialogDescription>
@@ -198,7 +238,8 @@ async function doSave(submit: boolean) {
           <table class="w-full text-sm">
             <thead class="bg-muted/60 text-xs text-muted-foreground">
               <tr>
-                <th class="px-2 py-2 text-left font-medium">产品物料编码 *</th>
+                <th class="px-2 py-2 text-left font-medium">产品物料编码 / BOM *</th>
+                <th class="w-44 px-2 py-2 text-left font-medium">BOM</th>
                 <th class="px-2 py-2 text-left font-medium">产品名称</th>
                 <th class="w-24 px-2 py-2 text-right font-medium">数量 *</th>
                 <th class="w-40 px-2 py-2 text-left font-medium">
@@ -210,10 +251,33 @@ async function doSave(submit: boolean) {
             <tbody>
               <tr v-for="(it, i) in items" :key="i" class="border-t">
                 <td class="px-2 py-1.5">
-                  <Input v-model="it.productMateriel" placeholder="物料编码" class="h-8" />
+                  <div class="flex min-w-52 gap-1.5">
+                    <Input
+                      v-model="it.productMateriel"
+                      placeholder="请选择产品物料"
+                      class="h-8"
+                      @update:model-value="clearBomLink(it)"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      class="h-8 shrink-0 px-2"
+                      title="选择产品物料与BOM"
+                      @click="openBomPicker(i)"
+                    >
+                      <Search class="h-4 w-4" />
+                    </Button>
+                  </div>
                 </td>
                 <td class="px-2 py-1.5">
-                  <Input v-model="it.productName" placeholder="（保存后按 BOM 回填）" class="h-8" />
+                  <div class="min-h-8 rounded-md border bg-muted/40 px-2 py-1 text-xs leading-tight">
+                    <div class="truncate font-medium text-foreground">{{ it.bomCode || '未选择' }}</div>
+                    <div class="truncate text-muted-foreground">{{ it.bomVersion || '请选择最新定版 BOM' }}</div>
+                  </div>
+                </td>
+                <td class="px-2 py-1.5">
+                  <Input v-model="it.productName" placeholder="选择 BOM 后自动回填" class="h-8" />
                 </td>
                 <td class="px-2 py-1.5">
                   <Input v-model.number="it.qty" type="number" min="1" class="h-8 text-right" />
@@ -248,6 +312,64 @@ async function doSave(submit: boolean) {
           <LoaderCircle v-if="saving" class="h-4 w-4 animate-spin" />保存并提交审批
         </Button>
       </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <Dialog :open="bomPickerOpen" @update:open="bomPickerOpen = $event">
+    <DialogContent class="max-h-[82vh] max-w-3xl overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>选择产品物料与BOM</DialogTitle>
+        <DialogDescription>仅显示已审核通过、已定版、有效的最新成品 BOM。</DialogDescription>
+      </DialogHeader>
+
+      <div class="flex gap-2">
+        <Input
+          v-model="bomKeyword"
+          placeholder="搜索 BOM 编码 / 物料编码 / 产品名称"
+          @keyup.enter="loadBomOptions"
+        />
+        <Button type="button" :disabled="bomPickerLoading" @click="loadBomOptions">
+          <LoaderCircle v-if="bomPickerLoading" class="h-4 w-4 animate-spin" />
+          <Search v-else class="h-4 w-4" />查询
+        </Button>
+      </div>
+
+      <div class="overflow-hidden rounded-lg border">
+        <table class="w-full text-sm">
+          <thead class="bg-muted/60 text-xs text-muted-foreground">
+            <tr>
+              <th class="px-3 py-2 text-left font-medium">BOM 编码</th>
+              <th class="px-3 py-2 text-left font-medium">产品物料</th>
+              <th class="px-3 py-2 text-left font-medium">产品名称</th>
+              <th class="w-24 px-3 py-2 text-center font-medium">版本</th>
+              <th class="w-20 px-3 py-2 text-center font-medium">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="bomPickerLoading">
+              <td colspan="5" class="px-3 py-8 text-center text-muted-foreground">加载中...</td>
+            </tr>
+            <tr v-else-if="bomOptions.length === 0">
+              <td colspan="5" class="px-3 py-8 text-center text-muted-foreground">
+                未找到可用于生产订单的最新定版 BOM
+              </td>
+            </tr>
+            <template v-else>
+              <tr v-for="bom in bomOptions" :key="bom.id" class="border-t hover:bg-muted/40">
+                <td class="px-3 py-2 font-medium">{{ bom.bomCode }}</td>
+                <td class="px-3 py-2">{{ bom.materielCode }}</td>
+                <td class="px-3 py-2">{{ bom.materielDesc }}</td>
+                <td class="px-3 py-2 text-center">{{ bom.versionNumber || '-' }}</td>
+                <td class="px-3 py-2 text-center">
+                  <Button type="button" size="sm" @click="selectBom(bom)">
+                    <Check class="h-4 w-4" />选择
+                  </Button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
     </DialogContent>
   </Dialog>
 </template>

@@ -132,6 +132,7 @@ export interface ProductionOrderItem extends BaseEntity {
   orderId?: string
   productMateriel?: string
   productName?: string
+  bomId?: string
   bomCode?: string
   bomVersion?: string
   model?: string

@@ -224,8 +224,9 @@ function confirmRequest(row: WarehouseRequest) {
     if (!pendingItems.length) {
       throw new Error('当前单据明细已全部确认')
     }
+    const inboundRequest = isInbound(row.businessType)
     for (const item of pendingItems) {
-      if (!item.warehouseId || !item.locationId) {
+      if (!inboundRequest && (!item.warehouseId || !item.locationId)) {
         throw new Error('单据存在未分配仓库/库位的明细，请先在仓储源单维护库位')
       }
       await confirmWarehouseItem({

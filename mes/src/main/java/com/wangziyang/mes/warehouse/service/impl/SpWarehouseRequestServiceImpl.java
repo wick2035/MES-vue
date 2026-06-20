@@ -191,8 +191,21 @@ public class SpWarehouseRequestServiceImpl
             return Result.failure("当前单据状态不能确认");
         }
 
+        String direction = direction(request.getBusinessType());
         String warehouseId = StringUtils.defaultIfBlank(req.getWarehouseId(), item.getWarehouseId());
         String locationId = StringUtils.defaultIfBlank(req.getLocationId(), item.getLocationId());
+        if (WarehouseConstants.DIRECTION_IN.equals(direction)
+                && (StringUtils.isBlank(warehouseId) || StringUtils.isBlank(locationId))) {
+            SpWarehouseLocation autoLocation = autoAssignInboundLocation(warehouseId, item.getMaterialId());
+            if (autoLocation == null) {
+                return Result.failure("没有可用空库位或同物料兼容库位，无法自动分配入库库位");
+            }
+            warehouseId = autoLocation.getWarehouseId();
+            locationId = autoLocation.getId();
+            if (StringUtils.isBlank(request.getWarehouseId())) {
+                request.setWarehouseId(warehouseId);
+            }
+        }
         BigDecimal qty = req.getQty() == null ? nvl(item.getRequestQty()) : req.getQty();
         if (qty.compareTo(BigDecimal.ZERO) <= 0) {
             return Result.failure("纭鏁伴噺蹇呴』澶т簬0");
@@ -203,7 +216,6 @@ public class SpWarehouseRequestServiceImpl
         }
         item.setWarehouseId(warehouseId);
         item.setLocationId(locationId);
-        String direction = direction(request.getBusinessType());
         if (WarehouseConstants.DIRECTION_IN.equals(direction)) {
             Result compatible = ensureInboundLocationCompatible(locationId, item.getMaterialId());
             if (!ok(compatible)) {
@@ -960,6 +972,51 @@ public class SpWarehouseRequestServiceImpl
             }
         }
         return Result.success();
+    }
+
+    private SpWarehouseLocation autoAssignInboundLocation(String preferredWarehouseId, String materialId) {
+        List<SpWarehouse> warehouses;
+        if (StringUtils.isNotBlank(preferredWarehouseId)) {
+            SpWarehouse warehouse = warehouseService.getById(preferredWarehouseId);
+            warehouses = warehouse == null ? new ArrayList<SpWarehouse>() : Collections.singletonList(warehouse);
+        } else {
+            warehouses = warehouseService.list(new QueryWrapper<SpWarehouse>()
+                    .ne("is_deleted", "1")
+                    .ne("is_deleted", "2")
+                    .orderByAsc("warehouse_code"));
+        }
+
+        SpWarehouseLocation sameMaterialFallback = null;
+        for (SpWarehouse warehouse : warehouses) {
+            if (warehouse == null || "1".equals(warehouse.getDeleted()) || "2".equals(warehouse.getDeleted())) {
+                continue;
+            }
+            List<SpWarehouseLocation> locations = locationService.list(new QueryWrapper<SpWarehouseLocation>()
+                    .eq("warehouse_id", warehouse.getId())
+                    .eq("is_deleted", "0")
+                    .ne("status", "2")
+                    .orderByAsc("group_no", "row_no", "layer_no", "column_no"));
+            for (SpWarehouseLocation location : locations) {
+                List<SpInventory> stocks = inventoryService.list(new QueryWrapper<SpInventory>()
+                        .eq("location_id", location.getId())
+                        .eq("is_deleted", "0")
+                        .gt("qty", BigDecimal.ZERO));
+                if (stocks.isEmpty()) {
+                    return location;
+                }
+                boolean sameMaterial = true;
+                for (SpInventory stock : stocks) {
+                    if (!StringUtils.equals(stock.getMaterielId(), materialId)) {
+                        sameMaterial = false;
+                        break;
+                    }
+                }
+                if (sameMaterial && sameMaterialFallback == null) {
+                    sameMaterialFallback = location;
+                }
+            }
+        }
+        return sameMaterialFallback;
     }
 
     private SpInventory findStock(String locationId, String materialId, String batchNo) {

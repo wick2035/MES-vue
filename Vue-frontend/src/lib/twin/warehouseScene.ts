@@ -869,7 +869,7 @@ export class WarehouseTwinScene {
       this.rackGroup.add(lintel, leftFrame, rightFrame)
 
       const label = this.makeTextSprite(`月台 ${i + 1}`)
-      label.position.set(door.position.x, 3.35, dockZ - 0.05)
+      label.position.set(door.position.x, 3.75, dockZ - 0.05)
       label.scale.set(2.1, 0.9, 1)
       this.rackGroup.add(label)
     }

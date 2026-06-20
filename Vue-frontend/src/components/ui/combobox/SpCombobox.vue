@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import {
   Command,
   CommandEmpty,
+  CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
@@ -122,27 +123,29 @@ function onSelect(option: ComboboxOption) {
         <CommandInput :placeholder="searchPlaceholder" />
         <CommandEmpty>{{ emptyText }}</CommandEmpty>
         <CommandList>
-          <CommandItem
-            v-for="option in options"
-            :key="option.value"
-            :value="option.value"
-            :disabled="option.disabled"
-            class="gap-2"
-            @select="onSelect(option)"
-          >
-            <Check
-              :class="cn('h-4 w-4 shrink-0', isSelected(option.value) ? 'opacity-100' : 'opacity-0')"
-            />
-            <span class="min-w-0 flex-1 truncate">
-              <span class="block truncate">{{ option.label }}</span>
-              <span
-                v-if="option.description"
-                class="block truncate text-xs text-muted-foreground"
-              >
-                {{ option.description }}
+          <CommandGroup>
+            <CommandItem
+              v-for="option in options"
+              :key="option.value"
+              :value="option.value"
+              :disabled="option.disabled"
+              class="gap-2"
+              @select="onSelect(option)"
+            >
+              <Check
+                :class="cn('h-4 w-4 shrink-0', isSelected(option.value) ? 'opacity-100' : 'opacity-0')"
+              />
+              <span class="min-w-0 flex-1 truncate">
+                <span class="block truncate">{{ option.label }}</span>
+                <span
+                  v-if="option.description"
+                  class="block truncate text-xs text-muted-foreground"
+                >
+                  {{ option.description }}
+                </span>
               </span>
-            </span>
-          </CommandItem>
+            </CommandItem>
+          </CommandGroup>
         </CommandList>
       </Command>
     </PopoverContent>

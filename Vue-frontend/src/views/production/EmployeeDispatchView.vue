@@ -209,10 +209,17 @@ onMounted(table.load)
             class="min-w-0 flex-1"
             @update:model-value="selectedByPlan[row.operPlanId] = $event as string[]"
           />
-          <Button size="sm" :disabled="saving[row.operPlanId]" @click="save(row)">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            :disabled="saving[row.operPlanId]"
+            class="shrink-0"
+            aria-label="保存员工派工"
+            title="保存员工派工"
+            @click="save(row)"
+          >
             <Save v-if="!saving[row.operPlanId]" class="h-4 w-4" />
             <UserCheck v-else class="h-4 w-4 animate-spin" />
-            保存
           </Button>
         </div>
       </template>

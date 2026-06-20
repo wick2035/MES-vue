@@ -52,6 +52,7 @@ try {
   await page.waitForTimeout(300)
 
   const result = await page.evaluate(() => {
+    const trigger = document.querySelector('#combobox-test-host [role="combobox"]')
     const items = Array.from(document.querySelectorAll('[role="option"]'))
     const first = items[0]
     const rect = first?.getBoundingClientRect()
@@ -60,12 +61,16 @@ try {
       : null
     const hitOption = hit?.closest?.('[role="option"]')
     const wrapper = first?.closest('[data-reka-popper-content-wrapper]')
+    const content = wrapper?.firstElementChild
     return {
       itemCount: items.length,
       firstText: first?.textContent?.trim() || '',
       hitRole: hit?.getAttribute('role') || '',
       hitText: hit?.textContent?.trim() || '',
       hitOptionText: hitOption?.textContent?.trim() || '',
+      triggerHeight: Math.round(trigger?.getBoundingClientRect().height || 0),
+      contentPaddingTop: content ? getComputedStyle(content).paddingTop : '',
+      itemHeight: Math.round(rect?.height || 0),
       wrapperZ: wrapper ? getComputedStyle(wrapper).zIndex : '',
       wrapperVisible: wrapper ? getComputedStyle(wrapper).visibility : '',
       wrapperPointer: wrapper ? getComputedStyle(wrapper).pointerEvents : '',
@@ -78,6 +83,9 @@ try {
     result.itemCount < 2 ||
     !result.firstText.includes('张三') ||
     !result.hitOptionText.includes('张三') ||
+    result.triggerHeight !== 36 ||
+    result.contentPaddingTop !== '4px' ||
+    result.itemHeight < 44 ||
     result.wrapperZ !== '1000' ||
     result.wrapperVisible === 'hidden' ||
     result.wrapperPointer === 'none'

@@ -1,6 +1,11 @@
 import { http } from '@/api/request'
 import type { IPage } from '@/types/api'
-import type { Warehouse, WarehouseRequest, WarehouseTransaction } from '@/types/domain'
+import type {
+  Warehouse,
+  WarehouseRequest,
+  WarehouseRequestItem,
+  WarehouseTransaction,
+} from '@/types/domain'
 
 const BASE = '/basedata/warehouse'
 
@@ -19,6 +24,43 @@ export function deleteWarehouse(id: string) {
 /** 出入库单分页（businessType: MANUAL_IN/PLAN_IN/MANUAL_OUT/KITTING_OUT；status: WAIT_CONFIRM/CONFIRMED） */
 export function pageWarehouseRequests(params: Record<string, any>) {
   return http.post<IPage<WarehouseRequest>>('/warehouse/request/page', params)
+}
+
+export function pageWarehouseRequestItems(params: Record<string, any>) {
+  return http.post<IPage<WarehouseRequestItem>>('/warehouse/request/items', params)
+}
+
+export function applyWarehouseRequest(params: Record<string, any>) {
+  return http.post('/warehouse/request/apply', params)
+}
+
+export function confirmWarehouseItem(data: {
+  itemId: string
+  warehouseId?: string
+  locationId?: string
+  qty?: number
+}) {
+  return http.postJson('/warehouse/request/confirm-item', data)
+}
+
+export function syncPlanInboundRequests() {
+  return http.post('/warehouse/plan-inbound/sync')
+}
+
+export function syncKittingOutboundRequests() {
+  return http.post('/warehouse/kitting-outbound/sync')
+}
+
+export function precheckKittingOutbound(requestId: string) {
+  return http.post('/warehouse/kitting-outbound/precheck', { requestId })
+}
+
+export function planInboundForKittingShortage(requestId: string) {
+  return http.post('/warehouse/kitting-outbound/plan-inbound-shortage', { requestId })
+}
+
+export function confirmKittingOutboundRequest(requestId: string) {
+  return http.post('/warehouse/kitting-outbound/confirm-request', { requestId })
 }
 
 /** 库存事务台账分页 */

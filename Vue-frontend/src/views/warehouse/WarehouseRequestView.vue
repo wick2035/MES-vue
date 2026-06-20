@@ -1,9 +1,25 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { Search, RotateCcw, ArrowDownToLine, ArrowUpFromLine } from 'lucide-vue-next'
+import {
+  AlertTriangle,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  ClipboardCheck,
+  Eye,
+  RefreshCw,
+  RotateCcw,
+  Search,
+} from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -14,15 +30,29 @@ import {
 import SpDataTable from '@/components/common/SpDataTable.vue'
 import SpStatusBadge from '@/components/common/SpStatusBadge.vue'
 import { useTable } from '@/composables/useTable'
-import { pageWarehouseRequests, pageWarehouseTransactions } from '@/api/modules/warehouse'
+import {
+  confirmKittingOutboundRequest,
+  confirmWarehouseItem,
+  pageWarehouseRequestItems,
+  pageWarehouseRequests,
+  pageWarehouseTransactions,
+  planInboundForKittingShortage,
+  precheckKittingOutbound,
+  syncKittingOutboundRequests,
+  syncPlanInboundRequests,
+} from '@/api/modules/warehouse'
+import { notify } from '@/lib/toast'
 import type { TableColumn } from '@/types/table'
 import type { Tone } from '@/lib/orderStatus'
-import type { WarehouseRequest, WarehouseTransaction } from '@/types/domain'
+import type { WarehouseRequest, WarehouseRequestItem, WarehouseTransaction } from '@/types/domain'
 
 defineOptions({ name: 'WarehouseRequest' })
 
 const ALL = 'ALL'
 const tab = ref<'request' | 'transaction'>('request')
+const detailOpen = ref(false)
+const activeRequest = ref<WarehouseRequest | null>(null)
+const actionLoading = ref('')
 
 const bizMap: Record<string, string> = {
   MANUAL_IN: '手工入库',
@@ -71,6 +101,21 @@ const reqColumns: TableColumn[] = [
     formatter: (r) => r.applyUsername || '—',
   },
   { key: 'applyTime', title: '申请时间', width: '160px' },
+  { key: 'action', title: '操作', slot: 'action', width: '190px', align: 'center' },
+]
+
+const itemTable = reactive(
+  useTable<WarehouseRequestItem>(pageWarehouseRequestItems, {
+    requestId: '',
+  }),
+)
+const itemColumns: TableColumn[] = [
+  { key: 'materialCode', title: '物料', slot: 'material' },
+  { key: 'requestQty', title: '申请数量', width: '90px', align: 'right' },
+  { key: 'confirmedQty', title: '确认数量', width: '90px', align: 'right' },
+  { key: 'warehouseName', title: '仓库', formatter: (r) => r.warehouseName || '—' },
+  { key: 'locationCode', title: '库位', formatter: (r) => r.locationCode || '—' },
+  { key: 'status', title: '状态', slot: 'itemStatus', width: '90px', align: 'center' },
 ]
 
 // 库存事务台账
@@ -104,6 +149,67 @@ function switchTab(t: 'request' | 'transaction') {
   tab.value = t
   if (t === 'request') reqTable.load()
   else txTable.load()
+}
+
+async function run(label: string, action: () => Promise<unknown>) {
+  actionLoading.value = label
+  try {
+    await action()
+    notify.success(`${label}完成`)
+    await reqTable.load()
+    if (detailOpen.value && activeRequest.value?.id) await itemTable.load()
+  } finally {
+    actionLoading.value = ''
+  }
+}
+
+function openDetail(row: WarehouseRequest) {
+  activeRequest.value = row
+  itemTable.query.requestId = row.id
+  detailOpen.value = true
+  itemTable.load()
+}
+
+function syncPlanInbound() {
+  run('同步计划入库', () => syncPlanInboundRequests())
+}
+
+function syncKitting() {
+  run('同步配套出库', () => syncKittingOutboundRequests())
+}
+
+function precheck(row: WarehouseRequest) {
+  if (!row.id) return
+  run('配套出库预检', () => precheckKittingOutbound(row.id!))
+}
+
+function shortage(row: WarehouseRequest) {
+  if (!row.id) return
+  run('缺料转入库计划', () => planInboundForKittingShortage(row.id!))
+}
+
+function confirmRequest(row: WarehouseRequest) {
+  if (!row.id) return
+  if (row.businessType === 'KITTING_OUT') {
+    run('配套出库确认', () => confirmKittingOutboundRequest(row.id!))
+    return
+  }
+  run('单据明细确认', async () => {
+    const res = await pageWarehouseRequestItems({ current: 1, size: 300, requestId: row.id })
+    const items = res.data?.records ?? []
+    for (const item of items) {
+      if (!item.id || item.status === 'CONFIRMED') continue
+      if (!item.warehouseId || !item.locationId) {
+        throw new Error('单据存在未分配仓库/库位的明细，请先在仓储源单维护库位')
+      }
+      await confirmWarehouseItem({
+        itemId: item.id,
+        warehouseId: item.warehouseId,
+        locationId: item.locationId,
+        qty: item.requestQty || 0,
+      })
+    }
+  })
 }
 </script>
 
@@ -199,10 +305,25 @@ function switchTab(t: 'request' | 'transaction') {
         @size-change="reqTable.onSizeChange"
       >
         <template #toolbar>
-          <span class="text-sm font-medium">出入库单据</span>
-          <span class="hidden text-xs text-muted-foreground sm:inline"
-            >手工/计划入库与手工/配套出库单据</span
-          >
+          <div class="flex flex-col">
+            <span class="text-sm font-medium">出入库单据</span>
+            <span class="hidden text-xs text-muted-foreground sm:inline"
+              >手工/计划入库与手工/配套出库单据</span
+            >
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              :disabled="!!actionLoading"
+              @click="syncPlanInbound"
+            >
+              <RefreshCw class="h-4 w-4" />同步计划入库
+            </Button>
+            <Button size="sm" variant="outline" :disabled="!!actionLoading" @click="syncKitting">
+              <RefreshCw class="h-4 w-4" />同步配套出库
+            </Button>
+          </div>
         </template>
         <template #direction="{ row }">
           <SpStatusBadge
@@ -212,6 +333,42 @@ function switchTab(t: 'request' | 'transaction') {
         </template>
         <template #status="{ value }">
           <SpStatusBadge :tone="statusTone(value)" :text="statusMap[value] || value || '—'" />
+        </template>
+        <template #action="{ row }">
+          <div class="flex items-center justify-center gap-1">
+            <Button variant="ghost" size="icon-sm" title="查看明细" @click="openDetail(row)">
+              <Eye class="h-4 w-4" />
+            </Button>
+            <Button
+              v-if="row.businessType === 'KITTING_OUT'"
+              variant="ghost"
+              size="icon-sm"
+              title="配套出库预检"
+              :disabled="!!actionLoading"
+              @click="precheck(row)"
+            >
+              <AlertTriangle class="h-4 w-4 text-warning" />
+            </Button>
+            <Button
+              v-if="row.businessType === 'KITTING_OUT'"
+              variant="ghost"
+              size="icon-sm"
+              title="缺料转入库计划"
+              :disabled="!!actionLoading"
+              @click="shortage(row)"
+            >
+              <ArrowDownToLine class="h-4 w-4 text-primary" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="确认单据"
+              :disabled="row.status === 'CONFIRMED' || !!actionLoading"
+              @click="confirmRequest(row)"
+            >
+              <ClipboardCheck class="h-4 w-4 text-success" />
+            </Button>
+          </div>
         </template>
       </SpDataTable>
     </template>
@@ -273,5 +430,48 @@ function switchTab(t: 'request' | 'transaction') {
         </template>
       </SpDataTable>
     </template>
+
+    <Dialog v-model:open="detailOpen">
+      <DialogContent class="max-h-[85vh] max-w-5xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>出入库明细 {{ activeRequest?.requestNo || '' }}</DialogTitle>
+          <DialogDescription>确认前检查物料、仓库、库位和数量。</DialogDescription>
+        </DialogHeader>
+        <SpDataTable
+          :columns="itemColumns"
+          :data="itemTable.list"
+          :loading="itemTable.loading"
+          :total="itemTable.total"
+          :page="itemTable.query.current"
+          :page-size="itemTable.query.size"
+          @page-change="itemTable.onPageChange"
+          @size-change="itemTable.onSizeChange"
+        >
+          <template #toolbar>
+            <span class="text-sm font-medium">明细行</span>
+            <Button
+              v-if="activeRequest"
+              size="sm"
+              :disabled="activeRequest.status === 'CONFIRMED' || !!actionLoading"
+              @click="confirmRequest(activeRequest)"
+            >
+              <ClipboardCheck class="h-4 w-4" />确认整单
+            </Button>
+          </template>
+          <template #material="{ row }">
+            <span class="block font-mono text-xs">{{ row.materialCode || '—' }}</span>
+            <span class="block text-xs text-muted-foreground">{{
+              row.materialName || '未维护名称'
+            }}</span>
+          </template>
+          <template #itemStatus="{ value }">
+            <SpStatusBadge
+              :tone="value === 'CONFIRMED' ? 'success' : 'warning'"
+              :text="statusMap[value] || value || '待确认'"
+            />
+          </template>
+        </SpDataTable>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

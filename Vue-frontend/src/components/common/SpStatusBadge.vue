@@ -21,7 +21,10 @@ const toneClass = computed(
 <template>
   <span
     :class="
-      cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium', toneClass)
+      cn(
+        'inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium',
+        toneClass,
+      )
     "
   >
     <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70" />

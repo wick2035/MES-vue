@@ -155,6 +155,52 @@ public class SystemWiringStaticTest {
     }
 
     @Test
+    public void vueProductionAndWarehouseFlowEntrypointsStayConnected() throws Exception {
+        String routes = read("../Vue-frontend/src/router/routes.ts");
+        String productionApi = read("../Vue-frontend/src/api/modules/productionOrder.ts");
+        String warehouseApi = read("../Vue-frontend/src/api/modules/warehouse.ts");
+        String planView = read("../Vue-frontend/src/views/production/ProductionPlanView.vue");
+        String materialPlanView = read("../Vue-frontend/src/views/production/MaterialPlanView.vue");
+        String equipmentView = read("../Vue-frontend/src/views/production/EquipmentDispatchView.vue");
+        String employeeView = read("../Vue-frontend/src/views/production/EmployeeDispatchView.vue");
+        String dispatchView = read("../Vue-frontend/src/views/production/ProductionDispatchView.vue");
+        String warehouseView = read("../Vue-frontend/src/views/warehouse/WarehouseRequestView.vue");
+        String service = read("src/main/java/com/wangziyang/mes/productionorder/service/impl/SpProductionOrderServiceImpl.java");
+
+        assertTrue(routes.contains("MaterialPlan"));
+        assertTrue(routes.contains("EquipmentDispatch"));
+        assertTrue(routes.contains("EmployeeDispatch"));
+        assertTrue(routes.contains("ProductionDispatch"));
+
+        assertTrue(productionApi.contains("/production-order/material-plan/page"));
+        assertTrue(productionApi.contains("/production-order/equipment-dispatch/save"));
+        assertTrue(productionApi.contains("/production-order/employee-dispatch/save"));
+        assertTrue(productionApi.contains("/production-order/dispatch/page"));
+        assertTrue(warehouseApi.contains("/warehouse/kitting-outbound/precheck"));
+        assertTrue(warehouseApi.contains("/warehouse/request/confirm-item"));
+
+        assertTrue(planView.contains("/production/material-plan"));
+        assertTrue(planView.contains("/production/equipment-dispatch"));
+        assertTrue(planView.contains("/production/employee-dispatch"));
+        assertTrue(planView.contains("/production/dispatch"));
+
+        assertTrue(materialPlanView.contains("MRP运算"));
+        assertTrue(materialPlanView.contains("生成入库申请"));
+        assertTrue(materialPlanView.contains("配套出库"));
+        assertTrue(equipmentView.contains("设备作业派工"));
+        assertTrue(employeeView.contains("员工作业派工"));
+        assertTrue(dispatchView.contains("blockers"));
+        assertTrue(warehouseView.contains("配套出库预检"));
+        assertTrue(warehouseView.contains("缺料转入库计划"));
+        assertTrue(warehouseView.contains("确认整单"));
+
+        assertTrue(service.contains("dispatchBlocked"));
+        assertTrue(service.contains("blockers"));
+        assertTrue(service.contains("/production/material-plan?orderId="));
+        assertTrue(service.contains("/warehouse/request"));
+    }
+
+    @Test
     public void warehouseTwinContractExposesRealStorageFieldsAndSmokeCoverage() throws Exception {
         String dashboardController = read("src/main/java/com/wangziyang/mes/digitization/controller/DashboardController.java");
         String domainTypes = read("../Vue-frontend/src/types/domain.ts");

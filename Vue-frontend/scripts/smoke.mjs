@@ -12,18 +12,25 @@ const OUT = path.join(TMP, 'mes-smoke')
 fs.mkdirSync(OUT, { recursive: true })
 const CAPTCHA_PNG = path.join(TMP, 'captcha.png')
 const CODE_FILE = path.join(TMP, 'captcha-code.txt')
-try { fs.unlinkSync(CODE_FILE) } catch {}
+try {
+  fs.unlinkSync(CODE_FILE)
+} catch {}
 
 const consoleErrors = []
 const pageErrors = []
 const failed = []
 const steps = []
-const log = (s) => { console.log(s); steps.push(s) }
+const log = (s) => {
+  console.log(s)
+  steps.push(s)
+}
 
 const browser = await chromium.launch({ headless: true })
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 const page = await ctx.newPage()
-page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()) })
+page.on('console', (m) => {
+  if (m.type() === 'error') consoleErrors.push(m.text())
+})
 page.on('pageerror', (e) => pageErrors.push(e.message))
 page.on('requestfailed', (r) => {
   const url = r.url()
@@ -41,10 +48,17 @@ log(`captcha screenshot -> ${CAPTCHA_PNG}`)
 
 let code = null
 for (let i = 0; i < 90; i++) {
-  if (fs.existsSync(CODE_FILE)) { code = fs.readFileSync(CODE_FILE, 'utf8').trim(); break }
+  if (fs.existsSync(CODE_FILE)) {
+    code = fs.readFileSync(CODE_FILE, 'utf8').trim()
+    break
+  }
   await page.waitForTimeout(1000)
 }
-if (!code) { log('NO CAPTCHA CODE PROVIDED — abort'); await browser.close(); process.exit(2) }
+if (!code) {
+  log('NO CAPTCHA CODE PROVIDED — abort')
+  await browser.close()
+  process.exit(2)
+}
 log(`captcha code: ${code}`)
 
 await page.fill('#username', 'admin')
@@ -73,12 +87,17 @@ async function visit(name, url, waitSel) {
     await page.goto(`${BASE}${url}`, { waitUntil: 'networkidle' })
     if (waitSel) await page.waitForSelector(waitSel, { timeout: 10000 })
     await page.waitForTimeout(700)
-    const rows = await page.locator('tbody tr').count().catch(() => 0)
+    const rows = await page
+      .locator('tbody tr')
+      .count()
+      .catch(() => 0)
     await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage: true })
     log(`visit ${url} OK (rows=${rows})`)
   } catch (e) {
     log(`visit ${url} FAIL: ${e.message}`)
-    await page.screenshot({ path: path.join(OUT, `${name}-FAIL.png`), fullPage: true }).catch(() => {})
+    await page
+      .screenshot({ path: path.join(OUT, `${name}-FAIL.png`), fullPage: true })
+      .catch(() => {})
   }
 }
 
@@ -87,6 +106,10 @@ await visit('03-equipment', '/basedata/equipment', 'table')
 await visit('04-inventory', '/basedata/inventory', 'table')
 await visit('05-plan', '/production/plan', 'table')
 await visit('06-orders', '/production/order', 'table')
+await visit('06a-material-plan', '/production/material-plan', 'table')
+await visit('06b-equipment-dispatch', '/production/equipment-dispatch', 'table')
+await visit('06c-employee-dispatch', '/production/employee-dispatch', 'table')
+await visit('06d-production-dispatch', '/production/dispatch', 'table')
 await visit('10-bom', '/technology/bom', 'table')
 await visit('11-oper', '/technology/oper', 'table')
 await visit('12-flow', '/technology/flow', 'table')
@@ -165,7 +188,9 @@ try {
   await page.waitForTimeout(11000)
   const online = (await page.locator('button[title="通知中心（实时在线）"]').count()) > 0
   // 关闭可能遮挡铃铛的 toast（与铃铛同处右上角），避免拦截点击
-  await page.evaluate(() => document.querySelectorAll('[data-sonner-toast]').forEach((t) => t.remove()))
+  await page.evaluate(() =>
+    document.querySelectorAll('[data-sonner-toast]').forEach((t) => t.remove()),
+  )
   await page.locator('button[title^="通知中心"]').click({ force: true })
   await page.waitForTimeout(800)
   const realtimeChip = await page.getByText('实时', { exact: true }).count()
@@ -185,7 +210,10 @@ try {
   await page.keyboard.press('Enter')
   // 等待助手气泡出现非空 Markdown 内容（流式增量）；两轮 LLM 调用较慢，给足 90s
   await page.waitForFunction(
-    () => Array.from(document.querySelectorAll('.md-body')).some((b) => (b.textContent || '').trim().length > 0),
+    () =>
+      Array.from(document.querySelectorAll('.md-body')).some(
+        (b) => (b.textContent || '').trim().length > 0,
+      ),
     undefined,
     { timeout: 90000 },
   )
@@ -193,11 +221,17 @@ try {
   const answer = (await page.locator('.md-body').last().textContent()) || ''
   await page.screenshot({ path: path.join(OUT, '21-assistant.png'), fullPage: true })
   // 等待流式结束（停止按钮消失），避免离开页面时中断 SSE 连接
-  await page.waitForSelector('button[title="停止生成"]', { state: 'detached', timeout: 60000 }).catch(() => {})
-  log(`assistant answered (${answer.trim().length} chars): ${answer.slice(0, 50).replace(/\s+/g, ' ')}`)
+  await page
+    .waitForSelector('button[title="停止生成"]', { state: 'detached', timeout: 60000 })
+    .catch(() => {})
+  log(
+    `assistant answered (${answer.trim().length} chars): ${answer.slice(0, 50).replace(/\s+/g, ' ')}`,
+  )
 } catch (e) {
   log(`assistant FAIL: ${e.message}`)
-  await page.screenshot({ path: path.join(OUT, '21-assistant-FAIL.png'), fullPage: true }).catch(() => {})
+  await page
+    .screenshot({ path: path.join(OUT, '21-assistant-FAIL.png'), fullPage: true })
+    .catch(() => {})
 }
 
 // M11 数字孪生 3D 产线
@@ -208,12 +242,17 @@ try {
   await page.waitForSelector('text=工位状态', { timeout: 12000 })
   await page.waitForTimeout(3000)
   const panel = await page.getByText('智能产线数字孪生').count()
-  const running = await page.getByText('运行中').count().catch(() => 0)
+  const running = await page
+    .getByText('运行中')
+    .count()
+    .catch(() => 0)
   await page.screenshot({ path: path.join(OUT, '22-twin.png'), fullPage: true })
   log(`digital twin rendered (title=${panel}, runningTags=${running})`)
 } catch (e) {
   log(`twin FAIL: ${e.message}`)
-  await page.screenshot({ path: path.join(OUT, '22-twin-FAIL.png'), fullPage: true }).catch(() => {})
+  await page
+    .screenshot({ path: path.join(OUT, '22-twin-FAIL.png'), fullPage: true })
+    .catch(() => {})
 }
 
 // M11B 数字孪生 3D 库房：真实高位货架仓储场景
@@ -238,10 +277,15 @@ try {
   log(`warehouse twin rendered (canvasPixels=${canvasPixels})`)
 } catch (e) {
   log(`warehouse twin FAIL: ${e.message}`)
-  await page.screenshot({ path: path.join(OUT, '23-warehouse-twin-FAIL.png'), fullPage: true }).catch(() => {})
+  await page
+    .screenshot({ path: path.join(OUT, '23-warehouse-twin-FAIL.png'), fullPage: true })
+    .catch(() => {})
 }
 
-fs.writeFileSync(path.join(OUT, 'result.json'), JSON.stringify({ steps, consoleErrors, pageErrors, failed }, null, 2))
+fs.writeFileSync(
+  path.join(OUT, 'result.json'),
+  JSON.stringify({ steps, consoleErrors, pageErrors, failed }, null, 2),
+)
 console.log('\n===== SUMMARY =====')
 console.log('console errors:', consoleErrors.length)
 consoleErrors.slice(0, 25).forEach((e) => console.log('  CE:', e))

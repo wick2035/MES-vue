@@ -15,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -97,7 +98,13 @@ public class SpWarehouseCenterController extends BaseController {
         return Result.success(warehouseRequestService.pageItems(req));
     }
 
-    @PostMapping("/request/apply")
+    @PostMapping(value = "/request/apply", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public Result applyJson(@RequestBody SpWarehouseApplyReq req) {
+        return warehouseRequestService.apply(req, currentUser());
+    }
+
+    @PostMapping(value = "/request/apply", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     @ResponseBody
     public Result apply(SpWarehouseApplyReq req) {
         return warehouseRequestService.apply(req, currentUser());

@@ -31,7 +31,7 @@ export function pageWarehouseRequestItems(params: Record<string, any>) {
 }
 
 export function applyWarehouseRequest(params: Record<string, any>) {
-  return http.post('/warehouse/request/apply', params)
+  return http.postJson('/warehouse/request/apply', params)
 }
 
 export interface AvailableLocation {

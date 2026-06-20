@@ -166,11 +166,12 @@ function onQtyChange(value: string | number) {
 
 function validate() {
   Object.keys(errors).forEach((key) => delete errors[key])
+  const qty = Number(form.qty)
   if (!form.warehouseId) errors.warehouseId = '请选择库房'
   if (!form.materialId) errors.materialId = '请选择物料'
   if (!form.locationId) errors.locationId = '请选择库位'
-  if (!form.qty || Number(form.qty) <= 0) errors.qty = '请输入大于 0 的数量'
-  if (!isInbound.value && maxOutboundQty.value > 0 && Number(form.qty) > maxOutboundQty.value) {
+  if (!Number.isFinite(qty) || qty <= 0) errors.qty = '请输入大于 0 的数量'
+  if (!isInbound.value && maxOutboundQty.value > 0 && qty > maxOutboundQty.value) {
     errors.qty = `出库数量不能超过 ${formatQty(maxOutboundQty.value)}`
   }
   return Object.keys(errors).length === 0
@@ -186,7 +187,7 @@ async function submit() {
       locationId: form.locationId,
       materialId: form.materialId,
       batchNo: form.batchNo,
-      qty: form.qty,
+      qty: Number(form.qty),
       remark: form.remark,
     })
     notify.success(`${isInbound.value ? '入库' : '出库'}申请已提交，请到仓储中心确认`)

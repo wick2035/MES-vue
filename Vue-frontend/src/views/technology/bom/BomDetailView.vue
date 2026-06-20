@@ -53,7 +53,7 @@ const itemFormFields: FormField[] = [
       { label: '外购件', value: 'BUY' },
     ],
   },
-  { field: 'itemNum', label: '用量', type: 'number', min: 0, required: true },
+  { field: 'itemNum', label: '用量', type: 'number', min: 0.0001, required: true },
   { field: 'itemUnit', label: '单位', type: 'input', placeholder: '如：个、kg、m' },
   { field: 'childBomCode', label: '子 BOM 编码', type: 'input', placeholder: '可选' },
 ]
@@ -94,6 +94,12 @@ function openEdit(row: BomItem) {
   dialogOpen.value = true
 }
 async function onSubmit() {
+  const itemNum = Number(formModel.itemNum)
+  if (!Number.isFinite(itemNum) || itemNum <= 0) {
+    notify.error('用量必须大于 0')
+    return
+  }
+  formModel.itemNum = itemNum
   saving.value = true
   try {
     await saveBomItem(formModel as BomItem)

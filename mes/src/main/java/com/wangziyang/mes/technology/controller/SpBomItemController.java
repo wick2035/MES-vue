@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -60,6 +61,9 @@ public class SpBomItemController extends BaseController {
         }
         if (record.getItemNum() == null) {
             return Result.failure("用量不能为空");
+        }
+        if (record.getItemNum().compareTo(BigDecimal.ZERO) <= 0) {
+            return Result.failure("用量必须大于0");
         }
         iSpBomItemService.saveOrUpdate(record);
         return Result.success(record.getId());

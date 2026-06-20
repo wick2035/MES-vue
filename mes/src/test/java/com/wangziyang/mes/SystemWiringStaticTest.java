@@ -234,6 +234,38 @@ public class SystemWiringStaticTest {
     }
 
     @Test
+    public void inboundQuantityGuardsRejectZeroDemandSources() throws Exception {
+        String warehouseService = read("src/main/java/com/wangziyang/mes/warehouse/service/impl/SpWarehouseRequestServiceImpl.java");
+        String warehouseController = read("src/main/java/com/wangziyang/mes/warehouse/controller/SpWarehouseCenterController.java");
+        String warehouseApi = read("../Vue-frontend/src/api/modules/warehouse.ts");
+        String bomItemController = read("src/main/java/com/wangziyang/mes/technology/controller/SpBomItemController.java");
+        String bomDetailView = read("../Vue-frontend/src/views/technology/bom/BomDetailView.vue");
+        String mrpService = read("src/main/java/com/wangziyang/mes/productionorder/service/impl/SpMaterialRequirementPlanServiceImpl.java");
+
+        assertFalse(warehouseService.contains("璇烽"));
+        assertFalse(warehouseService.contains("鐢宠"));
+        assertFalse(warehouseService.contains("纭"));
+        assertFalse(warehouseService.contains("鏉ユ"));
+        assertTrue(warehouseService.contains("请选择库房"));
+        assertTrue(warehouseService.contains("请输入申请数量"));
+        assertTrue(warehouseService.contains("申请数量必须大于0"));
+        assertTrue(warehouseService.contains("来源入库申请单总数量必须大于0"));
+        assertTrue(warehouseService.contains("来源入库申请单明细数量必须大于0"));
+
+        assertTrue(warehouseController.contains("@RequestBody SpWarehouseApplyReq req"));
+        assertTrue(warehouseApi.contains("postJson('/warehouse/request/apply'"));
+
+        assertTrue(bomItemController.contains("record.getItemNum().compareTo(BigDecimal.ZERO) <= 0"));
+        assertTrue(bomDetailView.contains("min: 0.0001"));
+        assertTrue(bomDetailView.contains("用量必须大于 0"));
+
+        assertTrue(mrpService.contains("生产订单明细数量必须大于0"));
+        assertTrue(mrpService.contains("BOM子项用量必须大于0"));
+        assertTrue(mrpService.contains("所选物料需求净需求为0，无需生成入库申请"));
+        assertTrue(mrpService.contains("currentNetRequirement(row).compareTo(BigDecimal.ZERO) <= 0"));
+    }
+
+    @Test
     public void productionTwinFallsBackToIdleStationsWithoutLiveSnRecords() throws Exception {
         String dashboardController = read("src/main/java/com/wangziyang/mes/digitization/controller/DashboardController.java");
         String scene = read("../Vue-frontend/src/lib/twin/scene.ts");

@@ -108,11 +108,11 @@ public class SpWarehouseRequestServiceImpl
     @Transactional(rollbackFor = Exception.class)
     public Result apply(SpWarehouseApplyReq req, SysUser user) {
         if (req == null) {
-            return Result.failure("鐢宠鍙傛暟涓嶈兘涓虹┖");
+            return Result.failure("申请参数不能为空");
         }
         if (!WarehouseConstants.BUSINESS_MANUAL_IN.equals(req.getBusinessType())
                 && !WarehouseConstants.BUSINESS_MANUAL_OUT.equals(req.getBusinessType())) {
-            return Result.failure("鎵嬪伐鐢宠鍙敮鎸佹墜宸ュ叆搴撴垨鎵嬪伐鍑哄簱");
+            return Result.failure("手工申请只支持手工入库或手工出库");
         }
         Result check = validateLocation(req.getWarehouseId(), req.getLocationId());
         if (!ok(check)) {
@@ -122,9 +122,12 @@ public class SpWarehouseRequestServiceImpl
         if (material == null || "1".equals(material.getDeleted()) || "00".equals(material.getDeleted())) {
             return Result.failure("请选择有效物料");
         }
-        BigDecimal qty = nvl(req.getQty());
+        if (req.getQty() == null) {
+            return Result.failure("请输入申请数量");
+        }
+        BigDecimal qty = req.getQty();
         if (qty.compareTo(BigDecimal.ZERO) <= 0) {
-            return Result.failure("鐢宠鏁伴噺蹇呴』澶т簬0");
+            return Result.failure("申请数量必须大于0");
         }
         if (WarehouseConstants.BUSINESS_MANUAL_IN.equals(req.getBusinessType())) {
             Result compatible = ensureInboundLocationCompatible(req.getLocationId(), req.getMaterialId());
@@ -208,7 +211,7 @@ public class SpWarehouseRequestServiceImpl
         }
         BigDecimal qty = req.getQty() == null ? nvl(item.getRequestQty()) : req.getQty();
         if (qty.compareTo(BigDecimal.ZERO) <= 0) {
-            return Result.failure("纭鏁伴噺蹇呴』澶т簬0");
+            return Result.failure("确认数量必须大于0");
         }
         Result check = validateLocation(warehouseId, locationId);
         if (!ok(check)) {
@@ -255,11 +258,14 @@ public class SpWarehouseRequestServiceImpl
     @Transactional(rollbackFor = Exception.class)
     public Result syncPlanInboundRequest(String sourceRequestId) {
         if (StringUtils.isBlank(sourceRequestId)) {
-            return Result.failure("鏉ユ簮鍏ュ簱鐢宠鍗旾D涓嶈兘涓虹┖");
+            return Result.failure("来源入库申请单ID不能为空");
         }
         SpMaterialInboundRequest source = planInboundService.getById(sourceRequestId);
         if (source == null || "1".equals(source.getDeleted())) {
             return Result.failure("来源入库申请单不存在");
+        }
+        if (nvl(source.getTotalNetQty()).compareTo(BigDecimal.ZERO) <= 0) {
+            return Result.failure("来源入库申请单总数量必须大于0");
         }
         SpWarehouseRequest exists = getOne(new QueryWrapper<SpWarehouseRequest>()
                 .eq("source_type", WarehouseConstants.SOURCE_PLAN_INBOUND)
@@ -278,6 +284,9 @@ public class SpWarehouseRequestServiceImpl
             SpMaterile material = resolveMaterial(sourceItem.getMaterialId(), sourceItem.getMaterialCode());
             if (material == null) {
                 return Result.failure("material_id missing or invalid: " + sourceItem.getMaterialCode());
+            }
+            if (nvl(sourceItem.getRequestQty()).compareTo(BigDecimal.ZERO) <= 0) {
+                return Result.failure("来源入库申请单明细数量必须大于0：" + sourceItem.getMaterialCode());
             }
         }
         if (sourceItems.isEmpty()) {
@@ -942,10 +951,10 @@ public class SpWarehouseRequestServiceImpl
 
     private Result validateLocation(String warehouseId, String locationId) {
         if (StringUtils.isBlank(warehouseId)) {
-            return Result.failure("璇烽€夋嫨搴撴埧");
+            return Result.failure("请选择库房");
         }
         if (StringUtils.isBlank(locationId)) {
-            return Result.failure("璇烽€夋嫨搴撲綅");
+            return Result.failure("请选择库位");
         }
         SpWarehouse warehouse = warehouseService.getById(warehouseId);
         if (warehouse == null || "1".equals(warehouse.getDeleted()) || "2".equals(warehouse.getDeleted())) {

@@ -323,7 +323,7 @@ onBeforeUnmount(() => {
         <span class="flex items-center gap-1.5"
           ><span class="h-2.5 w-2.5 rounded-sm" style="background: #94a3b8" />禁用</span
         >
-        <span class="ml-1 text-slate-400">拖拽旋转 · 滚轮缩放</span>
+        <span class="ml-1 text-slate-400">货箱数量表示占用量 · 拖拽旋转 · 滚轮缩放</span>
       </div>
     </div>
 

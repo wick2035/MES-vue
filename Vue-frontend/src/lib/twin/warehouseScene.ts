@@ -245,12 +245,12 @@ export class WarehouseTwinScene {
     const maxLayer = Math.max(wh.dims?.layer || 1, ...locs.map((l) => l.layer))
     const maxColumn = Math.max(wh.dims?.column || 1, ...locs.map((l) => l.column))
 
-    const cell = 1.0
-    const gap = 0.4
+    const cell = 1.15
+    const gap = 0.48
     const stepX = cell + gap
-    const stepY = cell + 0.5 // 层高（含横梁余量）
+    const stepY = cell + 0.6 // 层高（含横梁余量）
     const stepZ = cell + gap
-    const groupGap = stepZ * 2.0 // 组间通道更宽，可走 AGV
+    const groupGap = stepZ * 2.2 // 组间通道更宽，可走 AGV
 
     const rowsPerGroup = maxRow
     const totalZ = maxGroup * (rowsPerGroup * stepZ) + (maxGroup - 1) * groupGap
@@ -703,8 +703,8 @@ export class WarehouseTwinScene {
   /** 环境：外墙立柱 + 顶部钢构 + 照明灯排 */
   private buildWarehouseEnvironment(totalX: number, totalZ: number, rackHeight: number) {
     const roofY = Math.max(rackHeight + 4, 9)
-    const spanX = totalX + 12
-    const spanZ = totalZ + 12
+    const spanX = Math.max(totalX + 20, 28)
+    const spanZ = Math.max(totalZ + 20, 24)
 
     // 外墙立柱
     const colGeo = new THREE.BoxGeometry(0.55, roofY, 0.55)
@@ -720,8 +720,9 @@ export class WarehouseTwinScene {
       [halfX, -halfZ],
       [-halfX, halfZ],
       [halfX, halfZ],
-      [0, -halfZ],
       [0, halfZ],
+      [-halfX * 0.45, halfZ],
+      [halfX * 0.45, halfZ],
     ]
     for (const [cx, cz] of colPositions) {
       const col = new THREE.Mesh(colGeo, colMat)
@@ -804,9 +805,11 @@ export class WarehouseTwinScene {
     const lintelGeo = new THREE.BoxGeometry(3.8, 0.16, 0.22)
     const sideFrameGeo = new THREE.BoxGeometry(0.16, 3.42, 0.22)
     const dockZ = -halfZ - 0.08
+    const doorStep = 4.25
+    const firstDoorX = -doorStep
     for (let i = 0; i < 3; i++) {
       const door = new THREE.Mesh(doorGeo, doorMat)
-      door.position.set(-halfX + 3.2 + i * 3.8, doorHeight / 2, dockZ)
+      door.position.set(firstDoorX + i * doorStep, doorHeight / 2, dockZ)
       door.userData.topY = doorHeight
       door.userData.height = doorHeight
       door.userData.phase = i * 1.35

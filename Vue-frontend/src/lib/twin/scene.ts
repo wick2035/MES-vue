@@ -134,13 +134,14 @@ export class ProductionTwinScene {
 
   private buildProductionDownlights() {
     const xs = [-28, -14, 0, 14, 28]
-    xs.forEach((x, index) => {
+    const lineZ = -2.25
+    xs.forEach((x) => {
       const target = new THREE.Object3D()
-      target.position.set(x, 0.45, 0)
+      target.position.set(x, 0.65, lineZ)
       this.scene.add(target)
 
-      const spot = new THREE.SpotLight(0xf4f8ff, 2.2, 28, Math.PI / 8, 0.42, 1.15)
-      spot.position.set(x, 9.15, index % 2 === 0 ? -0.35 : 0.35)
+      const spot = new THREE.SpotLight(0xf4f8ff, 2.35, 24, Math.PI / 7.5, 0.48, 1.1)
+      spot.position.set(x, 9.15, lineZ)
       spot.target = target
       spot.castShadow = true
       spot.shadow.mapSize.set(1024, 1024)
@@ -148,7 +149,7 @@ export class ProductionTwinScene {
       this.scene.add(spot)
 
       const cone = this.makeDownlightCone()
-      cone.position.set(x, 4.85, 0)
+      cone.position.set(x, 4.9, lineZ)
       this.scene.add(cone)
 
       this.disposables.push(cone.geometry, cone.material as THREE.Material)

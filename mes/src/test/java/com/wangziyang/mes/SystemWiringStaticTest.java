@@ -241,6 +241,7 @@ public class SystemWiringStaticTest {
 
         assertTrue(dashboardController.contains("buildProcessFlowFromOperPlans"));
         assertTrue(dashboardController.contains("buildProcessFlowFromProductFlows"));
+        assertTrue(dashboardController.contains("buildIdleFlowFromAnyAvailableFlow"));
         assertTrue(dashboardController.contains("buildProcessFlowFromLockedRoutes"));
         assertTrue(dashboardController.contains("productionOrderOperPlanService"));
         assertTrue(dashboardController.contains("flowOperRelationService"));
@@ -253,6 +254,8 @@ public class SystemWiringStaticTest {
         assertTrue(scene.contains("buildProductionDownlights"));
         assertTrue(scene.contains("new THREE.SpotLight"));
         assertTrue(scene.contains("makeDownlightCone"));
+        assertTrue(scene.contains("const lineZ = -2.25"));
+        assertFalse(scene.contains("cone.rotation.x = Math.PI"));
 
         assertTrue(twinView.contains("s.total > 0 ? s.yieldRate.toFixed(0) + '%' : '暂无'"));
     }

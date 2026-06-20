@@ -469,7 +469,32 @@ public class DashboardController extends BaseController {
                 return flow;
             }
         }
+        if (!items.isEmpty()) {
+            return buildIdleFlowFromAnyAvailableFlow();
+        }
         return new ArrayList<>();
+    }
+
+    private List<Map<String, Object>> buildIdleFlowFromAnyAvailableFlow() {
+        List<SpFlowOperRelation> relations = flowOperRelationService.list(new QueryWrapper<SpFlowOperRelation>()
+                .isNotNull("flow_id")
+                .ne("flow_id", "")
+                .orderByAsc("flow_id")
+                .orderByAsc("sort_num"));
+        Map<String, List<SpFlowOperRelation>> grouped = new LinkedHashMap<>();
+        for (SpFlowOperRelation rel : relations) {
+            if (StringUtils.isBlank(rel.getFlowId())) {
+                continue;
+            }
+            grouped.computeIfAbsent(rel.getFlowId(), k -> new ArrayList<>()).add(rel);
+        }
+        List<SpFlowOperRelation> best = new ArrayList<>();
+        for (List<SpFlowOperRelation> candidate : grouped.values()) {
+            if (candidate.size() > best.size()) {
+                best = candidate;
+            }
+        }
+        return buildIdleFlowFromRelations(best);
     }
 
     private List<Map<String, Object>> buildIdleFlowFromRelations(List<SpFlowOperRelation> relations) {

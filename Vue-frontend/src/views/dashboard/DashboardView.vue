@@ -21,6 +21,7 @@ defineOptions({ name: 'Dashboard' })
 
 const data = ref<DashboardData | null>(null)
 const loading = ref(true)
+const updatedAt = ref('')
 let timer: number | undefined
 
 async function load(silent = false) {
@@ -28,6 +29,7 @@ async function load(silent = false) {
   try {
     const res = await getDashboardData()
     data.value = res.data ?? null
+    updatedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
   } finally {
     loading.value = false
   }
@@ -44,37 +46,37 @@ const kpis = computed(() => [
     label: '工单总数',
     value: ov.value?.orderCount ?? 0,
     icon: ClipboardList,
-    gradient: 'from-blue-500 to-indigo-500',
+    tone: 'bg-primary/10 text-primary',
   },
   {
     label: '计划产量',
     value: ov.value?.planQty ?? 0,
     icon: Boxes,
-    gradient: 'from-violet-500 to-purple-500',
+    tone: 'bg-muted text-muted-foreground',
   },
   {
     label: '完工数量',
     value: ov.value?.completedQty ?? 0,
     icon: CheckCircle2,
-    gradient: 'from-emerald-500 to-green-500',
+    tone: 'bg-success/10 text-success',
   },
   {
     label: '在制数量',
     value: ov.value?.inProcessQty ?? 0,
     icon: Loader,
-    gradient: 'from-amber-500 to-orange-500',
+    tone: 'bg-warning/10 text-warning',
   },
   {
     label: '报废数量',
     value: ov.value?.scrappedQty ?? 0,
     icon: Trash2,
-    gradient: 'from-rose-500 to-red-500',
+    tone: 'bg-destructive/10 text-destructive',
   },
   {
     label: '良品率',
     value: `${ov.value?.yieldRate ?? 0}%`,
     icon: Gauge,
-    gradient: 'from-cyan-500 to-sky-500',
+    tone: 'bg-primary/10 text-primary',
   },
 ])
 
@@ -181,61 +183,30 @@ const personnelOption = computed<EChartsOption>(() => {
 
 <template>
   <div class="space-y-4">
-    <!-- 英雄区：渐变品牌带 + 实时状态 -->
+    <!-- 生产总览：克制信息条 -->
     <div
-      class="relative overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/95 via-primary to-indigo-600 px-6 py-5 text-white shadow-sp-lg"
+      class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-l-4 border-l-primary bg-card px-5 py-4 shadow-sp"
     >
-      <div
-        class="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl"
-      />
-      <div
-        class="pointer-events-none absolute -bottom-20 right-24 h-44 w-44 rounded-full bg-cyan-300/20 blur-3xl"
-      />
-      <div class="relative flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 class="text-xl font-semibold tracking-tight">智能制造数据中心</h2>
-          <p class="mt-1 flex items-center gap-2 text-sm text-white/80">
-            <span class="relative flex h-2 w-2">
-              <span
-                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75"
-              />
-              <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-300" />
-            </span>
-            全部指标来自真实业务数据 · 每 30 秒自动刷新
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          class="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
-          @click="load()"
-        >
-          <RefreshCw class="h-4 w-4" />刷新
-        </Button>
+      <div>
+        <h2 class="text-lg font-semibold tracking-tight text-foreground">生产总览</h2>
+        <p class="mt-0.5 text-sm text-muted-foreground">数据更新于 {{ updatedAt || '—' }} · 实时同步</p>
       </div>
+      <Button variant="outline" size="sm" @click="load()">
+        <RefreshCw class="h-4 w-4" :class="loading && 'animate-spin'" />刷新
+      </Button>
     </div>
 
     <!-- KPI -->
     <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-      <Card
-        v-for="k in kpis"
-        :key="k.label"
-        class="group relative overflow-hidden rounded-2xl ring-1 ring-transparent transition-all duration-200 hover:-translate-y-1 hover:shadow-sp-lg hover:ring-primary/20"
-      >
-        <div :class="['absolute inset-x-0 top-0 h-1 bg-gradient-to-r', k.gradient]" />
+      <Card v-for="k in kpis" :key="k.label" class="rounded-xl">
         <CardContent class="flex items-center gap-3 p-4">
-          <div
-            :class="[
-              'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm transition-transform duration-200 group-hover:scale-110',
-              k.gradient,
-            ]"
-          >
+          <div :class="['flex h-11 w-11 shrink-0 items-center justify-center rounded-lg', k.tone]">
             <component :is="k.icon" class="h-5 w-5" />
           </div>
           <div class="min-w-0">
             <div class="truncate text-xs text-muted-foreground">{{ k.label }}</div>
             <Skeleton v-if="loading" class="mt-1 h-7 w-16" />
-            <div v-else class="text-2xl font-bold tracking-tight tabular-nums">{{ k.value }}</div>
+            <div v-else class="text-2xl font-semibold tracking-tight tabular-nums">{{ k.value }}</div>
           </div>
         </CardContent>
       </Card>

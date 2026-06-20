@@ -95,7 +95,7 @@ export const constantRoutes: RouteRecordRaw[] = [
       },
       {
         path: 'production',
-        redirect: '/production/order',
+        redirect: '/production/plan',
         meta: { title: '生产管理', icon: 'Factory' },
         children: [
           {
@@ -105,16 +105,16 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: { title: '生产订单', icon: 'ClipboardList', keepAlive: true },
           },
           {
-            path: 'order',
-            name: 'Order',
-            component: () => import('@/views/order/OrderListView.vue'),
-            meta: { title: '生产工单', icon: 'Factory', keepAlive: true },
-          },
-          {
             path: 'approval',
             name: 'ApprovalCenter',
             component: () => import('@/views/approval/ApprovalCenterView.vue'),
             meta: { title: '审批中心', icon: 'ClipboardCheck', keepAlive: true },
+          },
+          {
+            path: 'order',
+            name: 'Order',
+            component: () => import('@/views/order/OrderListView.vue'),
+            meta: { title: '生产工单', icon: 'Factory', keepAlive: true },
           },
           {
             path: 'material-plan',

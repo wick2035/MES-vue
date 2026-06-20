@@ -119,6 +119,9 @@ public class DashboardController extends BaseController {
             // 逐库位库存量与物料（listByWarehouse 已回填坐标/物料描述，仅取正常库存）
             Map<String, BigDecimal> qtyByLoc = new HashMap<>();
             Map<String, String> topMatByLoc = new HashMap<>();
+            Map<String, String> materialCodeByLoc = new HashMap<>();
+            Map<String, String> batchNoByLoc = new HashMap<>();
+            Map<String, String> unitByLoc = new HashMap<>();
             Map<String, BigDecimal> topQtyByLoc = new HashMap<>();
             BigDecimal warehouseTotal = BigDecimal.ZERO;
             for (SpInventory inv : inventoryService.listByWarehouse(w.getId())) {
@@ -133,11 +136,21 @@ public class DashboardController extends BaseController {
                 if (qty.compareTo(topQtyByLoc.getOrDefault(locId, BigDecimal.valueOf(-1))) > 0) {
                     topQtyByLoc.put(locId, qty);
                     topMatByLoc.put(locId, inv.getMaterielDesc() != null ? inv.getMaterielDesc() : inv.getMaterielCode());
+                    materialCodeByLoc.put(locId, inv.getMaterielCode());
+                    batchNoByLoc.put(locId, inv.getBatchNo());
+                    unitByLoc.put(locId, inv.getUnit());
+                }
+            }
+            BigDecimal maxQty = BigDecimal.ZERO;
+            for (BigDecimal qty : qtyByLoc.values()) {
+                if (qty.compareTo(maxQty) > 0) {
+                    maxQty = qty;
                 }
             }
 
             List<Map<String, Object>> locations = new ArrayList<>();
             int occupied = 0;
+            int disabledCount = 0;
             int maxLoc = 600; // 防止单库房库位过多导致前端 3D 负担
             for (SpWarehouseLocation loc : locs) {
                 if (locations.size() >= maxLoc) {
@@ -145,8 +158,12 @@ public class DashboardController extends BaseController {
                 }
                 BigDecimal qty = qtyByLoc.getOrDefault(loc.getId(), BigDecimal.ZERO);
                 boolean isOccupied = qty.compareTo(BigDecimal.ZERO) > 0;
+                boolean isDisabled = "2".equals(loc.getStatus());
                 if (isOccupied) {
                     occupied++;
+                }
+                if (isDisabled) {
+                    disabledCount++;
                 }
                 Map<String, Object> item = new HashMap<>();
                 item.put("code", loc.getLocationCode());
@@ -156,8 +173,13 @@ public class DashboardController extends BaseController {
                 item.put("column", loc.getColumnNo() == null ? 1 : loc.getColumnNo());
                 item.put("qty", qty);
                 item.put("occupied", isOccupied);
-                item.put("disabled", "2".equals(loc.getStatus()));
+                item.put("disabled", isDisabled);
                 item.put("materiel", topMatByLoc.get(loc.getId()));
+                item.put("materialCode", materialCodeByLoc.get(loc.getId()));
+                item.put("batchNo", batchNoByLoc.get(loc.getId()));
+                item.put("unit", unitByLoc.get(loc.getId()));
+                item.put("capacityLevel", capacityLevel(qty, maxQty, isDisabled));
+                item.put("statusText", statusText(isOccupied, isDisabled));
                 locations.add(item);
             }
 
@@ -171,7 +193,10 @@ public class DashboardController extends BaseController {
             int locCount = locations.size();
             summary.put("locationCount", locCount);
             summary.put("occupiedCount", occupied);
+            summary.put("emptyCount", Math.max(0, locCount - occupied - disabledCount));
+            summary.put("disabledCount", disabledCount);
             summary.put("totalQty", warehouseTotal);
+            summary.put("maxQty", maxQty);
             summary.put("occupancyRate", locCount > 0
                     ? BigDecimal.valueOf(occupied * 100.0 / locCount).setScale(1, RoundingMode.HALF_UP).doubleValue()
                     : 0d);
@@ -190,6 +215,33 @@ public class DashboardController extends BaseController {
         Map<String, Object> data = new HashMap<>();
         data.put("warehouses", result);
         return Result.success(data);
+    }
+
+    private String capacityLevel(BigDecimal qty, BigDecimal maxQty, boolean disabled) {
+        if (disabled) {
+            return "DISABLED";
+        }
+        if (qty == null || qty.compareTo(BigDecimal.ZERO) <= 0) {
+            return "EMPTY";
+        }
+        if (maxQty == null || maxQty.compareTo(BigDecimal.ZERO) <= 0) {
+            return "LOW";
+        }
+        BigDecimal rate = qty.divide(maxQty, 4, RoundingMode.HALF_UP);
+        if (rate.compareTo(BigDecimal.valueOf(0.66)) >= 0) {
+            return "HIGH";
+        }
+        if (rate.compareTo(BigDecimal.valueOf(0.33)) >= 0) {
+            return "MID";
+        }
+        return "LOW";
+    }
+
+    private String statusText(boolean occupied, boolean disabled) {
+        if (disabled) {
+            return "禁用";
+        }
+        return occupied ? "占用" : "空闲";
     }
 
     /* ============================ 概览 KPI ============================ */

@@ -216,6 +216,31 @@ try {
   await page.screenshot({ path: path.join(OUT, '22-twin-FAIL.png'), fullPage: true }).catch(() => {})
 }
 
+// M11B 数字孪生 3D 库房：真实高位货架仓储场景
+try {
+  await page.goto(`${BASE}/twin/warehouse`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('canvas', { timeout: 8000 })
+  await page.waitForSelector('text=仓储控制台', { timeout: 12000 })
+  await page.waitForSelector('text=总览', { timeout: 5000 })
+  await page.waitForSelector('text=装卸区', { timeout: 5000 })
+  await page.waitForSelector('text=巷道', { timeout: 5000 })
+  await page.waitForTimeout(2500)
+  const canvasPixels = await page.locator('canvas').evaluate((canvas) => {
+    const c = canvas
+    const sample = document.createElement('canvas')
+    sample.width = 12
+    sample.height = 12
+    const ctx = sample.getContext('2d')
+    ctx.drawImage(c, 0, 0, 12, 12)
+    return Array.from(ctx.getImageData(0, 0, 12, 12).data).some((v) => v !== 0)
+  })
+  await page.screenshot({ path: path.join(OUT, '23-warehouse-twin.png'), fullPage: true })
+  log(`warehouse twin rendered (canvasPixels=${canvasPixels})`)
+} catch (e) {
+  log(`warehouse twin FAIL: ${e.message}`)
+  await page.screenshot({ path: path.join(OUT, '23-warehouse-twin-FAIL.png'), fullPage: true }).catch(() => {})
+}
+
 fs.writeFileSync(path.join(OUT, 'result.json'), JSON.stringify({ steps, consoleErrors, pageErrors, failed }, null, 2))
 console.log('\n===== SUMMARY =====')
 console.log('console errors:', consoleErrors.length)

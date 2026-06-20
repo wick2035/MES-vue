@@ -154,6 +154,39 @@ public class SystemWiringStaticTest {
         assertTrue(upgrade.contains("warehouse_kitting_out_confirm"));
     }
 
+    @Test
+    public void warehouseTwinContractExposesRealStorageFieldsAndSmokeCoverage() throws Exception {
+        String dashboardController = read("src/main/java/com/wangziyang/mes/digitization/controller/DashboardController.java");
+        String domainTypes = read("../Vue-frontend/src/types/domain.ts");
+        String warehouseTwinView = read("../Vue-frontend/src/views/twin/WarehouseTwinView.vue");
+        String smoke = read("../Vue-frontend/scripts/smoke.mjs");
+
+        assertTrue(dashboardController.contains("batchNoByLoc"));
+        assertTrue(dashboardController.contains("unitByLoc"));
+        assertTrue(dashboardController.contains("materialCodeByLoc"));
+        assertTrue(dashboardController.contains("capacityLevel"));
+        assertTrue(dashboardController.contains("disabledCount"));
+        assertTrue(dashboardController.contains("emptyCount"));
+        assertTrue(dashboardController.contains("maxQty"));
+
+        assertTrue(domainTypes.contains("batchNo?: string"));
+        assertTrue(domainTypes.contains("unit?: string"));
+        assertTrue(domainTypes.contains("materialCode?: string"));
+        assertTrue(domainTypes.contains("capacityLevel?:"));
+        assertTrue(domainTypes.contains("disabledCount: number"));
+        assertTrue(domainTypes.contains("emptyCount: number"));
+        assertTrue(domainTypes.contains("maxQty: number"));
+
+        assertTrue(warehouseTwinView.contains("仓储控制台"));
+        assertTrue(warehouseTwinView.contains("总览"));
+        assertTrue(warehouseTwinView.contains("装卸区"));
+        assertTrue(warehouseTwinView.contains("巷道"));
+        assertTrue(warehouseTwinView.contains("聚焦库位"));
+
+        assertTrue(smoke.contains("/twin/warehouse"));
+        assertTrue(smoke.contains("warehouse twin rendered"));
+    }
+
     private String read(String path) throws Exception {
         Path resolved = Paths.get(path).toAbsolutePath().normalize();
         return new String(Files.readAllBytes(resolved), StandardCharsets.UTF_8);

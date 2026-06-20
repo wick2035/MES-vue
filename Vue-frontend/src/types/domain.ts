@@ -371,6 +371,11 @@ export interface TwinLocation {
   occupied: boolean
   disabled: boolean
   materiel?: string
+  materialCode?: string
+  batchNo?: string
+  unit?: string
+  capacityLevel?: 'EMPTY' | 'LOW' | 'MID' | 'HIGH' | 'DISABLED'
+  statusText?: string
 }
 
 /** 数字孪生库房：单个库房 */
@@ -380,7 +385,15 @@ export interface TwinWarehouse {
   name?: string
   type?: string
   dims: { group: number; row: number; layer: number; column: number }
-  summary: { locationCount: number; occupiedCount: number; totalQty: number; occupancyRate: number }
+  summary: {
+    locationCount: number
+    occupiedCount: number
+    emptyCount: number
+    disabledCount: number
+    totalQty: number
+    occupancyRate: number
+    maxQty: number
+  }
   locations: TwinLocation[]
 }
 

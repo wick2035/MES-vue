@@ -230,7 +230,7 @@ function confirmRequest(row: WarehouseRequest) {
         throw new Error('单据存在未分配仓库/库位的明细，请先在仓储源单维护库位')
       }
       await confirmWarehouseItem({
-        itemId: item.id,
+        itemId: item.id!,
         warehouseId: item.warehouseId,
         locationId: item.locationId,
         qty: item.requestQty || 0,

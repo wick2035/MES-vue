@@ -49,7 +49,7 @@ export class WarehouseTwinScene {
   private pickGeo = new THREE.BoxGeometry(1, 1, 1)
   private hoverGeo = new THREE.BoxGeometry(1.08, 1.08, 1.08)
   private hoverMat = new THREE.MeshBasicMaterial({
-    color: 0xf59e0b,
+    color: 0x0f766e,
     wireframe: true,
     transparent: true,
     opacity: 0.95,
@@ -58,17 +58,17 @@ export class WarehouseTwinScene {
   private hoverFrame = new THREE.Mesh(this.hoverGeo, this.hoverMat)
   // 共享结构件材质（统一冷灰钢调，去撞色）
   private steelMat = new THREE.MeshStandardMaterial({
-    color: 0x9aa6b6,
+    color: 0x748392,
     metalness: 0.35,
     roughness: 0.55,
   }) // 立柱/踢脚：浅钢灰
   private beamMat = new THREE.MeshStandardMaterial({
-    color: 0x5f6b7a,
+    color: 0x334155,
     metalness: 0.3,
     roughness: 0.6,
   }) // 横梁：深钢灰（与立柱低对比两色）
   private palletMat = new THREE.MeshStandardMaterial({
-    color: 0xc2b39a,
+    color: 0xb89b72,
     metalness: 0.04,
     roughness: 0.92,
   }) // 木托盘：中性木灰
@@ -108,8 +108,8 @@ export class WarehouseTwinScene {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(0xeef1f6)
-    this.scene.fog = new THREE.Fog(0xeef1f6, 80, 170)
+    this.scene.background = new THREE.Color(0xf6f8fb)
+    this.scene.fog = new THREE.Fog(0xf6f8fb, 92, 190)
 
     this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 400)
     this.camera.position.set(28, 26, 34)
@@ -164,11 +164,11 @@ export class WarehouseTwinScene {
   }
 
   private buildLights() {
-    const hemi = new THREE.HemisphereLight(0xffffff, 0xc4ccd8, 0.85)
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xb9c5d3, 0.9)
     this.scene.add(hemi)
-    const ambient = new THREE.AmbientLight(0xffffff, 0.25)
+    const ambient = new THREE.AmbientLight(0xffffff, 0.3)
     this.scene.add(ambient)
-    const dir = new THREE.DirectionalLight(0xffffff, 1.05)
+    const dir = new THREE.DirectionalLight(0xffffff, 1.12)
     dir.position.set(26, 38, 22)
     dir.castShadow = true
     dir.shadow.mapSize.set(2048, 2048)
@@ -181,7 +181,7 @@ export class WarehouseTwinScene {
     dir.shadow.bias = -0.0005
     dir.shadow.normalBias = 0.02
     this.scene.add(dir)
-    const fill = new THREE.DirectionalLight(0xdce6ff, 0.3)
+    const fill = new THREE.DirectionalLight(0xdff8f5, 0.38)
     fill.position.set(-22, 18, -18)
     this.scene.add(fill)
   }
@@ -189,7 +189,7 @@ export class WarehouseTwinScene {
   private buildFloor() {
     const floorGeo = new THREE.PlaneGeometry(240, 180)
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0xf4f7fb,
+      color: 0xf7f9fc,
       map: this.floorTex,
       metalness: 0.04,
       roughness: 0.96,
@@ -200,14 +200,14 @@ export class WarehouseTwinScene {
     floor.receiveShadow = true
     this.scene.add(floor)
 
-    const grid = new THREE.GridHelper(240, 96, 0xcdd6e2, 0xe2e8f1)
+    const grid = new THREE.GridHelper(240, 96, 0xb8c3d1, 0xdbe3ec)
     ;(grid.material as THREE.Material).transparent = true
-    ;(grid.material as THREE.Material).opacity = 0.24
+    ;(grid.material as THREE.Material).opacity = 0.3
     this.scene.add(grid)
   }
 
   private buildGoodsPalette() {
-    // 单一蓝色色阶（低→中→满），与底部图例一致，去自发光更克制
+    // 清晰状态色阶（低→中→满），与 HUD 图例一致，避免整屏偏灰。
     const make = (color: number) =>
       new THREE.MeshStandardMaterial({
         color,
@@ -215,9 +215,9 @@ export class WarehouseTwinScene {
         roughness: 0.68,
       })
     this.goodsPalette = {
-      low: make(0x93c5fd),
-      mid: make(0x3b82f6),
-      high: make(0x1d4ed8),
+      low: make(0x2dd4bf),
+      mid: make(0x2563eb),
+      high: make(0xf59e0b),
     }
     Object.values(this.goodsPalette).forEach((m) => this.disposables.push(m))
   }

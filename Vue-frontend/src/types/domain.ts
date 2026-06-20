@@ -144,6 +144,87 @@ export interface ProductionOrderItem extends BaseEntity {
   workOrderCode?: string
 }
 
+/** 生产订单计划下发阻断项 */
+export interface DispatchBlocker {
+  code: string
+  message: string
+  route: string
+  actionText: string
+}
+
+/** MRP 物料需求计划明细 */
+export interface MaterialRequirementPlan extends BaseEntity {
+  productionOrderId?: string
+  productionOrderNo?: string
+  orderItemId?: string
+  productMateriel?: string
+  productName?: string
+  materialId?: string
+  materialCode?: string
+  materialName?: string
+  materialType?: string
+  materialSource?: string
+  unit?: string
+  bomLevel?: number
+  grossRequirement?: number
+  availableStock?: number
+  safetyStock?: number
+  netRequirement?: number
+  requirementDate?: string
+  releaseDate?: string
+  deliveryStatus?: string
+  inboundStatus?: string
+  inboundRequestId?: string
+  inboundRequestNo?: string
+  outboundStatus?: string
+  outboundRequestId?: string
+  outboundRequestNo?: string
+  calcBatchNo?: string
+  calcTime?: string
+}
+
+/** 生产订单工序派工行 */
+export interface ProductionDispatchTask {
+  operPlanId?: string
+  orderNo?: string
+  workOrderCode?: string
+  productMateriel?: string
+  productName?: string
+  qty?: number
+  operId?: string
+  oper?: string
+  operDesc?: string
+  sortNum?: number
+  unitId?: string
+  unitName?: string
+  planStartTime?: string
+  planEndTime?: string
+  durationHours?: number
+  equipmentId?: string
+  equipmentCode?: string
+  equipmentName?: string
+  equipmentStatus?: string
+  teamId?: string
+  teamName?: string
+  userId?: string
+  userName?: string
+  employeeStatus?: string
+}
+
+/** 生产计划下发行 */
+export interface ProductionDispatchRow {
+  id?: string
+  orderNo?: string
+  customerName?: string
+  itemCount?: number
+  totalQty?: number
+  firstProductName?: string
+  firstProductMateriel?: string
+  operationStatus?: string
+  operationStatusName?: string
+  mrpStatus?: string
+}
+
 /** 工单变更记录 */
 export interface WorkOrderChange extends BaseEntity {
   workOrderId?: string
@@ -226,6 +307,27 @@ export interface WarehouseRequest extends BaseEntity {
   applyTime?: string
   confirmUsername?: string
   confirmTime?: string
+  remark?: string
+}
+
+/** 出入库单明细行 */
+export interface WarehouseRequestItem extends BaseEntity {
+  requestId?: string
+  requestNo?: string
+  businessType?: string
+  materialId?: string
+  materialCode?: string
+  materialName?: string
+  warehouseId?: string
+  warehouseName?: string
+  locationId?: string
+  locationCode?: string
+  batchNo?: string
+  requestQty?: number
+  confirmedQty?: number
+  unit?: string
+  status?: string
+  sourceItemId?: string
   remark?: string
 }
 

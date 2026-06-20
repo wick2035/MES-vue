@@ -1,6 +1,12 @@
 import { http } from '@/api/request'
 import type { IPage } from '@/types/api'
-import type { ProductionOrder, ProductionOrderItem } from '@/types/domain'
+import type {
+  MaterialRequirementPlan,
+  ProductionDispatchRow,
+  ProductionDispatchTask,
+  ProductionOrder,
+  ProductionOrderItem,
+} from '@/types/domain'
 
 const BASE = '/production-order/plan'
 
@@ -46,4 +52,71 @@ export function dispatchProductionOrder(id: string) {
 
 export function deleteProductionOrder(id: string) {
   return http.post(`${BASE}/delete`, { id })
+}
+
+export function pageProductionDispatch(params: Record<string, any>) {
+  return http.post<IPage<ProductionDispatchRow>>('/production-order/dispatch/page', params)
+}
+
+export function pageEquipmentDispatch(params: Record<string, any>) {
+  return http.post<IPage<ProductionDispatchTask>>(
+    '/production-order/equipment-dispatch/page',
+    params,
+  )
+}
+
+export function pageEmployeeDispatch(params: Record<string, any>) {
+  return http.post<IPage<ProductionDispatchTask>>(
+    '/production-order/employee-dispatch/page',
+    params,
+  )
+}
+
+export function saveEquipmentDispatch(data: {
+  operPlanId: string
+  equipmentId: string
+  remark?: string
+}) {
+  return http.post('/production-order/equipment-dispatch/save', data)
+}
+
+export function saveEmployeeDispatch(data: {
+  operPlanId: string
+  userId: string
+  userName?: string
+  teamId?: string
+  teamName?: string
+  remark?: string
+}) {
+  return http.post('/production-order/employee-dispatch/save', data)
+}
+
+export function getEmployeeCandidates(unitId: string) {
+  return http.post<Record<string, any>[]>('/production-order/employee-dispatch/candidates', {
+    unitId,
+  })
+}
+
+export function calculateMaterialPlan(id: string) {
+  return http.post('/production-order/material-plan/calculate', { id })
+}
+
+export function pageMaterialPlans(params: Record<string, any>) {
+  return http.post<IPage<MaterialRequirementPlan>>('/production-order/material-plan/page', params)
+}
+
+export function releaseMaterialPlans(ids: string[]) {
+  return http.postJson('/production-order/material-plan/release', { ids })
+}
+
+export function generateInboundRequest(ids: string[]) {
+  return http.postJson('/production-order/material-plan/generate-inbound-request', { ids })
+}
+
+export function applyKittingOutbound(ids: string[]) {
+  return http.postJson('/production-order/material-plan/apply-kitting-outbound-request', { ids })
+}
+
+export function generateKittingOutbound(ids: string[]) {
+  return http.postJson('/production-order/material-plan/generate-kitting-outbound-request', { ids })
 }

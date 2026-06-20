@@ -308,24 +308,54 @@ public class SpProductionOrderServiceImpl extends ServiceImpl<SpProductionOrderM
             return Result.failure("生产订单不存在");
         }
         if (!APPROVAL_APPROVED.equals(order.getApprovalStatus())) {
-            return Result.failure("只有审批完成的生产订单可以计划下发");
+            return dispatchBlocked("只有审批完成的生产订单可以计划下发",
+                    blocker("approval", "生产订单尚未审批完成", "/production/approval", "去审批中心"));
         }
         if (!OP_ASSIGNED.equals(order.getOperationStatus())) {
-            return Result.failure("设备和员工作业派工全部完成后才能下发");
+            return dispatchBlocked("设备和员工作业派工全部完成后才能下发",
+                    blocker("equipment-dispatch", "设备作业派工未完成",
+                            "/production/equipment-dispatch?orderNo=" + order.getOrderNo(), "去设备派工"),
+                    blocker("employee-dispatch", "员工作业派工未完成",
+                            "/production/employee-dispatch?orderNo=" + order.getOrderNo(), "去员工派工"));
         }
         if (!allWorkOrdersApproved(id)) {
-            return Result.failure("该生产订单存在未审批通过的工单");
+            return dispatchBlocked("该生产订单存在未审批通过的工单",
+                    blocker("work-order-approval", "存在未审批通过的生产工单", "/production/order", "去生产工单"));
         }
         if (!allOperationAssignmentsCompleted(id)) {
-            return Result.failure("该生产订单存在未完成设备或员工派工的工序");
+            return dispatchBlocked("该生产订单存在未完成设备或员工派工的工序",
+                    blocker("operation-assignment", "存在未完成设备或员工派工的工序",
+                            "/production/equipment-dispatch?orderNo=" + order.getOrderNo(), "去派工"));
         }
         if (!mrpCompletedForDispatch(id)) {
-            return Result.failure("配套出库确认完成后才能进行生产计划下发");
+            return dispatchBlocked("配套出库确认完成后才能进行生产计划下发",
+                    blocker("material-plan", "物料需求计划或配套出库未完成",
+                            "/production/material-plan?orderId=" + id + "&orderNo=" + order.getOrderNo(), "去MRP"),
+                    blocker("kitting-outbound", "配套出库单未确认", "/warehouse/request", "去仓储确认"));
         }
         order.setOperationStatus(OP_DISPATCHED);
         updateById(order);
         markWorkOrdersDispatched(id);
         return Result.success();
+    }
+
+    private Result dispatchBlocked(String message, Map<String, Object>... blockers) {
+        Map<String, Object> data = new HashMap<>();
+        List<Map<String, Object>> rows = new ArrayList<>();
+        if (blockers != null) {
+            Collections.addAll(rows, blockers);
+        }
+        data.put("blockers", rows);
+        return Result.failure(data, message);
+    }
+
+    private Map<String, Object> blocker(String code, String message, String route, String actionText) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("code", code);
+        row.put("message", message);
+        row.put("route", route);
+        row.put("actionText", actionText);
+        return row;
     }
 
     @Override

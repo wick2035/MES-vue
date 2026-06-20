@@ -117,6 +117,30 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: { title: '审批中心', icon: 'ClipboardCheck', keepAlive: true },
           },
           {
+            path: 'material-plan',
+            name: 'MaterialPlan',
+            component: () => import('@/views/production/MaterialPlanView.vue'),
+            meta: { title: '物料需求计划', icon: 'Boxes', keepAlive: true },
+          },
+          {
+            path: 'equipment-dispatch',
+            name: 'EquipmentDispatch',
+            component: () => import('@/views/production/EquipmentDispatchView.vue'),
+            meta: { title: '设备作业派工', icon: 'Cpu', keepAlive: true },
+          },
+          {
+            path: 'employee-dispatch',
+            name: 'EmployeeDispatch',
+            component: () => import('@/views/production/EmployeeDispatchView.vue'),
+            meta: { title: '员工作业派工', icon: 'Users', keepAlive: true },
+          },
+          {
+            path: 'dispatch',
+            name: 'ProductionDispatch',
+            component: () => import('@/views/production/ProductionDispatchView.vue'),
+            meta: { title: '生产计划下发', icon: 'Send', keepAlive: true },
+          },
+          {
             path: 'change',
             name: 'WorkOrderChange',
             component: () => import('@/views/order/WorkOrderChangeView.vue'),
@@ -218,7 +242,7 @@ export const constantRoutes: RouteRecordRaw[] = [
           },
           {
             path: 'menu',
-            name: 'Menu',
+            name: 'MenuTree',
             component: () => import('@/views/system/menu/MenuTreeView.vue'),
             meta: {
               title: '菜单管理',

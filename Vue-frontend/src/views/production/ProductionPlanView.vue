@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
+  Boxes,
+  Cpu,
   Search,
   RotateCcw,
   Plus,
@@ -10,6 +13,7 @@ import {
   CheckCircle2,
   Rocket,
   Trash2,
+  Users,
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,7 +35,6 @@ import {
   getProductionOrderItems,
   confirmProductionOrder,
   createWorkOrder,
-  dispatchProductionOrder,
   deleteProductionOrder,
 } from '@/api/modules/productionOrder'
 import { notify } from '@/lib/toast'
@@ -41,6 +44,7 @@ import type { Tone } from '@/lib/orderStatus'
 
 defineOptions({ name: 'ProductionPlan' })
 
+const router = useRouter()
 const { loading, list, total, query, load, onPageChange, onSizeChange, search, reset } =
   useTable<ProductionOrder>(pageProductionOrders, {
     orderNoLike: '',
@@ -173,16 +177,6 @@ function askConfirm(row: ProductionOrder) {
     notify.success('订单已确认')
   })
 }
-function askDispatch(row: ProductionOrder) {
-  ask(
-    '生产计划下发',
-    `确定下发订单「${row.orderNo}」吗？下发需满足派工与配套出库前置条件。`,
-    async () => {
-      await dispatchProductionOrder(row.id!)
-      notify.success('计划已下发')
-    },
-  )
-}
 function askDelete(row: ProductionOrder) {
   ask('删除订单', `确定删除订单「${row.orderNo}」吗？此操作不可恢复。`, async () => {
     await deleteProductionOrder(row.id!)
@@ -258,6 +252,45 @@ function onReset() {
             <Eye class="h-4 w-4" />
           </Button>
           <Button
+            variant="ghost"
+            size="icon-sm"
+            title="MRP物料计划"
+            @click="
+              router.push({
+                path: '/production/material-plan',
+                query: { orderId: row.id, orderNo: row.orderNo },
+              })
+            "
+          >
+            <Boxes class="h-4 w-4 text-primary" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="设备派工"
+            @click="
+              router.push({
+                path: '/production/equipment-dispatch',
+                query: { orderNo: row.orderNo },
+              })
+            "
+          >
+            <Cpu class="h-4 w-4 text-primary" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="员工派工"
+            @click="
+              router.push({
+                path: '/production/employee-dispatch',
+                query: { orderNo: row.orderNo },
+              })
+            "
+          >
+            <Users class="h-4 w-4 text-primary" />
+          </Button>
+          <Button
             v-if="canEdit(row)"
             variant="ghost"
             size="icon-sm"
@@ -288,8 +321,8 @@ function onReset() {
             v-if="canDispatch(row)"
             variant="ghost"
             size="icon-sm"
-            title="计划下发"
-            @click="askDispatch(row)"
+            title="进入下发中心"
+            @click="router.push({ path: '/production/dispatch', query: { orderNo: row.orderNo } })"
           >
             <Rocket class="h-4 w-4 text-warning" />
           </Button>

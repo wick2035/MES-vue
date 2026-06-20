@@ -1,170 +1,118 @@
-# MES 制造执行系统
+# MES 智造中心 · Vue 3 工业互联网前端
 
-基于 Spring Boot 的 MES（制造执行系统），单模块项目，全部代码位于 `mes/` 目录。前端采用 layui + 自封装 `sp*` 组件，整体为**浅色精密工业风（Industrial Light）**视觉风格。
+面向制造执行系统（MES）的现代化 Web 前端，基于 **Vue 3 + TypeScript + Vite + shadcn-vue**，
+对接同仓库的 Spring Boot 后端真实接口，覆盖从基础数据、工艺工单到工序采集、数据看板的完整制造业务闭环，
+并内置 AI 智能助手、实时通知、全局命令面板、数字孪生 3D 等特色能力。
 
-> 二次开发务必先阅读 [开发规范](docs/开发规范.md) 与 [CLAUDE.md](CLAUDE.md)，避免破坏既有 UI / 架构风格。
-
----
-
-## 一、技术栈
-
-| 分类 | 选型 | 版本 |
-| --- | --- | --- |
-| 语言 / 运行时 | Java | 8（`java.version=1.8`） |
-| 框架 | Spring Boot | 2.1.7.RELEASE |
-| ORM | MyBatis-Plus | 3.1.2 |
-| 连接池 | Druid | 1.1.9 |
-| 数据库 | MySQL | 8.0（`utf8mb4` / `utf8mb4_0900_ai_ci`） |
-| 缓存 / 会话 | Redis（Jedis 2.9.0）、EhCache | — |
-| 安全鉴权 | Apache Shiro | 1.4.0 |
-| 模板引擎 | FreeMarker（`.ftl`） | — |
-| 前端 | layui + 自封装 `sp*` 组件（`spTable`/`spLayer`/`spUtil`） | — |
-| 其他 | EasyExcel 3.3.4、Hutool 5.1.5、Swagger2 2.9.2 | — |
+> 设计目标：工业精密风 + 当代审美，深浅主题一键切换，交互流畅、零控制台报错。
 
 ---
 
-## 二、环境要求
+## ✨ 功能总览
 
-- **JDK 8+**（`java -version` 确认）
-- **Maven 3.6+**（构建必须使用项目内的 `.codex-maven-settings.xml`，见下）
-- **MySQL 8.0**，字符集 `utf8mb4`，排序规则 `utf8mb4_0900_ai_ci`
-- **Redis**（开发环境默认 `127.0.0.1:6379`，无密码）
-- 操作系统不限（项目在 Windows 上开发，默认上传目录为 `D:/mes/upload`）
+| 模块 | 说明 |
+| --- | --- |
+| 登录鉴权 | 验证码登录、Shiro 会话、路由守卫、RBAC 角色校验、状态持久化（刷新不丢） |
+| 数据看板 | ECharts 多图联动（订单/工序/达成率/不良率/库存/人员），KPI 卡片，30s 自动刷新 |
+| 基础数据 | 物料 / 设备 / 班组 / 库房 / 库存 增删改查（含 Excel 导入、唯一性校验） |
+| 生产管理 | 生产订单中心、生产工单全生命周期（审批→下发→生产→完工→交付）、工单详情 `:id` |
+| 工艺技术 | 产品 BOM（结构详情 `:id`）、工序定义、工艺路线 |
+| 在制管理 | SN 工序采集、SN 追溯 `:sn`（OK/NG 过站轨迹） |
+| 系统管理 | 用户 / 角色 / 菜单 / 部门 RBAC 管理（仅管理员可见） |
+| 🤖 AI 智能助手 | SSE 流式对话 + 工具调用（查真实业务数据）+ 会话历史，Markdown 渲染 |
+| 🔔 实时通知 | WebSocket 通知中心，产线动态 / 不良预警实时推送 + 未读角标 + toast |
+| ⌘ 命令面板 | `Ctrl/⌘ + K` 全局检索菜单并快速跳转 |
+| 🧊 数字孪生 | three.js 3D 产线看板，按真实工序良率着色 + 物料流动 + 告警脉冲 |
+| 🌗 主题切换 | 亮色工业风 ↔ 暗色大屏风，令牌化配色，持久化 |
 
 ---
 
-## 三、从 0 部署
+## 🛠 技术栈
 
-### ① 创建数据库
+- **核心**：Vue 3.4（`<script setup>`）· TypeScript · Vite 5
+- **路由 / 状态**：Vue Router 4（嵌套路由 / 动态参数 / 守卫）· Pinia + `pinia-plugin-persistedstate`
+- **UI**：shadcn-vue（基于 reka-ui）· Tailwind CSS · 图标统一 `lucide-vue-next`
+- **表单校验**：vee-validate + zod
+- **可视化 / 3D**：ECharts + vue-echarts（按需注册）· three.js（原生引擎封装）
+- **数据**：axios（拦截器统一表单编码 / 会话 Cookie / Result 解包）· dayjs · markdown-it
+- **工程化**：ESLint + Prettier · `unplugin-auto-import` · `unplugin-vue-components` · `@` 别名
 
-```sql
-CREATE DATABASE sparchetype CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-```
+---
 
-### ② 导入数据（全量初始化脚本）
+## 🚀 快速开始
 
-全新部署只需执行整合后的单一脚本 `scripts/sql/init-all.sql`（已按正确顺序拼接基础库 + 全部升级脚本，内容幂等）：
-
-```powershell
-mysql --default-character-set=utf8mb4 -u root -p sparchetype < scripts/sql/init-all.sql
-```
-
-> ⚠️ **必须**加 `--default-character-set=utf8mb4`，否则导入的中文会乱码。
->
-> 已有库做版本升级时**不要**执行 `init-all.sql`，请改为按文件名日期顺序执行 `scripts/sql/*-upgrade-*.sql` 增量脚本（见 [第六节](#六数据库脚本说明)）。
-
-### ③ 准备 Redis
-
-启动一个 Redis 实例（开发环境默认无密码，`127.0.0.1:6379`）。
-
-### ④ 创建文件上传目录
-
-应用的图片 / Excel 上传落盘目录由 `mes.file.upload-path` 指定，默认 `D:/mes/upload`，**首次运行前需手动创建**：
+需先启动后端（详见仓库根 `CLAUDE.md` / `README`），默认运行于 `http://localhost:9090`：
 
 ```powershell
-New-Item -ItemType Directory -Force D:/mes/upload
-```
-
-### ⑤ 修改连接配置
-
-默认激活 `dev` profile（见 [application.yml](mes/src/main/resources/application.yml)）。按需修改 [application-dev.yml](mes/src/main/resources/application-dev.yml)：
-
-- 数据源：默认 `jdbc:mysql://127.0.0.1:3306/sparchetype`，用户 `root`，密码 `20041118`
-- Redis：默认 `localhost:6379`，无密码
-- 文件上传目录：`mes.file.upload-path`（在 [application.yml](mes/src/main/resources/application.yml)）
-
-生产环境配置见 `application-pro.yml`（通过 `spring.profiles.active=pro` 切换）。
-
-### ⑥ 编译与运行
-
-构建**必须**带 `-s .\.codex-maven-settings.xml`（指定阿里云镜像 + 项目内本地仓库 `.m2/repository`），否则会因镜像 / 离线问题失败。
-
-```powershell
-# 仅编译验证
-mvn -s .\.codex-maven-settings.xml -f .\mes\pom.xml -DskipTests compile
-
-# 启动应用（推荐方式，跳过测试）
+# 后端（仓库根目录，另开终端）
 mvn -s .\.codex-maven-settings.xml -f .\mes\pom.xml -DskipTests spring-boot:run
 ```
 
-> 说明：当前 `pom.xml` 仅配置了 docker-maven-plugin，**未**配置 `spring-boot-maven-plugin` 的 `repackage`，因此 `mvn package` 产出的 `mes-1.0.0.jar` 是普通瘦 jar，**不能**直接 `java -jar` 运行。若需以可执行 jar 部署，请先在 `pom.xml` 的 `<build><plugins>` 中加入 `spring-boot-maven-plugin` 并执行 `repackage`。日常开发与运行请使用 `spring-boot:run`。
+前端：
 
----
+```bash
+cd Vue-frontend
+npm install
+npm run dev      # http://localhost:5173 ，/api 经 Vite 代理到 :9090（同源，会话 Cookie 透传）
+```
 
-## 四、访问系统
+默认账号 `admin / 123` + 验证码登录。
 
-- 地址：<http://localhost:9090>（端口 `9090`，无 context-path）
-- 默认账号：`admin`
-- 默认密码：`123`
-  - 密码哈希算法为 `Md5Hash(密码, 盐=用户名, 迭代3次)`；库内 admin 的哈希为 `9d7281eeaebded0b091340cfa658a7e8`。
-  - **生产环境务必登录后立即修改密码。**
-- 接口文档（Swagger）：<http://localhost:9090/swagger-ui.html>
+### 常用脚本
 
----
-
-## 五、关键配置一览
-
-| 配置项 | 值 | 位置 |
-| --- | --- | --- |
-| 服务端口 | `9090` | application-dev.yml |
-| 激活 profile | `dev`（默认） | application.yml |
-| 数据库 | `sparchetype` | application-dev.yml |
-| 文件上传目录 | `D:/mes/upload` | application.yml（`mes.file.upload-path`） |
-| 上传访问前缀 | `/upload` | application.yml（`mes.file.access-prefix`） |
-| 会话超时 | 1800 秒（30 分钟） | application.yml |
-| 单文件上传上限 | 20MB | application.yml |
-| 单请求上传上限 | 50MB | application.yml |
-| Druid 连接池 | initial 8 / min-idle 5 / max-active 10 | application-dev.yml |
-| Maven 设置 | 阿里云镜像 + 项目内 `.m2/repository` | .codex-maven-settings.xml |
-
----
-
-## 六、数据库脚本说明
-
-脚本位于 `scripts/sql/`，**手动执行**（无 Flyway / Liquibase），全部幂等、可重复执行。
-
-- **全新部署**：执行 `scripts/sql/init-all.sql`（已整合下列全部脚本）。
-- **已有库升级**：按下表日期顺序执行对应增量脚本。
-
-| 顺序 | 文件 | 用途 |
-| --- | --- | --- |
-| 0 | `MySQL-20210225.sql` | 全量基础库：表结构 + 种子数据（工厂 / 工序 / 物料 / 用户 / 角色 / 菜单） |
-| 1 | `role-upgrade-20260526.sql` | 角色权限增强 + 7 个预置 MES 角色 |
-| 2 | `bom-hierarchy-upgrade-20260526.sql` | BOM 三层层级结构 |
-| 3 | `bom-lock-upgrade-20260526.sql` | BOM 版本锁定 / 有效性 |
-| 4 | `process-design-upgrade-20260528.sql` | 工艺 / 设备 / 加工单元（7 张表） |
-| 5 | `banzu-upgrade-20260604.sql` | 班组 + 班组员工 |
-| 6 | `bianzu-upgrade-20260604.sql` | 编组设备 |
-| 7 | `jiagong-unit-banzu-upgrade-20260604.sql` | 加工单元绑定班组 + 产能 / 边库标识 |
-| 8 | `warehouse-location-upgrade-20260605.sql` | 库房 + 库位（按规格自动生成库位） |
-| 9 | `material-info-upgrade-20260605.sql` | 物料信息增强（来源 / 材质 / 安全库存 / 多图等） |
-| 10 | `component-definition-upgrade-20260606.sql` | 产品零部件定义 + 产品 BOM 前置组件清单 |
-| 11 | `product-bom-menu-upgrade-20260606.sql` | 原工艺BOM管理入口替换为产品BOM管理 |
-| 12 | `component-product-name-normalize-20260606.sql` | 修正零部件定义产品名称末尾误带问号的数据 |
-| 13 | `processing-unit-status-upgrade-20260608.sql` | 加工单元状态调整为正常 / 异常 |
-| 14 | `order-approval-upgrade-20260608.sql` | 工单设计人 + 库房管理员审批流 |
-
-新增脚本命名约定：`{feature}-upgrade-YYYYMMDD.sql`，并务必保持幂等（详见 [开发规范](docs/开发规范.md)）。
-
----
-
-## 七、常见问题排查
-
-| 现象 | 原因 / 处理 |
+| 命令 | 作用 |
 | --- | --- |
-| 导入后中文乱码 | 导入时漏加 `--default-character-set=utf8mb4`；删库重建后重新导入 |
-| Maven 构建报镜像 / 离线错误 | 漏带 `-s .\.codex-maven-settings.xml` |
-| 启动报上传目录不存在 / 上传失败 | 未创建 `D:/mes/upload`（或与 `application.yml` 中路径不一致） |
-| 启动连接失败 | MySQL / Redis 未启动，或 `application-dev.yml` 连接配置与本机不符 |
-| 菜单 / 模块打不开 | 数据库脚本未执行完整，或菜单未授权给管理员角色（role code `888888`） |
-| `java -jar` 报 no main manifest | 当前未配置 `spring-boot-maven-plugin` 的 repackage，请用 `spring-boot:run`（见第三节⑥） |
-| 切换生产环境 | 将 `spring.profiles.active` 改为 `pro`，并核对 `application-pro.yml` |
+| `npm run dev` | 启动开发服务器（含 `/api` 代理与 WebSocket 代理） |
+| `npm run build` | 类型检查（vue-tsc）+ 生产构建 |
+| `npm run preview` | 预览生产构建 |
+| `npm run lint` | ESLint 自动修复 |
+| `npm run smoke` | Playwright 端到端冒烟（登录→遍历页面→采集控制台/页面错误） |
 
 ---
 
-## 八、开发约定
+## 🗂 目录结构
 
-二次开发前必读：
+```text
+Vue-frontend/
+├─ vite.config.ts          # /api 代理(含 ws)、按需引入、manualChunks 分包
+├─ src/
+│  ├─ api/                 # request.ts(axios 实例+拦截器) + modules/*(按域)
+│  ├─ assets/styles/       # Tailwind + 设计令牌（亮/暗主题）
+│  ├─ components/
+│  │  ├─ ui/               # shadcn-vue 基础组件
+│  │  ├─ common/           # 通用业务封装：SpDataTable / SpForm / SpChart / SpTree …
+│  │  └─ layout/           # AppLayout/Sidebar/Header/Tabs/CommandPalette/NotificationBell
+│  ├─ composables/         # useTable / useCommandPalette …
+│  ├─ lib/                 # icons / toast / markdown / twin(3D 引擎)
+│  ├─ router/              # routes.ts(嵌套路由树) + guards(登录/角色守卫)
+│  ├─ stores/              # user / app / tabs / notify（Pinia 模块化，持久化）
+│  ├─ types/               # domain.ts / api.ts 领域与契约类型
+│  └─ views/               # 各业务模块页面（路由级懒加载）
+└─ scripts/smoke.mjs       # 端到端冒烟脚本
+```
 
-- [docs/开发规范.md](docs/开发规范.md) —— UI / 设计规范（重点）、后端 CRUD 范式、SQL 与命名 / 提交规范。
-- [CLAUDE.md](CLAUDE.md) —— 构建运行、目录约定、CRUD 模块范式速查。
+---
+
+## 🔌 与后端的对接要点
+
+- **代理同源**：浏览器经 Vite 代理访问 `/api/**`，避免跨域，Shiro 会话 Cookie 自然透传。
+- **请求约定**：`axios` 请求拦截器将 POST 体序列化为 `application/x-www-form-urlencoded`（后端实体绑定），
+  响应按 `Result{code,data,msg}` 统一解包；`401` 触发登出跳转登录。
+- **分页**：列表接口入参继承 `current/size/orderBy`，返回 `IPage{records,total}`，由 `SpDataTable` 统一消费。
+- **实时**：WebSocket `/api/client/ws/notify`（经 ws 代理）；AI 助手 SSE `GET /api/llm/chat/stream`（EventSource）。
+
+---
+
+## ⚡ 性能优化
+
+- 路由级 `() => import()` 懒加载；`<keep-alive>` 缓存多页签视图。
+- `manualChunks` 将 **ECharts / three / 框架核心** 拆为独立缓存块，重型库仅在对应页面按需加载。
+- ECharts 仅 `use([...])` 所需图表与组件；lucide 图标按需登记，避免全量打包。
+- 骨架屏 / loading 态覆盖列表、看板、表单按钮，保证交互即时反馈。
+
+---
+
+## 🌿 分支与提交规范
+
+`master`（稳定）← `develop`（集成）← `feature/*`（每里程碑一支）。
+提交遵循 `feat: / fix: / docs: / chore: / perf: / refactor:` 约定式中文描述，小步提交。

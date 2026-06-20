@@ -25,7 +25,14 @@ const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 const page = await ctx.newPage()
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()) })
 page.on('pageerror', (e) => pageErrors.push(e.message))
-page.on('requestfailed', (r) => failed.push(`${r.url()} :: ${r.failure()?.errorText}`))
+page.on('requestfailed', (r) => {
+  const url = r.url()
+  const err = r.failure()?.errorText || ''
+  // SSE 流在收到最终回答后会被前端主动关闭以阻止 EventSource 自动重连，
+  // 这会产生一次预期内的 ERR_ABORTED，属正常清理，不计入失败
+  if (url.includes('/llm/chat/stream') && err.includes('ERR_ABORTED')) return
+  failed.push(`${url} :: ${err}`)
+})
 
 await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
 await page.waitForSelector('#captcha')

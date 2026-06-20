@@ -15,9 +15,18 @@ import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
 import com.wangziyang.mes.order.entity.SpOrder;
 import com.wangziyang.mes.order.service.ISpOrderService;
+import com.wangziyang.mes.productionorder.entity.SpProductionOrderItem;
+import com.wangziyang.mes.productionorder.entity.SpProductionOrderOperPlan;
+import com.wangziyang.mes.productionorder.service.ISpProductionOrderItemService;
+import com.wangziyang.mes.productionorder.service.ISpProductionOrderOperPlanService;
+import com.wangziyang.mes.technology.entity.SpOper;
+import com.wangziyang.mes.technology.entity.SpProcessRoute;
+import com.wangziyang.mes.technology.service.ISpOperService;
+import com.wangziyang.mes.technology.service.ISpProcessRouteService;
 import com.wangziyang.mes.wip.entity.SpSnProcessRecord;
 import com.wangziyang.mes.wip.service.ISpSnProcessRecordService;
 import io.swagger.annotations.ApiOperation;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +41,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,6 +78,18 @@ public class DashboardController extends BaseController {
 
     @Autowired
     private ISpTeamEmployeeService teamEmployeeService;
+
+    @Autowired
+    private ISpProductionOrderOperPlanService productionOrderOperPlanService;
+
+    @Autowired
+    private ISpProductionOrderItemService productionOrderItemService;
+
+    @Autowired
+    private ISpProcessRouteService processRouteService;
+
+    @Autowired
+    private ISpOperService operService;
 
     @ApiOperation("智能制造数据中心大屏UI")
     @GetMapping("/screen-ui")
@@ -379,7 +401,88 @@ public class DashboardController extends BaseController {
             flow.add(item);
         }
         flow.sort(Comparator.comparingInt(m -> ((Number) m.get("stepNo")).intValue()));
+        if (flow.isEmpty()) {
+            flow = buildProcessFlowFromOperPlans();
+        }
+        if (flow.isEmpty()) {
+            flow = buildProcessFlowFromLockedRoutes();
+        }
         return flow;
+    }
+
+    private List<Map<String, Object>> buildProcessFlowFromOperPlans() {
+        QueryWrapper<SpProductionOrderOperPlan> qw = new QueryWrapper<>();
+        qw.ne("is_deleted", "1").orderByAsc("sort_num");
+        List<SpProductionOrderOperPlan> plans = productionOrderOperPlanService.list(qw);
+
+        List<Map<String, Object>> flow = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (SpProductionOrderOperPlan plan : plans) {
+            String oper = StringUtils.defaultIfBlank(plan.getOper(), plan.getOperId());
+            if (StringUtils.isBlank(oper) || !seen.add(oper)) {
+                continue;
+            }
+            flow.add(idleProcessFlowItem(
+                    oper,
+                    StringUtils.defaultIfBlank(plan.getOperDesc(), oper),
+                    plan.getSortNum() == null ? flow.size() + 1 : plan.getSortNum()));
+        }
+        return flow;
+    }
+
+    private List<Map<String, Object>> buildProcessFlowFromLockedRoutes() {
+        QueryWrapper<SpProductionOrderItem> itemQw = new QueryWrapper<>();
+        itemQw.isNotNull("bom_id").ne("bom_id", "").orderByDesc("update_time");
+        List<SpProductionOrderItem> items = productionOrderItemService.list(itemQw);
+
+        Set<String> bomIds = new LinkedHashSet<>();
+        for (SpProductionOrderItem item : items) {
+            if (StringUtils.isNotBlank(item.getBomId())) {
+                bomIds.add(item.getBomId());
+            }
+        }
+
+        List<Map<String, Object>> flow = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (String bomId : bomIds) {
+            QueryWrapper<SpProcessRoute> routeQw = new QueryWrapper<>();
+            routeQw.eq("bom_id", bomId)
+                    .eq("is_deleted", "0")
+                    .eq("lock_status", "locked")
+                    .isNotNull("oper_id")
+                    .ne("oper_id", "")
+                    .orderByAsc("seq_no")
+                    .orderByAsc("route_code");
+            List<SpProcessRoute> routes = processRouteService.list(routeQw);
+            for (SpProcessRoute route : routes) {
+                SpOper op = operService.getById(route.getOperId());
+                String oper = op == null ? route.getOperId() : StringUtils.defaultIfBlank(op.getOper(), route.getOperId());
+                if (StringUtils.isBlank(oper) || !seen.add(oper)) {
+                    continue;
+                }
+                String operDesc = op == null ? null : op.getOperDesc();
+                flow.add(idleProcessFlowItem(
+                        oper,
+                        StringUtils.defaultIfBlank(operDesc, StringUtils.defaultIfBlank(route.getNodeName(), oper)),
+                        route.getSeqNo() == null ? flow.size() + 1 : route.getSeqNo()));
+            }
+            if (!flow.isEmpty()) {
+                break;
+            }
+        }
+        flow.sort(Comparator.comparingInt(m -> ((Number) m.get("stepNo")).intValue()));
+        return flow;
+    }
+
+    private Map<String, Object> idleProcessFlowItem(String oper, String operDesc, int stepNo) {
+        Map<String, Object> item = new HashMap<>();
+        item.put("oper", oper);
+        item.put("operDesc", operDesc);
+        item.put("stepNo", stepNo);
+        item.put("ok", 0);
+        item.put("ng", 0);
+        item.put("total", 0);
+        return item;
     }
 
     /* ============================ 工单达成率 ============================ */

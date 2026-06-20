@@ -204,7 +204,7 @@ onBeforeUnmount(() => {
               <span class="h-2 w-2 shrink-0 rounded-full" :class="statusDot[s.status]" />
               <span class="min-w-0 flex-1 truncate text-slate-200">{{ s.operDesc || s.oper }}</span>
               <span class="shrink-0 tabular-nums text-slate-400"
-                >{{ s.yieldRate.toFixed(0) }}%</span
+                >{{ s.total > 0 ? s.yieldRate.toFixed(0) + '%' : '暂无' }}</span
               >
               <span
                 class="shrink-0 rounded px-1.5 py-0.5 text-[10px]"

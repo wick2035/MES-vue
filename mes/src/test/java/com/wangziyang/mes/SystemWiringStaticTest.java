@@ -233,6 +233,24 @@ public class SystemWiringStaticTest {
         assertTrue(smoke.contains("warehouse twin rendered"));
     }
 
+    @Test
+    public void productionTwinFallsBackToIdleStationsWithoutLiveSnRecords() throws Exception {
+        String dashboardController = read("src/main/java/com/wangziyang/mes/digitization/controller/DashboardController.java");
+        String scene = read("../Vue-frontend/src/lib/twin/scene.ts");
+        String twinView = read("../Vue-frontend/src/views/twin/DigitalTwinView.vue");
+
+        assertTrue(dashboardController.contains("buildProcessFlowFromOperPlans"));
+        assertTrue(dashboardController.contains("buildProcessFlowFromLockedRoutes"));
+        assertTrue(dashboardController.contains("productionOrderOperPlanService"));
+        assertTrue(dashboardController.contains("processRouteService"));
+
+        assertTrue(scene.contains("const hasLiveProcessData = list.some((st) => st.total > 0)"));
+        assertTrue(scene.contains("if (hasLiveProcessData)"));
+        assertTrue(scene.contains("st.total > 0 ? `良率 ${st.yieldRate.toFixed(1)}%` : '暂无'"));
+
+        assertTrue(twinView.contains("s.total > 0 ? s.yieldRate.toFixed(0) + '%' : '暂无'"));
+    }
+
     private String read(String path) throws Exception {
         Path resolved = Paths.get(path).toAbsolutePath().normalize();
         return new String(Files.readAllBytes(resolved), StandardCharsets.UTF_8);

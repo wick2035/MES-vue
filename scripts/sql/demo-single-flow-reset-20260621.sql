@@ -18,6 +18,8 @@
 --   * 第 2 步把"非 DPC 的成品 BOM"置为无效，使建单可选产品 BOM 唯一（selectable-boms 只取
 --     bom_level=0 / lock_status=locked / state=pass / validity=有效）。可逆，不物理删除。
 --   * 第 3 步插入唯一一张草稿态 DPC 订单，不预置工单/排产/派工/MRP/出入库，由用户顺流程生成。
+--   * 本脚本会清空 sp_sn_process_record；执行后数字孪生产线会先展示暂无采集的空闲工位，
+--     待工序采集产生 OK/NG 记录后再显示良率、告警与物料流动。
 --
 -- 前置条件（手动执行，dev 库 sparchetype）：
 --   先执行 demo-data-optimized-manufacturing-20260614.sql（提供 DPC 主数据与期初库存），

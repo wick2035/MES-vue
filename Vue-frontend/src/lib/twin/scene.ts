@@ -236,7 +236,11 @@ export class ProductionTwinScene {
     this.clearStations()
 
     const list = stations.slice(0, MAX_STATIONS)
+    if (!list.length) {
+      return
+    }
     const n = Math.max(list.length, 1)
+    const hasLiveProcessData = list.some((st) => st.total > 0)
     const totalWidth = (n - 1) * SPACING
     this.startX = -totalWidth / 2 - SPACING * 1.3
     this.endX = totalWidth / 2 + SPACING * 1.3
@@ -249,11 +253,13 @@ export class ProductionTwinScene {
     })
 
     // 物料流
-    const count = Math.max(5, n + 2)
-    for (let i = 0; i < count; i++) {
-      const t = i / count
-      const x = THREE.MathUtils.lerp(this.startX, this.endX, t)
-      this.buildProduct(x)
+    if (hasLiveProcessData) {
+      const count = Math.max(5, n + 2)
+      for (let i = 0; i < count; i++) {
+        const t = i / count
+        const x = THREE.MathUtils.lerp(this.startX, this.endX, t)
+        this.buildProduct(x)
+      }
     }
 
     // 相机自适应
@@ -628,7 +634,8 @@ export class ProductionTwinScene {
     ctx.fillText(truncate(st.operDesc || st.oper, 8), 128, 50)
     ctx.fillStyle = `rgb(${r},${g},${b})`
     ctx.font = 'bold 26px "Microsoft YaHei", sans-serif'
-    ctx.fillText(`良率 ${st.yieldRate.toFixed(1)}%`, 128, 90)
+    const metricText = st.total > 0 ? `良率 ${st.yieldRate.toFixed(1)}%` : '暂无'
+    ctx.fillText(metricText, 128, 90)
     const tex = new THREE.CanvasTexture(c)
     this.disposables.push(tex)
     return new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false })

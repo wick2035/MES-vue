@@ -427,6 +427,16 @@ export interface SnRecord extends BaseEntity {
   remark?: string
 }
 
+/** SN 工艺路线执行状态 */
+export interface SnRouteStep {
+  operId: string
+  oper?: string
+  operDesc?: string
+  stepNo?: number
+  done?: boolean
+  current?: boolean
+}
+
 /** 通用树节点（对齐后端 TreeVO） */
 export interface TreeNode {
   id: string

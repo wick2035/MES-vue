@@ -34,3 +34,20 @@ export function deleteOper(id: string) {
 export function pageFlows(params: Record<string, any>) {
   return http.post<IPage<Flow>>('/basedata/flow/page', params)
 }
+export function saveFlow(data: Partial<Flow>) {
+  return http.post('/basedata/flow/add-or-update', data as Record<string, any>)
+}
+export function deleteFlow(id: string) {
+  return http.post('/basedata/flow/delete', { id })
+}
+
+// ===== BOM 写操作 =====
+export function saveBom(data: Partial<Bom>) {
+  return http.post('/technology/bom/add-or-update', data as Record<string, any>)
+}
+export function saveBomItem(data: Partial<BomItem>) {
+  return http.post('/technology/sp-bom-item/add-or-update', data as Record<string, any>)
+}
+export function deleteBomItem(id: string) {
+  return http.post('/technology/sp-bom-item/delete', { id })
+}

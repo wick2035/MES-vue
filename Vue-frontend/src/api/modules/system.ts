@@ -39,10 +39,32 @@ export function authMenu(roleId: string, menuIds: string[]) {
   return http.post('/admin/sys/role/auth-menu', { roleId, menuIds })
 }
 
-// ===== 菜单 / 部门 树 =====
+// ===== 菜单 =====
 export function getMenuTree() {
   return http.get<TreeNode[]>('/admin/sys/menu/tree')
 }
+export function saveMenu(data: Record<string, any>) {
+  return http.post('/admin/sys/menu/add-or-update', data)
+}
+export function deleteMenu(id: string) {
+  return http.post('/admin/sys/menu/delete', { id })
+}
+
+// ===== 部门 =====
 export function getDeptTree() {
   return http.get<TreeNode[]>('/admin/sys/department/tree')
+}
+export function saveDept(data: Record<string, any>) {
+  return http.post('/admin/sys/department/add-or-update', data)
+}
+export function deleteDept(id: string) {
+  return http.post('/admin/sys/department/delete', { id })
+}
+
+// ===== 个人中心 =====
+export function updateProfile(data: Record<string, any>) {
+  return http.post('/admin/sys/user/update-profile', data)
+}
+export function changePassword(data: { oldPassword: string; newPassword: string }) {
+  return http.post('/admin/sys/user/change-password', data as Record<string, any>)
 }

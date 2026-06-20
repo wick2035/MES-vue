@@ -13,13 +13,64 @@ export interface TwinStation {
   yieldRate: number
 }
 
+export const DEMO_TWIN_STATIONS: TwinStation[] = [
+  {
+    oper: 'DPC-OP-010',
+    operDesc: '主板单元装配',
+    stepNo: 10,
+    ok: 0,
+    ng: 0,
+    total: 0,
+    status: 'idle',
+    yieldRate: 0,
+  },
+  {
+    oper: 'DPC-OP-020',
+    operDesc: '机箱单元装配',
+    stepNo: 20,
+    ok: 0,
+    ng: 0,
+    total: 0,
+    status: 'idle',
+    yieldRate: 0,
+  },
+  {
+    oper: 'DPC-OP-030',
+    operDesc: '整机总装',
+    stepNo: 30,
+    ok: 0,
+    ng: 0,
+    total: 0,
+    status: 'idle',
+    yieldRate: 0,
+  },
+  {
+    oper: 'DPC-OP-040',
+    operDesc: '整机老化测试',
+    stepNo: 40,
+    ok: 0,
+    ng: 0,
+    total: 0,
+    status: 'idle',
+    yieldRate: 0,
+  },
+  {
+    oper: 'DPC-OP-050',
+    operDesc: '包装入库',
+    stepNo: 50,
+    ok: 0,
+    ng: 0,
+    total: 0,
+    status: 'idle',
+    yieldRate: 0,
+  },
+]
+
 const SPACING = 8
 const MAX_STATIONS = 8
 
 /** 每个工位记录的动画引用 */
 interface StationRefs {
-  beacon: THREE.Mesh
-  halo: THREE.Sprite
   status: TwinStation['status']
   towerRed: THREE.MeshStandardMaterial
   towerAmber: THREE.MeshStandardMaterial
@@ -44,7 +95,8 @@ export class ProductionTwinScene {
   private products: THREE.Mesh[] = []
   private stationRefs: StationRefs[] = []
   private conveyorTex: THREE.CanvasTexture | null = null
-  private disposables: { dispose(): void }[] = []
+  private sceneDisposables: { dispose(): void }[] = []
+  private stationDisposables: { dispose(): void }[] = []
 
   private startX = -20
   private endX = 20
@@ -123,37 +175,76 @@ export class ProductionTwinScene {
     floor.position.y = -0.02
     floor.receiveShadow = true
     this.scene.add(floor)
-    this.disposables.push(floorGeo, floorMat)
+    this.sceneDisposables.push(floorGeo, floorMat)
 
     const grid = new THREE.GridHelper(180, 90, 0x1e3a8a, 0x12224a)
     ;(grid.material as THREE.Material).transparent = true
     ;(grid.material as THREE.Material).opacity = 0.3
     this.scene.add(grid)
-    this.disposables.push(grid.geometry, grid.material as THREE.Material)
+    this.sceneDisposables.push(grid.geometry, grid.material as THREE.Material)
   }
 
   private buildProductionDownlights() {
-    const xs = [-28, -14, 0, 14, 28]
-    const lineZ = -2.25
+    const xs = [-32, -16, 0, 16, 32]
+    const lineZ = -0.75
+    const railGeo = new THREE.BoxGeometry(78, 0.16, 0.22)
+    const railMat = new THREE.MeshStandardMaterial({
+      color: 0x111a2f,
+      metalness: 0.8,
+      roughness: 0.35,
+    })
+    const rail = new THREE.Mesh(railGeo, railMat)
+    rail.position.set(0, 9.72, lineZ)
+    this.scene.add(rail)
+    this.sceneDisposables.push(railGeo, railMat)
+
+    const housingGeo = new THREE.BoxGeometry(6.4, 0.22, 1.15)
+    const housingMat = new THREE.MeshStandardMaterial({
+      color: 0x25324c,
+      metalness: 0.72,
+      roughness: 0.32,
+    })
+    const diffuserGeo = new THREE.BoxGeometry(5.7, 0.045, 0.78)
+    const diffuserMat = new THREE.MeshStandardMaterial({
+      color: 0xf8fbff,
+      emissive: 0xf8fbff,
+      emissiveIntensity: 1.35,
+      roughness: 0.18,
+    })
+    const poolGeo = new THREE.PlaneGeometry(11.5, 7.2)
     xs.forEach((x) => {
       const target = new THREE.Object3D()
-      target.position.set(x, 0.65, lineZ)
+      target.position.set(x, 1.2, -1.4)
       this.scene.add(target)
 
-      const spot = new THREE.SpotLight(0xf4f8ff, 2.35, 24, Math.PI / 7.5, 0.48, 1.1)
-      spot.position.set(x, 9.15, lineZ)
+      const housing = new THREE.Mesh(housingGeo, housingMat)
+      housing.position.set(x, 9.46, lineZ)
+      this.scene.add(housing)
+
+      const diffuser = new THREE.Mesh(diffuserGeo, diffuserMat)
+      diffuser.position.set(x, 9.31, lineZ)
+      this.scene.add(diffuser)
+
+      const spot = new THREE.SpotLight(0xf8fbff, 2.35, 28, Math.PI / 3.4, 0.9, 1.25)
+      spot.position.set(x, 9.18, lineZ)
       spot.target = target
       spot.castShadow = true
       spot.shadow.mapSize.set(1024, 1024)
       spot.shadow.bias = -0.0004
       this.scene.add(spot)
 
-      const cone = this.makeDownlightCone()
-      cone.position.set(x, 4.9, lineZ)
-      this.scene.add(cone)
+      const workFill = new THREE.PointLight(0xdbeafe, 0.72, 15, 1.65)
+      workFill.position.set(x, 4.1, -1.35)
+      this.scene.add(workFill)
 
-      this.disposables.push(cone.geometry, cone.material as THREE.Material)
+      const poolMat = this.makeLightPoolMaterial()
+      const pool = new THREE.Mesh(poolGeo, poolMat)
+      pool.rotation.x = -Math.PI / 2
+      pool.position.set(x, 0.01, lineZ)
+      this.scene.add(pool)
+      this.sceneDisposables.push(poolMat)
     })
+    this.sceneDisposables.push(housingGeo, housingMat, diffuserGeo, diffuserMat, poolGeo)
   }
 
   /** 厂房环境：立柱 + 天花板梁 + 工业灯 + 地面安全线 */
@@ -176,7 +267,7 @@ export class ProductionTwinScene {
         env.add(col)
       }
     }
-    this.disposables.push(columnGeo, columnMat)
+    this.sceneDisposables.push(columnGeo, columnMat)
 
     // 天花板主梁（沿 X 方向延伸）
     const beamGeo = new THREE.BoxGeometry(92, 0.5, 0.4)
@@ -190,7 +281,7 @@ export class ProductionTwinScene {
       beam.position.set(0, 9.7, bz)
       env.add(beam)
     }
-    this.disposables.push(beamGeo, beamMat)
+    this.sceneDisposables.push(beamGeo, beamMat)
 
     // 天花板工业灯（每 11u 一组，沿传送带方向）
     const lampHousingGeo = new THREE.BoxGeometry(2.4, 0.22, 0.7)
@@ -217,21 +308,42 @@ export class ProductionTwinScene {
       lamp.position.set(lx, 9.2, 0)
       env.add(lamp)
     }
-    this.disposables.push(lampHousingGeo, lampHousingMat, lampPanelGeo, lampPanelMat)
+    this.sceneDisposables.push(lampHousingGeo, lampHousingMat, lampPanelGeo, lampPanelMat)
 
     // 地面安全黄线（沿传送带两侧，Z=±3.5）
     const safeLineGeo = new THREE.BoxGeometry(92, 0.012, 0.12)
     const safeLineMat = new THREE.MeshStandardMaterial({
       color: 0xfbbf24,
       emissive: 0xfbbf24,
-      emissiveIntensity: 0.25,
+      emissiveIntensity: 0.7,
     })
     for (const sz of [-3.5, 3.5]) {
       const line = new THREE.Mesh(safeLineGeo, safeLineMat)
       line.position.set(0, 0, sz)
       env.add(line)
     }
-    this.disposables.push(safeLineGeo, safeLineMat)
+    this.sceneDisposables.push(safeLineGeo, safeLineMat)
+
+    const workZoneGeo = new THREE.PlaneGeometry(92, 7.0)
+    const workZoneMat = this.makeWorkZoneWashMaterial()
+    const workZone = new THREE.Mesh(workZoneGeo, workZoneMat)
+    workZone.rotation.x = -Math.PI / 2
+    workZone.position.set(0, 0.006, 0)
+    env.add(workZone)
+    this.sceneDisposables.push(workZoneGeo, workZoneMat)
+
+    const workZoneVolumeGeo = new THREE.BoxGeometry(92, 9.1, 7.0)
+    const workZoneVolumeMat = this.makeWorkZoneVolumeMaterial()
+    const workZoneVolume = new THREE.Mesh(workZoneVolumeGeo, workZoneVolumeMat)
+    workZoneVolume.position.set(0, 4.55, 0)
+    env.add(workZoneVolume)
+    this.sceneDisposables.push(workZoneVolumeGeo, workZoneVolumeMat)
+
+    for (const lx of [-30, 0, 30]) {
+      const volumeFill = new THREE.PointLight(0xf1f7ff, 0.86, 32, 1.25)
+      volumeFill.position.set(lx, 5.2, 0)
+      env.add(volumeFill)
+    }
 
     // 传送带两端地面警示斜纹
     this.buildHazardStripes(env, -46, 48, -3.4, 3.4)
@@ -239,17 +351,67 @@ export class ProductionTwinScene {
     this.scene.add(env)
   }
 
-  private makeDownlightCone(): THREE.Mesh {
-    const geo = new THREE.ConeGeometry(2.35, 8.4, 48, 1, true)
+  private makeLightPoolMaterial(): THREE.MeshBasicMaterial {
+    const c = document.createElement('canvas')
+    c.width = 256
+    c.height = 160
+    const ctx = c.getContext('2d')!
+    const grad = ctx.createRadialGradient(128, 80, 0, 128, 80, 126)
+    grad.addColorStop(0, 'rgba(219,234,254,0.34)')
+    grad.addColorStop(0.45, 'rgba(147,197,253,0.15)')
+    grad.addColorStop(1, 'rgba(147,197,253,0)')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, 256, 160)
+    const tex = new THREE.CanvasTexture(c)
     const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      opacity: 0.72,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    })
+    this.sceneDisposables.push(tex)
+    return mat
+  }
+
+  private makeWorkZoneWashMaterial(): THREE.MeshBasicMaterial {
+    const c = document.createElement('canvas')
+    c.width = 512
+    c.height = 128
+    const ctx = c.getContext('2d')!
+    const vertical = ctx.createLinearGradient(0, 0, 0, 128)
+    vertical.addColorStop(0, 'rgba(125,164,230,0.10)')
+    vertical.addColorStop(0.5, 'rgba(219,234,254,0.22)')
+    vertical.addColorStop(1, 'rgba(125,164,230,0.10)')
+    ctx.fillStyle = vertical
+    ctx.fillRect(0, 0, 512, 128)
+    const center = ctx.createRadialGradient(256, 64, 0, 256, 64, 260)
+    center.addColorStop(0, 'rgba(240,249,255,0.24)')
+    center.addColorStop(0.5, 'rgba(191,219,254,0.12)')
+    center.addColorStop(1, 'rgba(15,23,42,0)')
+    ctx.fillStyle = center
+    ctx.fillRect(0, 0, 512, 128)
+    const tex = new THREE.CanvasTexture(c)
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      opacity: 0.82,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    })
+    this.sceneDisposables.push(tex)
+    return mat
+  }
+
+  private makeWorkZoneVolumeMaterial(): THREE.MeshBasicMaterial {
+    return new THREE.MeshBasicMaterial({
       color: 0xdbeafe,
       transparent: true,
-      opacity: 0.09,
+      opacity: 0.075,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide,
     })
-    return new THREE.Mesh(geo, mat)
   }
 
   private buildHazardStripes(parent: THREE.Group, x1: number, x2: number, z1: number, z2: number) {
@@ -266,17 +428,15 @@ export class ProductionTwinScene {
       my2.position.set(sx2, 0, (z1 + z2) / 2)
       parent.add(my2)
     }
-    this.disposables.push(stripeGeo, yellowMat, blackMat)
+    this.sceneDisposables.push(stripeGeo, yellowMat, blackMat)
   }
 
-  /** 用真实工位数据构建/重建场景内容 */
+  /** 用真实工位数据构建并重建场景内容 */
   setStations(stations: TwinStation[]) {
     this.clearStations()
 
-    const list = stations.slice(0, MAX_STATIONS)
-    if (!list.length) {
-      return
-    }
+    const source = stations.length ? stations : DEMO_TWIN_STATIONS
+    const list = source.slice(0, MAX_STATIONS)
     const n = Math.max(list.length, 1)
     const hasLiveProcessData = list.some((st) => st.total > 0)
     const totalWidth = (n - 1) * SPACING
@@ -333,7 +493,7 @@ export class ProductionTwinScene {
     belt.position.set((startX + endX) / 2, beltY, 0)
     belt.receiveShadow = true
     this.stationGroup.add(belt)
-    this.disposables.push(beltGeo, topMat, sideMat, tex)
+    this.stationDisposables.push(beltGeo, topMat, sideMat, tex)
 
     // 铝合金导轨（左右各一）
     const railGeo = new THREE.BoxGeometry(len + 0.4, 0.32, 0.09)
@@ -347,7 +507,7 @@ export class ProductionTwinScene {
       rail.position.set((startX + endX) / 2, beltY + 0.27, rz)
       this.stationGroup.add(rail)
     }
-    this.disposables.push(railGeo, railMat)
+    this.stationDisposables.push(railGeo, railMat)
 
     // 支腿（每 3u 一组）
     const legGeo = new THREE.BoxGeometry(0.13, beltY + 0.1, 0.13)
@@ -369,7 +529,7 @@ export class ProductionTwinScene {
       cross.position.set(lx, 0.08, 0)
       this.stationGroup.add(cross)
     }
-    this.disposables.push(legGeo, crossGeo, legMat)
+    this.stationDisposables.push(legGeo, crossGeo, legMat)
 
     // 端辊（传送带两端的圆柱）
     const rollerGeo = new THREE.CylinderGeometry(0.23, 0.23, 3.2, 20)
@@ -384,7 +544,7 @@ export class ProductionTwinScene {
       roller.position.set(rx, beltY, 0)
       this.stationGroup.add(roller)
     }
-    this.disposables.push(rollerGeo, rollerMat)
+    this.stationDisposables.push(rollerGeo, rollerMat)
   }
 
   /** 构建单个工位：CNC 加工中心多零件模型 */
@@ -406,7 +566,7 @@ export class ProductionTwinScene {
     base.castShadow = true
     base.receiveShadow = true
     group.add(base)
-    this.disposables.push(baseGeo, baseMat)
+    this.stationDisposables.push(baseGeo, baseMat)
 
     // --- 主机箱体 ---
     const bodyGeo = new THREE.BoxGeometry(3.7, 2.85, 4.0)
@@ -419,7 +579,7 @@ export class ProductionTwinScene {
     body.position.set(0, 1.7, -2.7)
     body.castShadow = true
     group.add(body)
-    this.disposables.push(bodyGeo, bodyMat)
+    this.stationDisposables.push(bodyGeo, bodyMat)
 
     // --- 机身顶盖 ---
     const topCapGeo = new THREE.BoxGeometry(3.7, 0.22, 4.0)
@@ -431,9 +591,9 @@ export class ProductionTwinScene {
     const topCap = new THREE.Mesh(topCapGeo, topCapMat)
     topCap.position.set(0, 3.24, -2.7)
     group.add(topCap)
-    this.disposables.push(topCapGeo, topCapMat)
+    this.stationDisposables.push(topCapGeo, topCapMat)
 
-    // --- 前防护窗（半透明） ---
+    // --- 前防护窗（半透明）---
     const windowGeo = new THREE.BoxGeometry(2.8, 1.45, 0.07)
     const windowMat = new THREE.MeshStandardMaterial({
       color: 0x7ec8e3,
@@ -445,7 +605,7 @@ export class ProductionTwinScene {
     const frontWindow = new THREE.Mesh(windowGeo, windowMat)
     frontWindow.position.set(0, 1.55, -0.73)
     group.add(frontWindow)
-    this.disposables.push(windowGeo, windowMat)
+    this.stationDisposables.push(windowGeo, windowMat)
 
     // 窗框
     const frameGeo = new THREE.BoxGeometry(3.0, 1.65, 0.09)
@@ -458,9 +618,9 @@ export class ProductionTwinScene {
     frame.position.set(0, 1.55, -0.78)
     group.add(frame)
     // 内开孔用内嵌窗代替（视觉遮挡关系已够用）
-    this.disposables.push(frameGeo, frameMat)
+    this.stationDisposables.push(frameGeo, frameMat)
 
-    // --- 控制台（右侧伸出） ---
+    // --- 控制台（右侧伸出）---
     const panelBodyGeo = new THREE.BoxGeometry(1.05, 1.65, 0.2)
     const panelBodyMat = new THREE.MeshStandardMaterial({
       color: 0x0d1520,
@@ -470,7 +630,7 @@ export class ProductionTwinScene {
     const panelBody = new THREE.Mesh(panelBodyGeo, panelBodyMat)
     panelBody.position.set(2.38, 1.5, -1.6)
     group.add(panelBody)
-    this.disposables.push(panelBodyGeo, panelBodyMat)
+    this.stationDisposables.push(panelBodyGeo, panelBodyMat)
 
     // HMI 触摸屏
     const screenGeo = new THREE.BoxGeometry(0.78, 0.52, 0.025)
@@ -482,7 +642,7 @@ export class ProductionTwinScene {
     const screen = new THREE.Mesh(screenGeo, screenMat)
     screen.position.set(2.38, 1.72, -1.5)
     group.add(screen)
-    this.disposables.push(screenGeo, screenMat)
+    this.stationDisposables.push(screenGeo, screenMat)
 
     // 指示灯按钮（6个小球）
     const btnColors = [0x22c55e, 0xef4444, 0xf59e0b, 0x3b82f6, 0xf1f5f9, 0x6b7280]
@@ -496,9 +656,9 @@ export class ProductionTwinScene {
       const btn = new THREE.Mesh(btnGeo, btnMat)
       btn.position.set(2.35 + (idx % 2) * 0.18 - 0.09, 1.2 - Math.floor(idx / 2) * 0.18, -1.5)
       group.add(btn)
-      this.disposables.push(btnMat)
+      this.stationDisposables.push(btnMat)
     })
-    this.disposables.push(btnGeo)
+    this.stationDisposables.push(btnGeo)
 
     // --- 主轴箱（从机身顶部伸出） ---
     const spindleHousingGeo = new THREE.CylinderGeometry(0.33, 0.33, 0.95, 16)
@@ -510,7 +670,7 @@ export class ProductionTwinScene {
     const spindleHousing = new THREE.Mesh(spindleHousingGeo, spindleHousingMat)
     spindleHousing.position.set(-0.5, 3.65, -2.2)
     group.add(spindleHousing)
-    this.disposables.push(spindleHousingGeo, spindleHousingMat)
+    this.stationDisposables.push(spindleHousingGeo, spindleHousingMat)
 
     const collarGeo = new THREE.CylinderGeometry(0.2, 0.16, 0.48, 14)
     const collarMat = new THREE.MeshStandardMaterial({
@@ -521,7 +681,7 @@ export class ProductionTwinScene {
     const collar = new THREE.Mesh(collarGeo, collarMat)
     collar.position.set(-0.5, 3.12, -2.2)
     group.add(collar)
-    this.disposables.push(collarGeo, collarMat)
+    this.stationDisposables.push(collarGeo, collarMat)
 
     const toolGeo = new THREE.CylinderGeometry(0.052, 0.022, 0.38, 10)
     const toolMat = new THREE.MeshStandardMaterial({
@@ -532,7 +692,7 @@ export class ProductionTwinScene {
     const tool = new THREE.Mesh(toolGeo, toolMat)
     tool.position.set(-0.5, 2.79, -2.2)
     group.add(tool)
-    this.disposables.push(toolGeo, toolMat)
+    this.stationDisposables.push(toolGeo, toolMat)
 
     // --- 三色信号灯塔 ---
     const towerPoleMat = new THREE.MeshStandardMaterial({
@@ -544,7 +704,7 @@ export class ProductionTwinScene {
     const towerPole = new THREE.Mesh(towerPoleGeo, towerPoleMat)
     towerPole.position.set(1.0, 4.1, -2.7)
     group.add(towerPole)
-    this.disposables.push(towerPoleGeo, towerPoleMat)
+    this.stationDisposables.push(towerPoleGeo, towerPoleMat)
 
     // 红灯
     const redGeo = new THREE.CylinderGeometry(0.135, 0.135, 0.37, 14)
@@ -556,7 +716,7 @@ export class ProductionTwinScene {
     const redLight = new THREE.Mesh(redGeo, redMat)
     redLight.position.set(1.0, 5.14, -2.7)
     group.add(redLight)
-    this.disposables.push(redGeo, redMat)
+    this.stationDisposables.push(redGeo, redMat)
 
     // 黄灯
     const amberGeo = new THREE.CylinderGeometry(0.135, 0.135, 0.37, 14)
@@ -568,7 +728,7 @@ export class ProductionTwinScene {
     const amberLight = new THREE.Mesh(amberGeo, amberMat)
     amberLight.position.set(1.0, 4.72, -2.7)
     group.add(amberLight)
-    this.disposables.push(amberGeo, amberMat)
+    this.stationDisposables.push(amberGeo, amberMat)
 
     // 绿灯
     const greenGeo = new THREE.CylinderGeometry(0.135, 0.135, 0.37, 14)
@@ -580,7 +740,7 @@ export class ProductionTwinScene {
     const greenLight = new THREE.Mesh(greenGeo, greenMat)
     greenLight.position.set(1.0, 4.3, -2.7)
     group.add(greenLight)
-    this.disposables.push(greenGeo, greenMat)
+    this.stationDisposables.push(greenGeo, greenMat)
 
     // 灯塔顶盖
     const towerCapGeo = new THREE.CylinderGeometry(0.16, 0.135, 0.08, 14)
@@ -592,37 +752,17 @@ export class ProductionTwinScene {
     const towerCap = new THREE.Mesh(towerCapGeo, towerCapMat)
     towerCap.position.set(1.0, 5.34, -2.7)
     group.add(towerCap)
-    this.disposables.push(towerCapGeo, towerCapMat)
+    this.stationDisposables.push(towerCapGeo, towerCapMat)
 
-    // --- 工位顶部标签（悬浮 Canvas Sprite） ---
+    // --- 工位顶部标签（悬浮 Canvas Sprite）---
     const panelMat = this.makeStatusPanelMat(st)
     const labelSprite = new THREE.Sprite(panelMat)
-    labelSprite.position.set(0, 5.6, -2.7)
+    labelSprite.position.set(0, 6.6, -2.7)
     labelSprite.scale.set(4.8, 2.4, 1)
     group.add(labelSprite)
-    this.disposables.push(panelMat)
-
-    // --- 顶部信标球（保留光晕动画） ---
-    const beaconColor = status === 'alarm' ? 0xef4444 : status === 'running' ? 0x22c55e : 0x94a3b8
-    const beaconGeo = new THREE.SphereGeometry(0.38, 20, 20)
-    const beaconMat = new THREE.MeshStandardMaterial({
-      color: beaconColor,
-      emissive: beaconColor,
-      emissiveIntensity: 1.2,
-    })
-    const beacon = new THREE.Mesh(beaconGeo, beaconMat)
-    beacon.position.set(0, 5.05, -2.7)
-    group.add(beacon)
-    this.disposables.push(beaconGeo, beaconMat)
-
-    const halo = this.makeGlowSprite(beaconColor)
-    halo.position.copy(beacon.position)
-    halo.scale.set(2.4, 2.4, 1)
-    group.add(halo)
+    this.stationDisposables.push(panelMat)
 
     this.stationRefs.push({
-      beacon,
-      halo,
       status,
       towerRed: redMat,
       towerAmber: amberMat,
@@ -646,7 +786,7 @@ export class ProductionTwinScene {
     cube.castShadow = true
     this.products.push(cube)
     this.stationGroup.add(cube)
-    this.disposables.push(geo, mat)
+    this.stationDisposables.push(geo, mat)
   }
 
   private makeStatusPanelMat(st: TwinStation): THREE.SpriteMaterial {
@@ -675,7 +815,7 @@ export class ProductionTwinScene {
     const metricText = st.total > 0 ? `良率 ${st.yieldRate.toFixed(1)}%` : '暂无'
     ctx.fillText(metricText, 128, 90)
     const tex = new THREE.CanvasTexture(c)
-    this.disposables.push(tex)
+    this.stationDisposables.push(tex)
     return new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false })
   }
 
@@ -699,32 +839,6 @@ export class ProductionTwinScene {
     return new THREE.CanvasTexture(c)
   }
 
-  private makeGlowSprite(color: number): THREE.Sprite {
-    const c = document.createElement('canvas')
-    c.width = 128
-    c.height = 128
-    const ctx = c.getContext('2d')!
-    const col = new THREE.Color(color)
-    const r = Math.round(col.r * 255)
-    const g = Math.round(col.g * 255)
-    const b = Math.round(col.b * 255)
-    const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64)
-    grad.addColorStop(0, `rgba(${r},${g},${b},0.9)`)
-    grad.addColorStop(0.4, `rgba(${r},${g},${b},0.3)`)
-    grad.addColorStop(1, `rgba(${r},${g},${b},0)`)
-    ctx.fillStyle = grad
-    ctx.fillRect(0, 0, 128, 128)
-    const tex = new THREE.CanvasTexture(c)
-    const mat = new THREE.SpriteMaterial({
-      map: tex,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    })
-    this.disposables.push(tex, mat)
-    return new THREE.Sprite(mat)
-  }
-
   private animate = () => {
     this.raf = requestAnimationFrame(this.animate)
     const dt = this.clock.getDelta()
@@ -741,29 +855,21 @@ export class ProductionTwinScene {
       if (p.position.x > this.endX) p.position.x = this.startX + ((p.position.x - this.endX) % span)
     }
 
-    // 工位动画：信标脉冲 + 三色灯
     for (const ref of this.stationRefs) {
-      const beaconMat = ref.beacon.material as THREE.MeshStandardMaterial
       if (ref.status === 'alarm') {
         // 红灯强烈闪烁
         const pulse = 1.2 + Math.sin(t * 6) * 0.8
-        beaconMat.emissiveIntensity = pulse
-        ref.halo.scale.setScalar(2.4 + Math.sin(t * 6) * 0.7)
         ref.towerRed.emissiveIntensity = pulse
         ref.towerAmber.emissiveIntensity = 0.06
         ref.towerGreen.emissiveIntensity = 0.06
       } else if (ref.status === 'running') {
         // 绿灯呼吸
-        const pulse = 1.1 + Math.sin(t * 2 + ref.beacon.position.x) * 0.28
-        beaconMat.emissiveIntensity = pulse
-        ref.halo.scale.setScalar(2.2 + Math.sin(t * 2) * 0.25)
+        const pulse = 1.1 + Math.sin(t * 2) * 0.28
         ref.towerGreen.emissiveIntensity = pulse
         ref.towerRed.emissiveIntensity = 0.06
         ref.towerAmber.emissiveIntensity = 0.06
       } else {
-        // 黄灯常亮低强度（待机）
-        beaconMat.emissiveIntensity = 0.6
-        ref.halo.scale.setScalar(1.8)
+        // Idle stations keep the amber tower light on.
         ref.towerAmber.emissiveIntensity = 0.75
         ref.towerRed.emissiveIntensity = 0.06
         ref.towerGreen.emissiveIntensity = 0.06
@@ -791,7 +897,7 @@ export class ProductionTwinScene {
     this.products = []
     this.stationRefs = []
     this.conveyorTex = null
-    const old = this.disposables.splice(0, this.disposables.length)
+    const old = this.stationDisposables.splice(0, this.stationDisposables.length)
     old.forEach((d) => {
       try {
         d.dispose()
@@ -804,6 +910,14 @@ export class ProductionTwinScene {
   dispose() {
     cancelAnimationFrame(this.raf)
     this.clearStations()
+    const sceneAssets = this.sceneDisposables.splice(0, this.sceneDisposables.length)
+    sceneAssets.forEach((d) => {
+      try {
+        d.dispose()
+      } catch {
+        /* ignore */
+      }
+    })
     this.scene?.traverse((obj) => {
       const mesh = obj as THREE.Mesh
       if (mesh.geometry) mesh.geometry.dispose?.()
@@ -834,5 +948,5 @@ function roundRect(
 }
 
 function truncate(s: string, n: number): string {
-  return s && s.length > n ? s.slice(0, n) + '…' : s || '—'
+  return s && s.length > n ? s.slice(0, n) + '…' : s || '…'
 }

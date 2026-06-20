@@ -253,8 +253,20 @@ public class SystemWiringStaticTest {
         assertTrue(scene.contains("st.total > 0 ? `良率 ${st.yieldRate.toFixed(1)}%` : '暂无'"));
         assertTrue(scene.contains("buildProductionDownlights"));
         assertTrue(scene.contains("new THREE.SpotLight"));
-        assertTrue(scene.contains("makeDownlightCone"));
-        assertTrue(scene.contains("const lineZ = -2.25"));
+        assertTrue(scene.contains("DEMO_TWIN_STATIONS"));
+        assertTrue(scene.contains("makeLightPoolMaterial"));
+        assertTrue(scene.contains("makeWorkZoneWashMaterial"));
+        assertTrue(scene.contains("makeWorkZoneVolumeMaterial"));
+        assertTrue(scene.contains("new THREE.PointLight(0xf1f7ff"));
+        assertTrue(scene.contains("sceneDisposables"));
+        assertTrue(scene.contains("stationDisposables"));
+        assertFalse(scene.contains("ConeGeometry"));
+        assertFalse(scene.contains("makeDownlightCone"));
+        assertFalse(scene.contains("SphereGeometry(0.38"));
+        assertFalse(scene.contains("makeGlowSprite"));
+        assertTrue(twinView.contains("cloneDemoStations"));
+        assertTrue(twinView.contains("DEMO_TWIN_STATIONS"));
+        assertTrue(scene.contains("const lineZ = -0.75"));
         assertFalse(scene.contains("cone.rotation.x = Math.PI"));
 
         assertTrue(twinView.contains("s.total > 0 ? s.yieldRate.toFixed(0) + '%' : '暂无'"));

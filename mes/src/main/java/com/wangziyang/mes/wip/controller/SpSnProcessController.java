@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
+import com.wangziyang.mes.notification.service.ISpNotificationService;
 import com.wangziyang.mes.order.entity.SpOrder;
 import com.wangziyang.mes.order.service.ISpOrderService;
 import com.wangziyang.mes.wip.entity.SpSnProcessRecord;
@@ -24,6 +25,9 @@ public class SpSnProcessController extends BaseController {
 
     @Autowired
     private ISpSnProcessRecordService recordService;
+
+    @Autowired
+    private ISpNotificationService notificationService;
 
     @GetMapping("/list-ui")
     public String listUI() {
@@ -47,7 +51,12 @@ public class SpSnProcessController extends BaseController {
     @PostMapping("/scan")
     @ResponseBody
     public Result scan(SpSnScanReq req) {
-        return recordService.scan(req);
+        Result result = recordService.scan(req);
+        if ((Integer) result.get("code") == 0 && "NG".equalsIgnoreCase(req.getStatus())) {
+            notificationService.push(ISpNotificationService.TYPE_ALARM, "工序不良预警",
+                    "SN " + req.getSn() + " 工序采集判定 NG，请及时处理", "SN_NG", req.getSn());
+        }
+        return result;
     }
 
     @PostMapping("/records")

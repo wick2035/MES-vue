@@ -1,6 +1,25 @@
 import { defineStore } from 'pinia'
 import type { NotifyMessage } from '@/types/domain'
 import { notify as toastNotify } from '@/lib/toast'
+import {
+  getRecentNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  type ServerNotification,
+} from '@/api/modules/notification'
+
+/** 后端通知实体 → 前端通知消息 */
+function toNotifyMessage(n: ServerNotification): NotifyMessage {
+  const type = (n.type as NotifyMessage['type']) || 'system'
+  return {
+    id: n.id,
+    type,
+    title: n.title || '',
+    content: n.content || '',
+    time: n.createTime || '',
+    read: n.isRead === '1',
+  }
+}
 
 /** 通知列表最大保留条数，超出丢弃最旧的，避免内存无限增长 */
 const MAX_ITEMS = 60
@@ -43,7 +62,10 @@ export const useNotifyStore = defineStore('notify', {
   actions: {
     /** 建立连接（幂等：已连接或连接中则跳过） */
     connect() {
-      if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+      if (
+        socket &&
+        (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)
+      ) {
         return
       }
       manualClosed = false
@@ -58,6 +80,8 @@ export const useNotifyStore = defineStore('notify', {
       socket.onopen = () => {
         this.connected = true
         reconnectAttempt = 0
+        // 连接（含重连）后拉取持久化历史，保证刷新/重连不丢列表
+        this.loadHistory()
       }
 
       socket.onmessage = (ev) => {
@@ -131,13 +155,31 @@ export const useNotifyStore = defineStore('notify', {
       this.connected = false
     },
 
+    /** 拉取持久化历史通知（事件驱动，落库于 sp_notification），合并去重 */
+    async loadHistory() {
+      try {
+        const res = await getRecentNotifications(30)
+        const history = (res.data?.list ?? []).map(toNotifyMessage)
+        const ids = new Set(history.map((h) => h.id))
+        // 保留尚未落库的本地实时项（如“连接成功”系统提示）
+        const localOnly = this.list.filter((n) => !ids.has(n.id))
+        this.list = [...localOnly, ...history].slice(0, MAX_ITEMS)
+      } catch {
+        // 历史拉取失败不影响实时推送
+      }
+    },
+
     markRead(id: string) {
       const item = this.list.find((n) => n.id === id)
-      if (item) item.read = true
+      if (item && !item.read) {
+        item.read = true
+        markNotificationRead(id).catch(() => undefined)
+      }
     },
 
     markAllRead() {
       this.list.forEach((n) => (n.read = true))
+      markAllNotificationsRead().catch(() => undefined)
     },
 
     remove(id: string) {

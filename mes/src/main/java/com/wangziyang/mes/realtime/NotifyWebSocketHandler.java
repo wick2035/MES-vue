@@ -91,8 +91,12 @@ public class NotifyWebSocketHandler extends TextWebSocketHandler {
         private String time;
 
         public static NotifyMessage of(String type, String title, String content) {
+            return of(String.valueOf(System.nanoTime()), type, title, content);
+        }
+
+        public static NotifyMessage of(String id, String type, String title, String content) {
             NotifyMessage m = new NotifyMessage();
-            m.id = String.valueOf(System.nanoTime());
+            m.id = id;
             m.type = type;
             m.title = title;
             m.content = content;

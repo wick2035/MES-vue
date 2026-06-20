@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
+import com.wangziyang.mes.notification.service.ISpNotificationService;
 import com.wangziyang.mes.order.entity.SpOrder;
 import com.wangziyang.mes.order.service.ISpOrderService;
 import com.wangziyang.mes.productionorder.entity.SpProductionOrder;
@@ -67,6 +68,9 @@ public class SpProductionOrderController extends BaseController {
 
     @Autowired
     private ISpSnProcessRecordService snProcessRecordService;
+
+    @Autowired
+    private ISpNotificationService notificationService;
 
     @ApiOperation("生产订单录入页面")
     @GetMapping("/list-ui")
@@ -139,7 +143,14 @@ public class SpProductionOrderController extends BaseController {
     @PostMapping("/submit")
     @ResponseBody
     public Result submit(@RequestBody SpProductionOrderSaveReq req) {
-        return productionOrderService.submitOrder(req, currentUser());
+        Result result = productionOrderService.submitOrder(req, currentUser());
+        if ((Integer) result.get("code") == 0) {
+            String orderNo = req.getOrder() == null ? "" : StringUtils.trimToEmpty(req.getOrder().getOrderNo());
+            notificationService.push(ISpNotificationService.TYPE_ORDER, "生产订单提交审批",
+                    "生产订单" + (orderNo.isEmpty() ? "" : " " + orderNo) + " 已提交审批并生成生产工单",
+                    "PRODUCTION_ORDER", null);
+        }
+        return result;
     }
 
     @ApiOperation("生产订单删除")
@@ -167,7 +178,14 @@ public class SpProductionOrderController extends BaseController {
     @PostMapping("/create-work-order")
     @ResponseBody
     public Result createWorkOrder(@RequestParam String id) {
-        return productionOrderService.createWorkOrder(id, currentUser());
+        SpProductionOrder order = productionOrderService.getById(id);
+        Result result = productionOrderService.createWorkOrder(id, currentUser());
+        if ((Integer) result.get("code") == 0) {
+            notificationService.push(ISpNotificationService.TYPE_ORDER, "生产订单提交审批",
+                    "生产订单 " + (order == null ? id : order.getOrderNo()) + " 已提交生产主管审批并生成生产工单",
+                    "PRODUCTION_ORDER", id);
+        }
+        return result;
     }
 
     @ApiOperation("Excel导入生产订单")

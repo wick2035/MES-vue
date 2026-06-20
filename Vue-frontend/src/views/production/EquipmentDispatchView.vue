@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { Cpu, RotateCcw, Save, Search } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { SpCombobox, type ComboboxOption } from '@/components/ui/combobox'
 import SpDataTable from '@/components/common/SpDataTable.vue'
 import SpStatusBadge from '@/components/common/SpStatusBadge.vue'
 import { useTable } from '@/composables/useTable'
@@ -47,6 +48,14 @@ const columns: TableColumn[] = [
   { key: 'equipmentStatus', title: '状态', slot: 'status', width: '90px', align: 'center' },
   { key: 'action', title: '派工', slot: 'action', width: '260px' },
 ]
+
+const equipmentOptions = computed<ComboboxOption[]>(() =>
+  equipments.map((eq) => ({
+    value: String(eq.id),
+    label: eq.equipmentName || eq.equipmentCode || String(eq.id),
+    description: eq.equipmentCode || undefined,
+  })),
+)
 
 async function loadEquipments() {
   const res = await pageEquipments({ current: 1, size: 300 })
@@ -142,15 +151,15 @@ onMounted(async () => {
       </template>
       <template #action="{ row }">
         <div class="flex items-center gap-2">
-          <select
-            v-model="equipmentMap[row.operPlanId]"
-            class="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm"
-          >
-            <option value="">选择设备</option>
-            <option v-for="eq in equipments" :key="eq.id" :value="eq.id">
-              {{ eq.equipmentName || eq.equipmentCode }}
-            </option>
-          </select>
+          <SpCombobox
+            :model-value="equipmentMap[row.operPlanId] || ''"
+            :options="equipmentOptions"
+            placeholder="选择设备"
+            search-placeholder="搜索设备名称 / 编码"
+            empty-text="无匹配设备"
+            class="min-w-0 flex-1"
+            @update:model-value="equipmentMap[row.operPlanId] = $event as string"
+          />
           <Button size="sm" :disabled="saving[row.operPlanId]" @click="save(row)">
             <Save v-if="!saving[row.operPlanId]" class="h-4 w-4" />
             <Cpu v-else class="h-4 w-4 animate-spin" />

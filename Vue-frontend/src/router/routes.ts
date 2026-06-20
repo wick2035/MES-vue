@@ -32,6 +32,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { title: '智能助手', icon: 'Bot', keepAlive: true },
       },
       {
+        path: 'twin',
+        name: 'DigitalTwin',
+        component: () => import('@/views/twin/DigitalTwinView.vue'),
+        meta: { title: '数字孪生', icon: 'Box' },
+      },
+      {
         path: 'profile',
         name: 'Profile',
         component: () => import('@/views/profile/ProfileView.vue'),

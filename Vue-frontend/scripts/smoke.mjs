@@ -185,10 +185,28 @@ try {
   await page.waitForTimeout(2500)
   const answer = (await page.locator('.md-body').last().textContent()) || ''
   await page.screenshot({ path: path.join(OUT, '21-assistant.png'), fullPage: true })
+  // 等待流式结束（停止按钮消失），避免离开页面时中断 SSE 连接
+  await page.waitForSelector('button[title="停止生成"]', { state: 'detached', timeout: 60000 }).catch(() => {})
   log(`assistant answered (${answer.trim().length} chars): ${answer.slice(0, 50).replace(/\s+/g, ' ')}`)
 } catch (e) {
   log(`assistant FAIL: ${e.message}`)
   await page.screenshot({ path: path.join(OUT, '21-assistant-FAIL.png'), fullPage: true }).catch(() => {})
+}
+
+// M11 数字孪生 3D 产线
+try {
+  await page.goto(`${BASE}/twin`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('canvas', { timeout: 8000 })
+  // 等待数据加载与首帧渲染
+  await page.waitForSelector('text=工位状态', { timeout: 12000 })
+  await page.waitForTimeout(3000)
+  const panel = await page.getByText('智能产线数字孪生').count()
+  const running = await page.getByText('运行中').count().catch(() => 0)
+  await page.screenshot({ path: path.join(OUT, '22-twin.png'), fullPage: true })
+  log(`digital twin rendered (title=${panel}, runningTags=${running})`)
+} catch (e) {
+  log(`twin FAIL: ${e.message}`)
+  await page.screenshot({ path: path.join(OUT, '22-twin-FAIL.png'), fullPage: true }).catch(() => {})
 }
 
 fs.writeFileSync(path.join(OUT, 'result.json'), JSON.stringify({ steps, consoleErrors, pageErrors, failed }, null, 2))

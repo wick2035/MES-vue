@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   ListTree,
   Building2,
+  Box,
 } from 'lucide-vue-next'
 
 /**
@@ -43,6 +44,7 @@ export const iconMap: Record<string, Component> = {
   ShieldCheck,
   ListTree,
   Building2,
+  Box,
 }
 
 export function resolveIcon(name?: string): Component | undefined {

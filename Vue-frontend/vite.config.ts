@@ -6,6 +6,7 @@ import Components from 'unplugin-vue-components/vite'
 
 // MES 前端构建配置：/api 代理到 9090 后端（含 WebSocket），按需自动引入
 export default defineConfig({
+  clearScreen: false,
   plugins: [
     vue(),
     // 自动引入 Vue / Router / Pinia / VueUse 的组合式 API，免去重复 import
@@ -29,6 +30,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    headers: {
+      'Cache-Control': 'no-store, max-age=0',
+    },
     proxy: {
       // 全部后端接口经此代理，浏览器视角同源，Shiro 会话 Cookie 自然透传
       '/api': {
@@ -37,6 +41,11 @@ export default defineConfig({
         ws: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+    },
+  },
+  preview: {
+    headers: {
+      'Cache-Control': 'no-store, max-age=0',
     },
   },
   build: {

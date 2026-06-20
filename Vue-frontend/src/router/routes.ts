@@ -1,7 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
+import AppLayout from '@/components/layout/AppLayout.vue'
 
 /** 主框架布局（侧栏 + 头部 + 内容区） */
-const AppLayout = () => import('@/components/layout/AppLayout.vue')
 
 /**
  * 业务路由树。多级嵌套：AppLayout → 模块组 → 页面；动态参数见各模块 :id/:sn。

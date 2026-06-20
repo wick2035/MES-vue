@@ -23,6 +23,7 @@ import {
   FileClock,
   ArrowLeftRight,
   PackageOpen,
+  Send,
 } from 'lucide-vue-next'
 
 /**
@@ -53,6 +54,7 @@ export const iconMap: Record<string, Component> = {
   FileClock,
   ArrowLeftRight,
   PackageOpen,
+  Send,
 }
 
 export function resolveIcon(name?: string): Component | undefined {

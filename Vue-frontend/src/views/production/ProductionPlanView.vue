@@ -38,6 +38,7 @@ import {
   deleteProductionOrder,
 } from '@/api/modules/productionOrder'
 import { notify } from '@/lib/toast'
+import { getProductionOrderActions } from '@/lib/productionOrderActions'
 import type { TableColumn } from '@/types/table'
 import type { ProductionOrder, ProductionOrderItem } from '@/types/domain'
 import type { Tone } from '@/lib/orderStatus'
@@ -81,18 +82,6 @@ function statusTone(s?: string): Tone {
   if (s === 'APPROVING') return 'warning'
   return 'muted'
 }
-
-// 生命周期可用性（与后端 SpProductionOrderServiceImpl 守卫一致）
-const isApproving = (r: ProductionOrder) => r.approvalStatus === 'APPROVING'
-const canEdit = (r: ProductionOrder) =>
-  r.approvalStatus !== 'APPROVING' && r.approvalStatus !== 'APPROVED'
-const canCreateWO = (r: ProductionOrder) =>
-  !isApproving(r) && r.operationStatus !== 'DISPATCHED' && r.status !== 'WORK_ORDER_CREATED'
-const canConfirm = (r: ProductionOrder) =>
-  !isApproving(r) && r.status !== 'WORK_ORDER_CREATED' && r.approvalStatus !== 'APPROVED'
-const canDispatch = (r: ProductionOrder) =>
-  r.approvalStatus === 'APPROVED' && r.operationStatus !== 'DISPATCHED'
-const canDelete = (r: ProductionOrder) => !isApproving(r) && r.status !== 'WORK_ORDER_CREATED'
 
 const columns: TableColumn[] = [
   { key: 'orderNo', title: '订单编号', width: '170px' },
@@ -144,6 +133,7 @@ async function viewItems(row: ProductionOrder) {
 
 // 生命周期动作 + 二次确认
 const confirmOpen = ref(false)
+const confirming = ref(false)
 const confirmTitle = ref('')
 const confirmDesc = ref('')
 let confirmAction: (() => Promise<void>) | null = null
@@ -154,11 +144,16 @@ function ask(title: string, desc: string, action: () => Promise<void>) {
   confirmOpen.value = true
 }
 async function runConfirm() {
-  if (!confirmAction) return
-  await confirmAction()
-  confirmOpen.value = false
-  confirmAction = null
-  load()
+  if (!confirmAction || confirming.value) return
+  confirming.value = true
+  try {
+    await confirmAction()
+    confirmOpen.value = false
+    confirmAction = null
+    await load()
+  } finally {
+    confirming.value = false
+  }
 }
 
 function askCreateWO(row: ProductionOrder) {
@@ -248,93 +243,106 @@ function onReset() {
       </template>
       <template #action="{ row }">
         <div class="flex items-center justify-center gap-0.5">
-          <Button variant="ghost" size="icon-sm" title="查看明细" @click="viewItems(row)">
-            <Eye class="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="MRP物料计划"
-            @click="
-              router.push({
-                path: '/production/material-plan',
-                query: { orderId: row.id, orderNo: row.orderNo },
-              })
-            "
-          >
-            <Boxes class="h-4 w-4 text-primary" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="设备派工"
-            @click="
-              router.push({
-                path: '/production/equipment-dispatch',
-                query: { orderNo: row.orderNo },
-              })
-            "
-          >
-            <Cpu class="h-4 w-4 text-primary" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            title="员工派工"
-            @click="
-              router.push({
-                path: '/production/employee-dispatch',
-                query: { orderNo: row.orderNo },
-              })
-            "
-          >
-            <Users class="h-4 w-4 text-primary" />
-          </Button>
-          <Button
-            v-if="canEdit(row)"
-            variant="ghost"
-            size="icon-sm"
-            title="编辑"
-            @click="openEdit(row)"
-          >
-            <Pencil class="h-4 w-4" />
-          </Button>
-          <Button
-            v-if="canCreateWO(row)"
-            variant="ghost"
-            size="icon-sm"
-            title="提交并生成工单"
-            @click="askCreateWO(row)"
-          >
-            <Send class="h-4 w-4 text-primary" />
-          </Button>
-          <Button
-            v-if="canConfirm(row)"
-            variant="ghost"
-            size="icon-sm"
-            title="确认订单"
-            @click="askConfirm(row)"
-          >
-            <CheckCircle2 class="h-4 w-4 text-success" />
-          </Button>
-          <Button
-            v-if="canDispatch(row)"
-            variant="ghost"
-            size="icon-sm"
-            title="进入下发中心"
-            @click="router.push({ path: '/production/dispatch', query: { orderNo: row.orderNo } })"
-          >
-            <Rocket class="h-4 w-4 text-warning" />
-          </Button>
-          <Button
-            v-if="canDelete(row)"
-            variant="ghost"
-            size="icon-sm"
-            title="删除"
-            @click="askDelete(row)"
-          >
-            <Trash2 class="h-4 w-4 text-destructive" />
-          </Button>
+          <template v-for="action in getProductionOrderActions(row)" :key="action.key">
+            <Button
+              v-if="action.key === 'view'"
+              variant="ghost"
+              size="icon-sm"
+              title="查看明细"
+              @click="viewItems(row)"
+            >
+              <Eye class="h-4 w-4" />
+            </Button>
+            <Button
+              v-else-if="action.key === 'edit'"
+              variant="ghost"
+              size="icon-sm"
+              title="编辑"
+              @click="openEdit(row)"
+            >
+              <Pencil class="h-4 w-4" />
+            </Button>
+            <Button
+              v-else-if="action.key === 'confirm'"
+              variant="ghost"
+              size="icon-sm"
+              title="确认订单"
+              @click="askConfirm(row)"
+            >
+              <CheckCircle2 class="h-4 w-4 text-success" />
+            </Button>
+            <Button
+              v-else-if="action.key === 'submit'"
+              variant="ghost"
+              size="icon-sm"
+              title="提交并生成工单"
+              @click="askCreateWO(row)"
+            >
+              <Send class="h-4 w-4 text-primary" />
+            </Button>
+            <Button
+              v-else-if="action.key === 'materialPlan'"
+              variant="ghost"
+              size="icon-sm"
+              title="MRP物料计划"
+              @click="
+                router.push({
+                  path: '/production/material-plan',
+                  query: { orderId: row.id, orderNo: row.orderNo },
+                })
+              "
+            >
+              <Boxes class="h-4 w-4 text-primary" />
+            </Button>
+            <Button
+              v-else-if="action.key === 'equipmentDispatch'"
+              variant="ghost"
+              size="icon-sm"
+              title="设备派工"
+              @click="
+                router.push({
+                  path: '/production/equipment-dispatch',
+                  query: { orderNo: row.orderNo },
+                })
+              "
+            >
+              <Cpu class="h-4 w-4 text-primary" />
+            </Button>
+            <Button
+              v-else-if="action.key === 'employeeDispatch'"
+              variant="ghost"
+              size="icon-sm"
+              title="员工派工"
+              @click="
+                router.push({
+                  path: '/production/employee-dispatch',
+                  query: { orderNo: row.orderNo },
+                })
+              "
+            >
+              <Users class="h-4 w-4 text-primary" />
+            </Button>
+            <Button
+              v-else-if="action.key === 'dispatch'"
+              variant="ghost"
+              size="icon-sm"
+              title="进入下发中心"
+              @click="
+                router.push({ path: '/production/dispatch', query: { orderNo: row.orderNo } })
+              "
+            >
+              <Rocket class="h-4 w-4 text-warning" />
+            </Button>
+            <Button
+              v-else-if="action.key === 'delete'"
+              variant="ghost"
+              size="icon-sm"
+              title="删除"
+              @click="askDelete(row)"
+            >
+              <Trash2 class="h-4 w-4 text-destructive" />
+            </Button>
+          </template>
         </div>
       </template>
     </SpDataTable>
@@ -390,6 +398,7 @@ function onReset() {
       v-model:open="confirmOpen"
       :title="confirmTitle"
       :description="confirmDesc"
+      :confirming="confirming"
       @confirm="runConfirm"
     />
   </div>

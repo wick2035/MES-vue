@@ -6,6 +6,8 @@ import {
   ArrowUpFromLine,
   ClipboardCheck,
   Eye,
+  PackageMinus,
+  PackagePlus,
   RefreshCw,
   RotateCcw,
   Search,
@@ -29,6 +31,7 @@ import {
 } from '@/components/ui/select'
 import SpDataTable from '@/components/common/SpDataTable.vue'
 import SpStatusBadge from '@/components/common/SpStatusBadge.vue'
+import WarehouseManualRequestDialog from '@/components/warehouse/WarehouseManualRequestDialog.vue'
 import { useTable } from '@/composables/useTable'
 import {
   confirmKittingOutboundRequest,
@@ -53,6 +56,8 @@ const tab = ref<'request' | 'transaction'>('request')
 const detailOpen = ref(false)
 const activeRequest = ref<WarehouseRequest | null>(null)
 const actionLoading = ref('')
+const manualRequestOpen = ref(false)
+const manualRequestDirection = ref<'IN' | 'OUT'>('IN')
 
 const bizMap: Record<string, string> = {
   MANUAL_IN: '手工入库',
@@ -157,7 +162,13 @@ async function run(label: string, action: () => Promise<unknown>) {
     await action()
     notify.success(`${label}完成`)
     await reqTable.load()
-    if (detailOpen.value && activeRequest.value?.id) await itemTable.load()
+    if (detailOpen.value && activeRequest.value?.id) {
+      const fresh = reqTable.list.find((item) => item.id === activeRequest.value?.id)
+      if (fresh) activeRequest.value = fresh
+      await itemTable.load()
+    }
+  } catch (e: any) {
+    if (e?.message) notify.error(e.message)
   } finally {
     actionLoading.value = ''
   }
@@ -176,6 +187,15 @@ function syncPlanInbound() {
 
 function syncKitting() {
   run('同步配套出库', () => syncKittingOutboundRequests())
+}
+
+function openManualRequest(direction: 'IN' | 'OUT') {
+  manualRequestDirection.value = direction
+  manualRequestOpen.value = true
+}
+
+function onManualRequestSaved() {
+  reqTable.load()
 }
 
 function precheck(row: WarehouseRequest) {
@@ -197,8 +217,14 @@ function confirmRequest(row: WarehouseRequest) {
   run('单据明细确认', async () => {
     const res = await pageWarehouseRequestItems({ current: 1, size: 300, requestId: row.id })
     const items = res.data?.records ?? []
-    for (const item of items) {
-      if (!item.id || item.status === 'CONFIRMED') continue
+    if (!items.length) {
+      throw new Error('当前单据没有可确认的明细')
+    }
+    const pendingItems = items.filter((item) => item.id && item.status !== 'CONFIRMED')
+    if (!pendingItems.length) {
+      throw new Error('当前单据明细已全部确认')
+    }
+    for (const item of pendingItems) {
       if (!item.warehouseId || !item.locationId) {
         throw new Error('单据存在未分配仓库/库位的明细，请先在仓储源单维护库位')
       }
@@ -312,6 +338,17 @@ function confirmRequest(row: WarehouseRequest) {
             >
           </div>
           <div class="flex flex-wrap gap-2">
+            <Button size="sm" :disabled="!!actionLoading" @click="openManualRequest('IN')">
+              <PackagePlus class="h-4 w-4" />新建手工入库
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              :disabled="!!actionLoading"
+              @click="openManualRequest('OUT')"
+            >
+              <PackageMinus class="h-4 w-4" />新建手工出库
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -473,5 +510,11 @@ function confirmRequest(row: WarehouseRequest) {
         </SpDataTable>
       </DialogContent>
     </Dialog>
+
+    <WarehouseManualRequestDialog
+      v-model:open="manualRequestOpen"
+      :direction="manualRequestDirection"
+      @saved="onManualRequestSaved"
+    />
   </div>
 </template>

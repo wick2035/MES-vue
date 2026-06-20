@@ -4,6 +4,7 @@ import com.wangziyang.mes.common.BasePageReq;
 
 public class SpWarehouseRequestReq extends BasePageReq {
 
+    private String requestId;
     private String businessType;
     private String status;
     private String requestNoLike;
@@ -15,6 +16,8 @@ public class SpWarehouseRequestReq extends BasePageReq {
     private String beginDate;
     private String endDate;
 
+    public String getRequestId() { return requestId; }
+    public void setRequestId(String requestId) { this.requestId = requestId; }
     public String getBusinessType() { return businessType; }
     public void setBusinessType(String businessType) { this.businessType = businessType; }
     public String getStatus() { return status; }

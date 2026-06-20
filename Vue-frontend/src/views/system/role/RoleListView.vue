@@ -129,7 +129,9 @@ async function submitMenu() {
         <Input v-model="query.codeLike" placeholder="编码" class="w-36" @keyup.enter="search" />
       </div>
       <Button @click="search"><Search class="h-4 w-4" />查询</Button>
-      <Button variant="outline" @click="reset(['nameLike', 'codeLike'])"><RotateCcw class="h-4 w-4" />重置</Button>
+      <Button variant="outline" @click="reset(['nameLike', 'codeLike'])"
+        ><RotateCcw class="h-4 w-4" />重置</Button
+      >
     </div>
 
     <SpDataTable
@@ -148,9 +150,15 @@ async function submitMenu() {
       </template>
       <template #action="{ row }">
         <div class="flex items-center justify-center gap-1">
-          <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(row)"><Pencil class="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon-sm" title="菜单授权" @click="openAuthMenu(row)"><ListTree class="h-4 w-4 text-primary" /></Button>
-          <Button variant="ghost" size="icon-sm" title="删除" @click="askDelete(row)"><Trash2 class="h-4 w-4 text-destructive" /></Button>
+          <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(row)"
+            ><Pencil class="h-4 w-4"
+          /></Button>
+          <Button variant="ghost" size="icon-sm" title="菜单授权" @click="openAuthMenu(row)"
+            ><ListTree class="h-4 w-4 text-primary"
+          /></Button>
+          <Button variant="ghost" size="icon-sm" title="删除" @click="askDelete(row)"
+            ><Trash2 class="h-4 w-4 text-destructive"
+          /></Button>
         </div>
       </template>
     </SpDataTable>
@@ -178,7 +186,7 @@ async function submitMenu() {
           <DialogDescription>勾选该角色可访问的菜单</DialogDescription>
         </DialogHeader>
         <div class="max-h-[55vh] overflow-y-auto rounded-md border p-2">
-          <SpTree :nodes="menuNodes" checkable :checked="checkedMenuIds" />
+          <SpTree v-model:checked="checkedMenuIds" :nodes="menuNodes" checkable />
         </div>
         <DialogFooter>
           <Button variant="outline" @click="menuOpen = false">取消</Button>

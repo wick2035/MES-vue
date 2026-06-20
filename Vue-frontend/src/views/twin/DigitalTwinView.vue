@@ -106,16 +106,22 @@ onBeforeUnmount(() => {
     <div class="pointer-events-none absolute inset-0 p-4 text-slate-100">
       <!-- 顶部标题 -->
       <div class="flex items-start justify-between gap-3">
-        <div class="rounded-xl border border-white/10 bg-slate-900/55 px-4 py-3 shadow-lg backdrop-blur">
+        <div
+          class="rounded-xl border border-white/10 bg-slate-900/55 px-4 py-3 shadow-lg backdrop-blur"
+        >
           <div class="flex items-center gap-2">
-            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow">
+            <span
+              class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow"
+            >
               <Factory class="h-5 w-5" />
             </span>
             <div>
               <h2 class="text-base font-semibold leading-tight">智能产线数字孪生</h2>
               <p class="flex items-center gap-1.5 text-[11px] text-slate-300">
                 <span class="relative flex h-2 w-2">
-                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span
+                    class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+                  />
                   <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
                 实时映射工序状态 · 数据源自工序采集
@@ -136,27 +142,57 @@ onBeforeUnmount(() => {
       <!-- 右侧指标面板 -->
       <div class="absolute right-4 top-20 w-60 space-y-3">
         <div class="grid grid-cols-2 gap-2">
-          <div class="rounded-xl border border-white/10 bg-slate-900/55 p-3 shadow-lg backdrop-blur">
-            <div class="flex items-center gap-1 text-[11px] text-slate-300"><Activity class="h-3 w-3" />运行工位</div>
-            <div class="mt-0.5 text-xl font-semibold text-emerald-400">{{ runningCount }}<span class="text-xs text-slate-400">/{{ stations.length }}</span></div>
+          <div
+            class="rounded-xl border border-white/10 bg-slate-900/55 p-3 shadow-lg backdrop-blur"
+          >
+            <div class="flex items-center gap-1 text-[11px] text-slate-300">
+              <Activity class="h-3 w-3" />运行工位
+            </div>
+            <div class="mt-0.5 text-xl font-semibold text-emerald-400">
+              {{ runningCount }}<span class="text-xs text-slate-400">/{{ stations.length }}</span>
+            </div>
           </div>
-          <div class="rounded-xl border border-white/10 bg-slate-900/55 p-3 shadow-lg backdrop-blur">
-            <div class="flex items-center gap-1 text-[11px] text-slate-300"><Gauge class="h-3 w-3" />实时良率</div>
-            <div class="mt-0.5 text-xl font-semibold text-sky-400">{{ (overview?.yieldRate ?? 0).toFixed(1) }}<span class="text-xs text-slate-400">%</span></div>
+          <div
+            class="rounded-xl border border-white/10 bg-slate-900/55 p-3 shadow-lg backdrop-blur"
+          >
+            <div class="flex items-center gap-1 text-[11px] text-slate-300">
+              <Gauge class="h-3 w-3" />实时良率
+            </div>
+            <div class="mt-0.5 text-xl font-semibold text-sky-400">
+              {{ (overview?.yieldRate ?? 0).toFixed(1)
+              }}<span class="text-xs text-slate-400">%</span>
+            </div>
           </div>
-          <div class="rounded-xl border border-white/10 bg-slate-900/55 p-3 shadow-lg backdrop-blur">
-            <div class="flex items-center gap-1 text-[11px] text-slate-300"><Boxes class="h-3 w-3" />在制数量</div>
-            <div class="mt-0.5 text-xl font-semibold text-indigo-300">{{ overview?.inProcessQty ?? 0 }}</div>
+          <div
+            class="rounded-xl border border-white/10 bg-slate-900/55 p-3 shadow-lg backdrop-blur"
+          >
+            <div class="flex items-center gap-1 text-[11px] text-slate-300">
+              <Boxes class="h-3 w-3" />在制数量
+            </div>
+            <div class="mt-0.5 text-xl font-semibold text-indigo-300">
+              {{ overview?.inProcessQty ?? 0 }}
+            </div>
           </div>
-          <div class="rounded-xl border border-white/10 bg-slate-900/55 p-3 shadow-lg backdrop-blur">
-            <div class="flex items-center gap-1 text-[11px] text-slate-300"><AlertTriangle class="h-3 w-3" />告警工位</div>
-            <div class="mt-0.5 text-xl font-semibold" :class="alarmCount ? 'text-red-400' : 'text-slate-200'">{{ alarmCount }}</div>
+          <div
+            class="rounded-xl border border-white/10 bg-slate-900/55 p-3 shadow-lg backdrop-blur"
+          >
+            <div class="flex items-center gap-1 text-[11px] text-slate-300">
+              <AlertTriangle class="h-3 w-3" />告警工位
+            </div>
+            <div
+              class="mt-0.5 text-xl font-semibold"
+              :class="alarmCount ? 'text-red-400' : 'text-slate-200'"
+            >
+              {{ alarmCount }}
+            </div>
           </div>
         </div>
 
         <!-- 工位状态列表 -->
         <div class="rounded-xl border border-white/10 bg-slate-900/55 shadow-lg backdrop-blur">
-          <div class="flex items-center gap-1.5 border-b border-white/10 px-3 py-2 text-xs font-medium text-slate-200">
+          <div
+            class="flex items-center gap-1.5 border-b border-white/10 px-3 py-2 text-xs font-medium text-slate-200"
+          >
             <Radio class="h-3.5 w-3.5" />工位状态
           </div>
           <div class="max-h-64 space-y-0.5 overflow-y-auto p-1.5">
@@ -167,7 +203,9 @@ onBeforeUnmount(() => {
             >
               <span class="h-2 w-2 shrink-0 rounded-full" :class="statusDot[s.status]" />
               <span class="min-w-0 flex-1 truncate text-slate-200">{{ s.operDesc || s.oper }}</span>
-              <span class="shrink-0 tabular-nums text-slate-400">{{ s.yieldRate.toFixed(0) }}%</span>
+              <span class="shrink-0 tabular-nums text-slate-400"
+                >{{ s.yieldRate.toFixed(0) }}%</span
+              >
               <span
                 class="shrink-0 rounded px-1.5 py-0.5 text-[10px]"
                 :class="{
@@ -179,7 +217,10 @@ onBeforeUnmount(() => {
                 {{ statusText[s.status] }}
               </span>
             </div>
-            <p v-if="!stations.length && !loading" class="px-2 py-6 text-center text-xs text-slate-400">
+            <p
+              v-if="!stations.length && !loading"
+              class="px-2 py-6 text-center text-xs text-slate-400"
+            >
               暂无工序采集数据
             </p>
           </div>
@@ -187,10 +228,18 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 底部图例 -->
-      <div class="absolute bottom-4 left-4 flex items-center gap-4 rounded-lg border border-white/10 bg-slate-900/55 px-3 py-2 text-[11px] text-slate-300 shadow-lg backdrop-blur">
-        <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-400" />运行</span>
-        <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-slate-400" />待机</span>
-        <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-red-400" />告警</span>
+      <div
+        class="absolute bottom-4 left-4 flex items-center gap-4 rounded-lg border border-white/10 bg-slate-900/55 px-3 py-2 text-[11px] text-slate-300 shadow-lg backdrop-blur"
+      >
+        <span class="flex items-center gap-1.5"
+          ><span class="h-2 w-2 rounded-full bg-emerald-400" />运行</span
+        >
+        <span class="flex items-center gap-1.5"
+          ><span class="h-2 w-2 rounded-full bg-slate-400" />待机</span
+        >
+        <span class="flex items-center gap-1.5"
+          ><span class="h-2 w-2 rounded-full bg-red-400" />告警</span
+        >
         <span class="ml-1 text-slate-500">拖拽旋转 · 滚轮缩放</span>
       </div>
     </div>

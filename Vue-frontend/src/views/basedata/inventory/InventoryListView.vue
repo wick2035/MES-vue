@@ -54,11 +54,21 @@ function onReset() {
     <div class="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4 shadow-sp">
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">物料</Label>
-        <Input v-model="query.materielLike" placeholder="编码/名称" class="w-44" @keyup.enter="search" />
+        <Input
+          v-model="query.materielLike"
+          placeholder="编码/名称"
+          class="w-44"
+          @keyup.enter="search"
+        />
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">库位</Label>
-        <Input v-model="query.locationCodeLike" placeholder="库位编码" class="w-36" @keyup.enter="search" />
+        <Input
+          v-model="query.locationCodeLike"
+          placeholder="库位编码"
+          class="w-36"
+          @keyup.enter="search"
+        />
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">批号</Label>
@@ -82,7 +92,10 @@ function onReset() {
         <span class="text-sm font-medium">库存列表</span>
       </template>
       <template #status="{ value }">
-        <SpStatusBadge :tone="value === '正常' || value === '0' ? 'success' : 'warning'" :text="value || '正常'" />
+        <SpStatusBadge
+          :tone="value === '正常' || value === '0' ? 'success' : 'warning'"
+          :text="value || '正常'"
+        />
       </template>
       <template #action="{ row }">
         <Button variant="ghost" size="icon-sm" title="出库" @click="askDelete(row)">

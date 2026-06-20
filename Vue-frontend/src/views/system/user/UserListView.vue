@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Plus, Pencil, Trash2, Search, RotateCcw, KeyRound, ShieldCheck, Ban, CheckCircle2, LoaderCircle } from 'lucide-vue-next'
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  RotateCcw,
+  KeyRound,
+  ShieldCheck,
+  Ban,
+  CheckCircle2,
+  LoaderCircle,
+} from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -175,7 +186,9 @@ async function openAssignRole(row: SysUser) {
     allRoles.value = res.data?.records ?? []
   }
   const names = (row.roleNames || '').split(/[、,]/).filter(Boolean)
-  checkedRoleIds.value = allRoles.value.filter((r) => names.includes(r.name || '')).map((r) => r.id!)
+  checkedRoleIds.value = allRoles.value
+    .filter((r) => names.includes(r.name || ''))
+    .map((r) => r.id!)
 }
 function toggleRole(id: string, val: boolean | 'indeterminate') {
   const i = checkedRoleIds.value.indexOf(id)
@@ -205,10 +218,17 @@ async function submitRoles() {
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">用户名</Label>
-        <Input v-model="query.usernameLike" placeholder="用户名" class="w-36" @keyup.enter="search" />
+        <Input
+          v-model="query.usernameLike"
+          placeholder="用户名"
+          class="w-36"
+          @keyup.enter="search"
+        />
       </div>
       <Button @click="search"><Search class="h-4 w-4" />查询</Button>
-      <Button variant="outline" @click="reset(['nameLike', 'usernameLike'])"><RotateCcw class="h-4 w-4" />重置</Button>
+      <Button variant="outline" @click="reset(['nameLike', 'usernameLike'])"
+        ><RotateCcw class="h-4 w-4" />重置</Button
+      >
     </div>
 
     <SpDataTable
@@ -226,18 +246,34 @@ async function submitRoles() {
         <Button size="sm" @click="openCreate"><Plus class="h-4 w-4" />新增用户</Button>
       </template>
       <template #status="{ value }">
-        <SpStatusBadge :tone="value === '2' ? 'muted' : 'success'" :text="value === '2' ? '禁用' : '正常'" />
+        <SpStatusBadge
+          :tone="value === '2' ? 'muted' : 'success'"
+          :text="value === '2' ? '禁用' : '正常'"
+        />
       </template>
       <template #action="{ row }">
         <div class="flex items-center justify-center gap-0.5">
-          <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(row)"><Pencil class="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon-sm" title="分配角色" @click="openAssignRole(row)"><ShieldCheck class="h-4 w-4 text-primary" /></Button>
-          <Button variant="ghost" size="icon-sm" title="重置密码" @click="onReset(row)"><KeyRound class="h-4 w-4 text-warning" /></Button>
-          <Button variant="ghost" size="icon-sm" :title="row.deleted === '2' ? '启用' : '禁用'" @click="toggleStatus(row)">
+          <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(row)"
+            ><Pencil class="h-4 w-4"
+          /></Button>
+          <Button variant="ghost" size="icon-sm" title="分配角色" @click="openAssignRole(row)"
+            ><ShieldCheck class="h-4 w-4 text-primary"
+          /></Button>
+          <Button variant="ghost" size="icon-sm" title="重置密码" @click="onReset(row)"
+            ><KeyRound class="h-4 w-4 text-warning"
+          /></Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            :title="row.deleted === '2' ? '启用' : '禁用'"
+            @click="toggleStatus(row)"
+          >
             <CheckCircle2 v-if="row.deleted === '2'" class="h-4 w-4 text-success" />
             <Ban v-else class="h-4 w-4 text-muted-foreground" />
           </Button>
-          <Button variant="ghost" size="icon-sm" title="删除" @click="askDelete(row)"><Trash2 class="h-4 w-4 text-destructive" /></Button>
+          <Button variant="ghost" size="icon-sm" title="删除" @click="askDelete(row)"
+            ><Trash2 class="h-4 w-4 text-destructive"
+          /></Button>
         </div>
       </template>
     </SpDataTable>

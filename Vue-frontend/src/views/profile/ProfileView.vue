@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { UserCog, Mail, Phone, ShieldCheck, Palette, LogOut, Pencil, KeyRound } from 'lucide-vue-next'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  UserCog,
+  Mail,
+  Phone,
+  ShieldCheck,
+  Palette,
+  LogOut,
+  Pencil,
+  KeyRound,
+} from 'lucide-vue-next'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -80,7 +83,15 @@ async function onProfileSubmit() {
 // --- 修改密码 ---
 const pwdFields: FormField[] = [
   { field: 'oldPassword', label: '当前密码', type: 'password', required: true },
-  { field: 'newPassword', label: '新密码', type: 'password', required: true, placeholder: '6-32 位', pattern: /^.{6,32}$/, patternMsg: '密码长度需为 6-32 位' },
+  {
+    field: 'newPassword',
+    label: '新密码',
+    type: 'password',
+    required: true,
+    placeholder: '6-32 位',
+    pattern: /^.{6,32}$/,
+    patternMsg: '密码长度需为 6-32 位',
+  },
   { field: 'confirmPassword', label: '确认新密码', type: 'password', required: true },
 ]
 const pwdOpen = ref(false)
@@ -169,9 +180,7 @@ async function onPwdSubmit() {
         <Button variant="outline" @click="appStore.toggleTheme()">
           切换为{{ appStore.theme === 'dark' ? '亮色' : '暗色' }}主题
         </Button>
-        <Button variant="outline" @click="openPwd">
-          <KeyRound class="h-4 w-4" />修改密码
-        </Button>
+        <Button variant="outline" @click="openPwd"> <KeyRound class="h-4 w-4" />修改密码 </Button>
         <Button variant="destructive" @click="handleLogout">
           <LogOut class="h-4 w-4" />退出登录
         </Button>

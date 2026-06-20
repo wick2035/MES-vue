@@ -138,7 +138,11 @@ export class ProductionTwinScene {
     // 厂房立柱（沿 X 方向排布，Z 方向前后各一排）
     const columnPositions = [-44, -22, 0, 22, 44]
     const columnGeo = new THREE.BoxGeometry(0.55, 10, 0.55)
-    const columnMat = new THREE.MeshStandardMaterial({ color: 0x1e2d50, metalness: 0.7, roughness: 0.4 })
+    const columnMat = new THREE.MeshStandardMaterial({
+      color: 0x1e2d50,
+      metalness: 0.7,
+      roughness: 0.4,
+    })
     for (const cx of columnPositions) {
       for (const cz of [-10, 10]) {
         const col = new THREE.Mesh(columnGeo, columnMat)
@@ -151,7 +155,11 @@ export class ProductionTwinScene {
 
     // 天花板主梁（沿 X 方向延伸）
     const beamGeo = new THREE.BoxGeometry(92, 0.5, 0.4)
-    const beamMat = new THREE.MeshStandardMaterial({ color: 0x162040, metalness: 0.6, roughness: 0.5 })
+    const beamMat = new THREE.MeshStandardMaterial({
+      color: 0x162040,
+      metalness: 0.6,
+      roughness: 0.5,
+    })
     for (const bz of [-10, 0, 10]) {
       const beam = new THREE.Mesh(beamGeo, beamMat)
       beam.position.set(0, 9.7, bz)
@@ -161,7 +169,11 @@ export class ProductionTwinScene {
 
     // 天花板工业灯（每 11u 一组，沿传送带方向）
     const lampHousingGeo = new THREE.BoxGeometry(2.4, 0.22, 0.7)
-    const lampHousingMat = new THREE.MeshStandardMaterial({ color: 0x3a4a6a, metalness: 0.5, roughness: 0.4 })
+    const lampHousingMat = new THREE.MeshStandardMaterial({
+      color: 0x3a4a6a,
+      metalness: 0.5,
+      roughness: 0.4,
+    })
     const lampPanelGeo = new THREE.BoxGeometry(2.1, 0.04, 0.55)
     const lampPanelMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
@@ -184,7 +196,11 @@ export class ProductionTwinScene {
 
     // 地面安全黄线（沿传送带两侧，Z=±3.5）
     const safeLineGeo = new THREE.BoxGeometry(92, 0.012, 0.12)
-    const safeLineMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xfbbf24, emissiveIntensity: 0.25 })
+    const safeLineMat = new THREE.MeshStandardMaterial({
+      color: 0xfbbf24,
+      emissive: 0xfbbf24,
+      emissiveIntensity: 0.25,
+    })
     for (const sz of [-3.5, 3.5]) {
       const line = new THREE.Mesh(safeLineGeo, safeLineMat)
       line.position.set(0, 0, sz)
@@ -199,7 +215,7 @@ export class ProductionTwinScene {
   }
 
   private buildHazardStripes(parent: THREE.Group, x1: number, x2: number, z1: number, z2: number) {
-    const stripeGeo = new THREE.BoxGeometry(1.5, 0.01, (z2 - z1))
+    const stripeGeo = new THREE.BoxGeometry(1.5, 0.01, z2 - z1)
     const yellowMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24 })
     const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111 })
     for (let i = 0; i < 3; i++) {
@@ -256,8 +272,17 @@ export class ProductionTwinScene {
 
     // 传送带主体
     const beltGeo = new THREE.BoxGeometry(len, 0.42, 3)
-    const topMat = new THREE.MeshStandardMaterial({ map: tex, color: 0x1b2a52, metalness: 0.4, roughness: 0.6 })
-    const sideMat = new THREE.MeshStandardMaterial({ color: 0x0f1c3d, metalness: 0.5, roughness: 0.5 })
+    const topMat = new THREE.MeshStandardMaterial({
+      map: tex,
+      color: 0x1b2a52,
+      metalness: 0.4,
+      roughness: 0.6,
+    })
+    const sideMat = new THREE.MeshStandardMaterial({
+      color: 0x0f1c3d,
+      metalness: 0.5,
+      roughness: 0.5,
+    })
     const mats = [sideMat, sideMat, topMat, sideMat, sideMat, sideMat]
     const belt = new THREE.Mesh(beltGeo, mats)
     const beltY = 0.21
@@ -268,7 +293,11 @@ export class ProductionTwinScene {
 
     // 铝合金导轨（左右各一）
     const railGeo = new THREE.BoxGeometry(len + 0.4, 0.32, 0.09)
-    const railMat = new THREE.MeshStandardMaterial({ color: 0x7a9ac0, metalness: 0.85, roughness: 0.2 })
+    const railMat = new THREE.MeshStandardMaterial({
+      color: 0x7a9ac0,
+      metalness: 0.85,
+      roughness: 0.2,
+    })
     for (const rz of [-1.5, 1.5]) {
       const rail = new THREE.Mesh(railGeo, railMat)
       rail.position.set((startX + endX) / 2, beltY + 0.27, rz)
@@ -279,7 +308,11 @@ export class ProductionTwinScene {
     // 支腿（每 3u 一组）
     const legGeo = new THREE.BoxGeometry(0.13, beltY + 0.1, 0.13)
     const crossGeo = new THREE.BoxGeometry(0.1, 0.1, 3.2)
-    const legMat = new THREE.MeshStandardMaterial({ color: 0x2a3f6a, metalness: 0.6, roughness: 0.5 })
+    const legMat = new THREE.MeshStandardMaterial({
+      color: 0x2a3f6a,
+      metalness: 0.6,
+      roughness: 0.5,
+    })
     const count = Math.floor(len / 3)
     for (let i = 0; i <= count; i++) {
       const lx = startX + (i / count) * len
@@ -296,7 +329,11 @@ export class ProductionTwinScene {
 
     // 端辊（传送带两端的圆柱）
     const rollerGeo = new THREE.CylinderGeometry(0.23, 0.23, 3.2, 20)
-    const rollerMat = new THREE.MeshStandardMaterial({ color: 0x4a6090, metalness: 0.7, roughness: 0.3 })
+    const rollerMat = new THREE.MeshStandardMaterial({
+      color: 0x4a6090,
+      metalness: 0.7,
+      roughness: 0.3,
+    })
     for (const rx of [startX, endX]) {
       const roller = new THREE.Mesh(rollerGeo, rollerMat)
       roller.rotation.x = Math.PI / 2
@@ -315,7 +352,11 @@ export class ProductionTwinScene {
 
     // --- 底座平台 ---
     const baseGeo = new THREE.BoxGeometry(4.2, 0.28, 4.1)
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x111828, metalness: 0.7, roughness: 0.5 })
+    const baseMat = new THREE.MeshStandardMaterial({
+      color: 0x111828,
+      metalness: 0.7,
+      roughness: 0.5,
+    })
     const base = new THREE.Mesh(baseGeo, baseMat)
     base.position.set(0, 0.14, -2.7)
     base.castShadow = true
@@ -325,7 +366,11 @@ export class ProductionTwinScene {
 
     // --- 主机箱体 ---
     const bodyGeo = new THREE.BoxGeometry(3.7, 2.85, 4.0)
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e3a5f, metalness: 0.8, roughness: 0.3 })
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x1e3a5f,
+      metalness: 0.8,
+      roughness: 0.3,
+    })
     const body = new THREE.Mesh(bodyGeo, bodyMat)
     body.position.set(0, 1.7, -2.7)
     body.castShadow = true
@@ -334,7 +379,11 @@ export class ProductionTwinScene {
 
     // --- 机身顶盖 ---
     const topCapGeo = new THREE.BoxGeometry(3.7, 0.22, 4.0)
-    const topCapMat = new THREE.MeshStandardMaterial({ color: 0x152a45, metalness: 0.75, roughness: 0.35 })
+    const topCapMat = new THREE.MeshStandardMaterial({
+      color: 0x152a45,
+      metalness: 0.75,
+      roughness: 0.35,
+    })
     const topCap = new THREE.Mesh(topCapGeo, topCapMat)
     topCap.position.set(0, 3.24, -2.7)
     group.add(topCap)
@@ -356,7 +405,11 @@ export class ProductionTwinScene {
 
     // 窗框
     const frameGeo = new THREE.BoxGeometry(3.0, 1.65, 0.09)
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x2a4a6a, metalness: 0.8, roughness: 0.3 })
+    const frameMat = new THREE.MeshStandardMaterial({
+      color: 0x2a4a6a,
+      metalness: 0.8,
+      roughness: 0.3,
+    })
     const frame = new THREE.Mesh(frameGeo, frameMat)
     frame.position.set(0, 1.55, -0.78)
     group.add(frame)
@@ -365,7 +418,11 @@ export class ProductionTwinScene {
 
     // --- 控制台（右侧伸出） ---
     const panelBodyGeo = new THREE.BoxGeometry(1.05, 1.65, 0.2)
-    const panelBodyMat = new THREE.MeshStandardMaterial({ color: 0x0d1520, metalness: 0.6, roughness: 0.5 })
+    const panelBodyMat = new THREE.MeshStandardMaterial({
+      color: 0x0d1520,
+      metalness: 0.6,
+      roughness: 0.5,
+    })
     const panelBody = new THREE.Mesh(panelBodyGeo, panelBodyMat)
     panelBody.position.set(2.38, 1.5, -1.6)
     group.add(panelBody)
@@ -387,7 +444,11 @@ export class ProductionTwinScene {
     const btnColors = [0x22c55e, 0xef4444, 0xf59e0b, 0x3b82f6, 0xf1f5f9, 0x6b7280]
     const btnGeo = new THREE.SphereGeometry(0.055, 8, 8)
     btnColors.forEach((c, idx) => {
-      const btnMat = new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.6 })
+      const btnMat = new THREE.MeshStandardMaterial({
+        color: c,
+        emissive: c,
+        emissiveIntensity: 0.6,
+      })
       const btn = new THREE.Mesh(btnGeo, btnMat)
       btn.position.set(2.35 + (idx % 2) * 0.18 - 0.09, 1.2 - Math.floor(idx / 2) * 0.18, -1.5)
       group.add(btn)
@@ -397,28 +458,44 @@ export class ProductionTwinScene {
 
     // --- 主轴箱（从机身顶部伸出） ---
     const spindleHousingGeo = new THREE.CylinderGeometry(0.33, 0.33, 0.95, 16)
-    const spindleHousingMat = new THREE.MeshStandardMaterial({ color: 0x2a3a50, metalness: 0.85, roughness: 0.25 })
+    const spindleHousingMat = new THREE.MeshStandardMaterial({
+      color: 0x2a3a50,
+      metalness: 0.85,
+      roughness: 0.25,
+    })
     const spindleHousing = new THREE.Mesh(spindleHousingGeo, spindleHousingMat)
     spindleHousing.position.set(-0.5, 3.65, -2.2)
     group.add(spindleHousing)
     this.disposables.push(spindleHousingGeo, spindleHousingMat)
 
     const collarGeo = new THREE.CylinderGeometry(0.2, 0.16, 0.48, 14)
-    const collarMat = new THREE.MeshStandardMaterial({ color: 0x4a6a8a, metalness: 0.9, roughness: 0.15 })
+    const collarMat = new THREE.MeshStandardMaterial({
+      color: 0x4a6a8a,
+      metalness: 0.9,
+      roughness: 0.15,
+    })
     const collar = new THREE.Mesh(collarGeo, collarMat)
     collar.position.set(-0.5, 3.12, -2.2)
     group.add(collar)
     this.disposables.push(collarGeo, collarMat)
 
     const toolGeo = new THREE.CylinderGeometry(0.052, 0.022, 0.38, 10)
-    const toolMat = new THREE.MeshStandardMaterial({ color: 0xb0c4de, metalness: 0.95, roughness: 0.1 })
+    const toolMat = new THREE.MeshStandardMaterial({
+      color: 0xb0c4de,
+      metalness: 0.95,
+      roughness: 0.1,
+    })
     const tool = new THREE.Mesh(toolGeo, toolMat)
     tool.position.set(-0.5, 2.79, -2.2)
     group.add(tool)
     this.disposables.push(toolGeo, toolMat)
 
     // --- 三色信号灯塔 ---
-    const towerPoleMat = new THREE.MeshStandardMaterial({ color: 0x8a9ab0, metalness: 0.75, roughness: 0.3 })
+    const towerPoleMat = new THREE.MeshStandardMaterial({
+      color: 0x8a9ab0,
+      metalness: 0.75,
+      roughness: 0.3,
+    })
     const towerPoleGeo = new THREE.CylinderGeometry(0.047, 0.047, 1.85, 12)
     const towerPole = new THREE.Mesh(towerPoleGeo, towerPoleMat)
     towerPole.position.set(1.0, 4.1, -2.7)
@@ -463,7 +540,11 @@ export class ProductionTwinScene {
 
     // 灯塔顶盖
     const towerCapGeo = new THREE.CylinderGeometry(0.16, 0.135, 0.08, 14)
-    const towerCapMat = new THREE.MeshStandardMaterial({ color: 0x667788, metalness: 0.7, roughness: 0.3 })
+    const towerCapMat = new THREE.MeshStandardMaterial({
+      color: 0x667788,
+      metalness: 0.7,
+      roughness: 0.3,
+    })
     const towerCap = new THREE.Mesh(towerCapGeo, towerCapMat)
     towerCap.position.set(1.0, 5.34, -2.7)
     group.add(towerCap)
@@ -589,7 +670,12 @@ export class ProductionTwinScene {
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, 128, 128)
     const tex = new THREE.CanvasTexture(c)
-    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })
+    const mat = new THREE.SpriteMaterial({
+      map: tex,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    })
     this.disposables.push(tex, mat)
     return new THREE.Sprite(mat)
   }
@@ -661,7 +747,13 @@ export class ProductionTwinScene {
     this.stationRefs = []
     this.conveyorTex = null
     const old = this.disposables.splice(0, this.disposables.length)
-    old.forEach((d) => { try { d.dispose() } catch { /* ignore */ } })
+    old.forEach((d) => {
+      try {
+        d.dispose()
+      } catch {
+        /* ignore */
+      }
+    })
   }
 
   dispose() {
@@ -679,7 +771,14 @@ export class ProductionTwinScene {
   }
 }
 
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
   ctx.beginPath()
   ctx.moveTo(x + r, y)
   ctx.arcTo(x + w, y, x + w, y + h, r)

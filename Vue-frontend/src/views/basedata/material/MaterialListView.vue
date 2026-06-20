@@ -15,10 +15,13 @@ import type { Material } from '@/types/domain'
 
 defineOptions({ name: 'Material' })
 
-const { loading, list, total, query, load, onPageChange, onSizeChange, search, reset } = useTable<Material>(
-  pageMaterials,
-  { materielLike: '', materielDescLike: '', matType: '', matSource: '' },
-)
+const { loading, list, total, query, load, onPageChange, onSizeChange, search, reset } =
+  useTable<Material>(pageMaterials, {
+    materielLike: '',
+    materielDescLike: '',
+    matType: '',
+    matSource: '',
+  })
 onMounted(load)
 
 const columns: TableColumn[] = [
@@ -34,8 +37,20 @@ const columns: TableColumn[] = [
 ]
 
 const formFields: FormField[] = [
-  { field: 'materielDesc', label: '物料名称', type: 'input', required: true, placeholder: '请输入物料名称' },
-  { field: 'materiel', label: '物料编码', type: 'input', readonly: true, placeholder: '保存后自动生成' },
+  {
+    field: 'materielDesc',
+    label: '物料名称',
+    type: 'input',
+    required: true,
+    placeholder: '请输入物料名称',
+  },
+  {
+    field: 'materiel',
+    label: '物料编码',
+    type: 'input',
+    readonly: true,
+    placeholder: '保存后自动生成',
+  },
   { field: 'matType', label: '物料类型', type: 'input', placeholder: '如 零件 / 半成品 / 成品' },
   { field: 'matSource', label: '来源', type: 'input', placeholder: '如 外购 / 自制' },
   { field: 'unit', label: '单位', type: 'input', placeholder: '如 个 / 件' },
@@ -107,7 +122,12 @@ function onReset() {
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">物料名称</Label>
-        <Input v-model="query.materielDescLike" placeholder="名称" class="w-40" @keyup.enter="search" />
+        <Input
+          v-model="query.materielDescLike"
+          placeholder="名称"
+          class="w-40"
+          @keyup.enter="search"
+        />
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">类型</Label>

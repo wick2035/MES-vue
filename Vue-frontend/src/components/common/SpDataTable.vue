@@ -9,7 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import SpSkeletonTable from './SpSkeletonTable.vue'
 import type { TableColumn } from '@/types/table'
 
@@ -98,11 +104,7 @@ function cellText(col: TableColumn, row: any) {
               </div>
             </TableCell>
           </TableRow>
-          <TableRow
-            v-for="(row, idx) in data"
-            :key="row[rowKey] ?? idx"
-            class="hover:bg-accent/40"
-          >
+          <TableRow v-for="(row, idx) in data" :key="row[rowKey] ?? idx" class="hover:bg-accent/40">
             <TableCell v-if="showIndex" class="text-center text-muted-foreground">
               {{ (page - 1) * pageSize + idx + 1 }}
             </TableCell>
@@ -129,7 +131,9 @@ function cellText(col: TableColumn, row: any) {
         <Select :model-value="String(pageSize)" @update:model-value="onSize">
           <SelectTrigger class="h-8 w-[110px]"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="s in pageSizes" :key="s" :value="String(s)">{{ s }} 条/页</SelectItem>
+            <SelectItem v-for="s in pageSizes" :key="s" :value="String(s)"
+              >{{ s }} 条/页</SelectItem
+            >
           </SelectContent>
         </Select>
         <div class="flex items-center gap-1">

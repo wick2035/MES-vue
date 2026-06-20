@@ -35,7 +35,13 @@ const columns: TableColumn[] = [
 ]
 
 const formFields: FormField[] = [
-  { field: 'bomCode', label: 'BOM 编码', type: 'input', readonly: true, placeholder: '保存后自动生成' },
+  {
+    field: 'bomCode',
+    label: 'BOM 编码',
+    type: 'input',
+    readonly: true,
+    placeholder: '保存后自动生成',
+  },
   { field: 'materielCode', label: '产品物料编码', type: 'input', required: true },
   { field: 'materielDesc', label: '产品名称', type: 'input', required: true },
   { field: 'versionNumber', label: '版本号', type: 'input', placeholder: '如：V1.0' },
@@ -100,10 +106,17 @@ async function onLock(row: Bom) {
     <div class="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4 shadow-sp">
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">产品物料编码</Label>
-        <Input v-model="query.materielCodeLike" placeholder="物料编码" class="w-44" @keyup.enter="search" />
+        <Input
+          v-model="query.materielCodeLike"
+          placeholder="物料编码"
+          class="w-44"
+          @keyup.enter="search"
+        />
       </div>
       <Button @click="search"><Search class="h-4 w-4" />查询</Button>
-      <Button variant="outline" @click="reset(['materielCodeLike'])"><RotateCcw class="h-4 w-4" />重置</Button>
+      <Button variant="outline" @click="reset(['materielCodeLike'])"
+        ><RotateCcw class="h-4 w-4" />重置</Button
+      >
     </div>
 
     <SpDataTable
@@ -121,11 +134,19 @@ async function onLock(row: Bom) {
         <Button size="sm" @click="openCreate"><Plus class="h-4 w-4" />新建 BOM</Button>
       </template>
       <template #lock="{ value }">
-        <SpStatusBadge :tone="isLocked(value) ? 'success' : 'muted'" :text="isLocked(value) ? '已锁定' : '未锁定'" />
+        <SpStatusBadge
+          :tone="isLocked(value) ? 'success' : 'muted'"
+          :text="isLocked(value) ? '已锁定' : '未锁定'"
+        />
       </template>
       <template #action="{ row }">
         <div class="flex items-center justify-center gap-1">
-          <Button variant="ghost" size="icon-sm" title="查看结构" @click="router.push(`/technology/bom/${row.id}`)">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="查看结构"
+            @click="router.push(`/technology/bom/${row.id}`)"
+          >
             <Eye class="h-4 w-4" />
           </Button>
           <Button
@@ -137,7 +158,13 @@ async function onLock(row: Bom) {
           >
             <Pencil class="h-4 w-4" />
           </Button>
-          <Button v-if="!isLocked(row.lockStatus)" variant="ghost" size="icon-sm" title="锁定" @click="onLock(row)">
+          <Button
+            v-if="!isLocked(row.lockStatus)"
+            variant="ghost"
+            size="icon-sm"
+            title="锁定"
+            @click="onLock(row)"
+          >
             <Lock class="h-4 w-4 text-warning" />
           </Button>
           <Button variant="ghost" size="icon-sm" title="删除" @click="askDelete(row)">

@@ -13,7 +13,10 @@ import type { TreeNode } from '@/types/domain'
 
 defineOptions({ name: 'Dept' })
 
-interface FlatNode extends TreeNode { level: number; hasChildren: boolean }
+interface FlatNode extends TreeNode {
+  level: number
+  hasChildren: boolean
+}
 
 const nodes = ref<TreeNode[]>([])
 const expanded = ref<Set<string>>(new Set())
@@ -39,7 +42,7 @@ function toggle(id: string) {
 function flatten(list: TreeNode[], level = 0): FlatNode[] {
   const result: FlatNode[] = []
   for (const node of list) {
-    const hasChildren = !!(node.children?.length)
+    const hasChildren = !!node.children?.length
     result.push({ ...node, level, hasChildren })
     if (hasChildren && expanded.value.has(node.id)) {
       result.push(...flatten(node.children!, level + 1))
@@ -114,7 +117,9 @@ async function onDelete() {
         <CardTitle class="text-base">部门管理</CardTitle>
         <div class="flex items-center gap-2">
           <Button size="sm" @click="openCreate()"><Plus class="h-4 w-4" />新增根部门</Button>
-          <Button variant="ghost" size="icon-sm" title="刷新" @click="load"><RefreshCw class="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon-sm" title="刷新" @click="load"
+            ><RefreshCw class="h-4 w-4"
+          /></Button>
         </div>
       </CardHeader>
       <CardContent>

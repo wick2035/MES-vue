@@ -108,7 +108,10 @@ const infoRows = computed(() => {
     { label: '设计人', value: o.designerName },
     { label: '审批人', value: o.approveUsername },
     { label: '来源订单', value: o.sourceOrderNo },
-    { label: '来源BOM', value: o.sourceBomCode ? `${o.sourceBomCode} / ${o.sourceBomVersion ?? ''}` : '' },
+    {
+      label: '来源BOM',
+      value: o.sourceBomCode ? `${o.sourceBomCode} / ${o.sourceBomVersion ?? ''}` : '',
+    },
   ]
 })
 </script>
@@ -162,7 +165,10 @@ const infoRows = computed(() => {
               <div
                 v-if="i < steps.length - 1"
                 :class="
-                  cn('mt-4 h-0.5 flex-1', steps[i + 1].done || step.done ? 'bg-success' : 'bg-border')
+                  cn(
+                    'mt-4 h-0.5 flex-1',
+                    steps[i + 1].done || step.done ? 'bg-success' : 'bg-border',
+                  )
                 "
               />
             </template>
@@ -206,7 +212,12 @@ const infoRows = computed(() => {
             <Truck class="h-4 w-4" />交付
           </Button>
           <span
-            v-if="order.statue !== 1 && order.workStatus === 'STARTED' && !order.canComplete && !order.canDeliver"
+            v-if="
+              order.statue !== 1 &&
+              order.workStatus === 'STARTED' &&
+              !order.canComplete &&
+              !order.canDeliver
+            "
             class="text-sm text-muted-foreground"
           >
             {{ order.deliveryStatus === 'DELIVERED' ? '工单已交付，流程完成' : '无可执行操作' }}
@@ -218,7 +229,11 @@ const infoRows = computed(() => {
       <Card>
         <CardHeader><CardTitle class="text-base">基本信息</CardTitle></CardHeader>
         <CardContent class="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div v-for="row in infoRows" :key="row.label" class="flex justify-between gap-2 border-b pb-2 text-sm">
+          <div
+            v-for="row in infoRows"
+            :key="row.label"
+            class="flex justify-between gap-2 border-b pb-2 text-sm"
+          >
             <span class="text-muted-foreground">{{ row.label }}</span>
             <span class="text-right font-medium">{{ row.value || '—' }}</span>
           </div>

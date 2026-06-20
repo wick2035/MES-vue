@@ -79,7 +79,11 @@ const dialogTitle = computed(() => (isEdit.value ? '编辑子项' : '新增子�
 
 function resetModel(data: Record<string, any> = {}) {
   Object.keys(formModel).forEach((k) => delete formModel[k])
-  Object.assign(formModel, { bomHeadId: id, itemNum: 1, itemUnit: '个', lineNo: items.value.length + 1 }, data)
+  Object.assign(
+    formModel,
+    { bomHeadId: id, itemNum: 1, itemUnit: '个', lineNo: items.value.length + 1 },
+    data,
+  )
 }
 function openCreate() {
   resetModel()
@@ -139,19 +143,24 @@ async function onDelete() {
       <CardHeader><CardTitle class="text-base">BOM 信息</CardTitle></CardHeader>
       <CardContent class="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
         <div class="flex justify-between border-b pb-2 text-sm">
-          <span class="text-muted-foreground">产品物料</span><span class="font-medium">{{ bom.materielCode || '—' }}</span>
+          <span class="text-muted-foreground">产品物料</span
+          ><span class="font-medium">{{ bom.materielCode || '—' }}</span>
         </div>
         <div class="flex justify-between border-b pb-2 text-sm">
-          <span class="text-muted-foreground">产品名称</span><span class="font-medium">{{ bom.materielDesc || '—' }}</span>
+          <span class="text-muted-foreground">产品名称</span
+          ><span class="font-medium">{{ bom.materielDesc || '—' }}</span>
         </div>
         <div class="flex justify-between border-b pb-2 text-sm">
-          <span class="text-muted-foreground">版本</span><span class="font-medium">{{ bom.versionNumber || '—' }}</span>
+          <span class="text-muted-foreground">版本</span
+          ><span class="font-medium">{{ bom.versionNumber || '—' }}</span>
         </div>
         <div class="flex justify-between border-b pb-2 text-sm">
-          <span class="text-muted-foreground">层级</span><span class="font-medium">{{ bom.bomLevel ?? '—' }}</span>
+          <span class="text-muted-foreground">层级</span
+          ><span class="font-medium">{{ bom.bomLevel ?? '—' }}</span>
         </div>
         <div class="flex justify-between border-b pb-2 text-sm">
-          <span class="text-muted-foreground">工厂</span><span class="font-medium">{{ bom.factory || '—' }}</span>
+          <span class="text-muted-foreground">工厂</span
+          ><span class="font-medium">{{ bom.factory || '—' }}</span>
         </div>
       </CardContent>
     </Card>
@@ -175,7 +184,13 @@ async function onDelete() {
           <Button v-if="!locked" variant="ghost" size="icon-sm" title="编辑" @click="openEdit(row)">
             <Pencil class="h-4 w-4" />
           </Button>
-          <Button v-if="!locked" variant="ghost" size="icon-sm" title="删除" @click="askDelete(row)">
+          <Button
+            v-if="!locked"
+            variant="ghost"
+            size="icon-sm"
+            title="删除"
+            @click="askDelete(row)"
+          >
             <Trash2 class="h-4 w-4 text-destructive" />
           </Button>
           <span v-if="locked" class="text-xs text-muted-foreground">已锁定</span>

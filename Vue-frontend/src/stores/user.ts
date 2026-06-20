@@ -40,9 +40,7 @@ export const useUserStore = defineStore('user', {
       const { data } = await getCurrentUser()
       this.userInfo = data
       const codes =
-        data?.roleCodes ??
-        (data?.sysRoleDTOs?.map((r) => r.code).filter(Boolean) as string[]) ??
-        []
+        data?.roleCodes ?? (data?.sysRoleDTOs?.map((r) => r.code).filter(Boolean) as string[]) ?? []
       this.roles = codes
     },
 

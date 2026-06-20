@@ -30,9 +30,7 @@ const columns: TableColumn[] = [
     width: '160px',
     align: 'center',
     formatter: (row) =>
-      [row.specGroup, row.specRow, row.specLayer, row.specColumn]
-        .map((v) => v ?? '-')
-        .join(' / '),
+      [row.specGroup, row.specRow, row.specLayer, row.specColumn].map((v) => v ?? '-').join(' / '),
   },
   { key: 'action', title: '操作', slot: 'action', width: '110px', align: 'center' },
 ]
@@ -101,11 +99,21 @@ function onReset() {
     <div class="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4 shadow-sp">
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">库房编码</Label>
-        <Input v-model="query.warehouseCodeLike" placeholder="编码" class="w-40" @keyup.enter="search" />
+        <Input
+          v-model="query.warehouseCodeLike"
+          placeholder="编码"
+          class="w-40"
+          @keyup.enter="search"
+        />
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">库房名称</Label>
-        <Input v-model="query.warehouseNameLike" placeholder="名称" class="w-40" @keyup.enter="search" />
+        <Input
+          v-model="query.warehouseNameLike"
+          placeholder="名称"
+          class="w-40"
+          @keyup.enter="search"
+        />
       </div>
       <Button @click="search"><Search class="h-4 w-4" />查询</Button>
       <Button variant="outline" @click="onReset"><RotateCcw class="h-4 w-4" />重置</Button>

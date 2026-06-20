@@ -86,7 +86,11 @@ function onItemClick(item: NotifyMessage) {
       :title="store.connected ? '通知中心（实时在线）' : '通知中心（连接中…）'"
       @click="toggle"
     >
-      <component :is="hasUnread ? BellRing : Bell" class="h-5 w-5" :class="hasUnread && 'text-foreground'" />
+      <component
+        :is="hasUnread ? BellRing : Bell"
+        class="h-5 w-5"
+        :class="hasUnread && 'text-foreground'"
+      />
       <!-- 未读角标 -->
       <span
         v-if="hasUnread"
@@ -100,7 +104,9 @@ function onItemClick(item: NotifyMessage) {
         class="absolute right-1 top-1 flex h-2 w-2"
         aria-hidden="true"
       >
-        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span
+          class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"
+        />
         <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
       </span>
     </button>
@@ -124,7 +130,11 @@ function onItemClick(item: NotifyMessage) {
             <span class="text-sm font-semibold">通知中心</span>
             <span
               class="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-              :class="store.connected ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'"
+              :class="
+                store.connected
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-muted text-muted-foreground'
+              "
             >
               <span
                 class="h-1.5 w-1.5 rounded-full"
@@ -180,7 +190,9 @@ function onItemClick(item: NotifyMessage) {
               <div class="min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-2">
                   <span class="truncate text-sm font-medium">{{ item.title }}</span>
-                  <span class="shrink-0 text-[11px] text-muted-foreground">{{ fromNow(item.time) }}</span>
+                  <span class="shrink-0 text-[11px] text-muted-foreground">{{
+                    fromNow(item.time)
+                  }}</span>
                 </div>
                 <p class="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                   {{ item.content }}
@@ -204,7 +216,10 @@ function onItemClick(item: NotifyMessage) {
           </template>
 
           <!-- 空态 -->
-          <div v-else class="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
+          <div
+            v-else
+            class="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center"
+          >
             <span class="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
               <Inbox class="h-6 w-6 text-muted-foreground" />
             </span>

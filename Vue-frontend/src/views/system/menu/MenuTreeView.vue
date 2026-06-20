@@ -11,9 +11,12 @@ import { notify } from '@/lib/toast'
 import type { FormField } from '@/types/table'
 import type { TreeNode } from '@/types/domain'
 
-defineOptions({ name: 'Menu' })
+defineOptions({ name: 'MenuTree' })
 
-interface FlatNode extends TreeNode { level: number; hasChildren: boolean }
+interface FlatNode extends TreeNode {
+  level: number
+  hasChildren: boolean
+}
 
 const nodes = ref<TreeNode[]>([])
 const expanded = ref<Set<string>>(new Set())
@@ -40,7 +43,7 @@ function toggle(id: string) {
 function flatten(list: TreeNode[], level = 0): FlatNode[] {
   const result: FlatNode[] = []
   for (const node of list) {
-    const hasChildren = !!(node.children?.length)
+    const hasChildren = !!node.children?.length
     result.push({ ...node, level, hasChildren })
     if (hasChildren && expanded.value.has(node.id)) {
       result.push(...flatten(node.children!, level + 1))
@@ -125,7 +128,9 @@ async function onDelete() {
         <CardTitle class="text-base">菜单管理</CardTitle>
         <div class="flex items-center gap-2">
           <Button size="sm" @click="openCreate()"><Plus class="h-4 w-4" />新增根菜单</Button>
-          <Button variant="ghost" size="icon-sm" title="刷新" @click="load"><RefreshCw class="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon-sm" title="刷新" @click="load"
+            ><RefreshCw class="h-4 w-4"
+          /></Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -144,9 +149,14 @@ async function onDelete() {
                 />
                 <span v-else class="inline-block w-4" />
               </button>
-              <component :is="node.hasChildren ? Folder : FileText" class="h-4 w-4 shrink-0 text-muted-foreground" />
+              <component
+                :is="node.hasChildren ? Folder : FileText"
+                class="h-4 w-4 shrink-0 text-muted-foreground"
+              />
               <span class="flex-1 text-sm">{{ node.name }}</span>
-              <span class="mr-2 hidden text-xs text-muted-foreground group-hover:inline">{{ node.url }}</span>
+              <span class="mr-2 hidden text-xs text-muted-foreground group-hover:inline">{{
+                node.url
+              }}</span>
               <div class="hidden items-center gap-0.5 group-hover:flex">
                 <Button variant="ghost" size="icon-sm" title="新增子菜单" @click="openCreate(node)">
                   <Plus class="h-3.5 w-3.5" />

@@ -24,12 +24,24 @@ const columns: TableColumn[] = [
   { key: 'operDesc', title: '工序名称' },
   { key: 'operHours', title: '工时(h)', width: '100px', align: 'right' },
   { key: 'manuCycle', title: '制造周期', width: '100px', align: 'right' },
-  { key: 'genPlan', title: '生成计划', width: '100px', align: 'center', formatter: (r) => (r.genPlan === 'Y' ? '是' : '否') },
+  {
+    key: 'genPlan',
+    title: '生成计划',
+    width: '100px',
+    align: 'center',
+    formatter: (r) => (r.genPlan === 'Y' ? '是' : '否'),
+  },
   { key: 'remark', title: '备注' },
   { key: 'action', title: '操作', slot: 'action', width: '110px', align: 'center' },
 ]
 const formFields: FormField[] = [
-  { field: 'oper', label: '工序编码', type: 'input', readonly: true, placeholder: '保存后自动生成' },
+  {
+    field: 'oper',
+    label: '工序编码',
+    type: 'input',
+    readonly: true,
+    placeholder: '保存后自动生成',
+  },
   { field: 'operDesc', label: '工序名称', type: 'input', required: true },
   { field: 'operHours', label: '工时(小时)', type: 'number', min: 0 },
   { field: 'manuCycle', label: '制造周期', type: 'number', min: 0 },
@@ -102,7 +114,9 @@ async function onDelete() {
         <Input v-model="query.operDescLike" placeholder="名称" class="w-40" @keyup.enter="search" />
       </div>
       <Button @click="search"><Search class="h-4 w-4" />查询</Button>
-      <Button variant="outline" @click="reset(['operLike', 'operDescLike'])"><RotateCcw class="h-4 w-4" />重置</Button>
+      <Button variant="outline" @click="reset(['operLike', 'operDescLike'])"
+        ><RotateCcw class="h-4 w-4" />重置</Button
+      >
     </div>
 
     <SpDataTable

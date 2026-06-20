@@ -17,7 +17,9 @@ const crumbs = computed(() =>
   <nav class="flex items-center gap-1 text-sm text-muted-foreground">
     <template v-for="(c, i) in crumbs" :key="c.path">
       <ChevronRight v-if="i > 0" class="h-3.5 w-3.5" />
-      <span :class="i === crumbs.length - 1 ? 'font-medium text-foreground' : ''">{{ c.title }}</span>
+      <span :class="i === crumbs.length - 1 ? 'font-medium text-foreground' : ''">{{
+        c.title
+      }}</span>
     </template>
   </nav>
 </template>

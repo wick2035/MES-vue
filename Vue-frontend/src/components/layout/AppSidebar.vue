@@ -63,12 +63,18 @@ function toggleGroup(path: string) {
           :class="
             cn(
               'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-sidebar-accent',
-              route.path === item.path ? 'bg-sidebar-accent text-primary' : 'text-sidebar-foreground',
+              route.path === item.path
+                ? 'bg-sidebar-accent text-primary'
+                : 'text-sidebar-foreground',
             )
           "
           :title="item.title"
         >
-          <component :is="resolveIcon(item.icon)" v-if="resolveIcon(item.icon)" class="h-4 w-4 shrink-0" />
+          <component
+            :is="resolveIcon(item.icon)"
+            v-if="resolveIcon(item.icon)"
+            class="h-4 w-4 shrink-0"
+          />
           <span v-show="!collapsed" class="truncate">{{ item.title }}</span>
         </RouterLink>
 
@@ -80,7 +86,11 @@ function toggleGroup(path: string) {
             :title="item.title"
             @click="toggleGroup(item.path)"
           >
-            <component :is="resolveIcon(item.icon)" v-if="resolveIcon(item.icon)" class="h-4 w-4 shrink-0" />
+            <component
+              :is="resolveIcon(item.icon)"
+              v-if="resolveIcon(item.icon)"
+              class="h-4 w-4 shrink-0"
+            />
             <span v-show="!collapsed" class="flex-1 truncate text-left">{{ item.title }}</span>
             <ChevronRight
               v-show="!collapsed"
@@ -102,7 +112,11 @@ function toggleGroup(path: string) {
                 )
               "
             >
-              <component :is="resolveIcon(child.icon)" v-if="resolveIcon(child.icon)" class="h-4 w-4 shrink-0" />
+              <component
+                :is="resolveIcon(child.icon)"
+                v-if="resolveIcon(child.icon)"
+                class="h-4 w-4 shrink-0"
+              />
               <span class="truncate">{{ child.title }}</span>
             </RouterLink>
           </div>

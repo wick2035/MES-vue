@@ -267,7 +267,9 @@ onBeforeUnmount(() => {
           <MessageSquare class="h-4 w-4 shrink-0 opacity-70" />
           <span class="min-w-0 flex-1">
             <span class="block truncate text-sm">{{ conv.title || '新对话' }}</span>
-            <span class="block text-[11px] text-muted-foreground">{{ fromNow(conv.updateTime) }}</span>
+            <span class="block text-[11px] text-muted-foreground">{{
+              fromNow(conv.updateTime)
+            }}</span>
           </span>
           <span
             class="hidden rounded p-1 text-muted-foreground hover:bg-background hover:text-destructive group-hover:block"
@@ -281,28 +283,41 @@ onBeforeUnmount(() => {
     </aside>
 
     <!-- 对话主区 -->
-    <section class="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card shadow-sp">
+    <section
+      class="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card shadow-sp"
+    >
       <!-- 头部 -->
       <header class="flex items-center gap-3 border-b px-4 py-3">
-        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-sm">
+        <span
+          class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-sm"
+        >
           <Bot class="h-5 w-5" />
         </span>
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 text-sm font-semibold">
             MES 智能助手
-            <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+            <span
+              class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+            >
               <Sparkles class="h-3 w-3" />通义千问
             </span>
           </div>
-          <p class="truncate text-xs text-muted-foreground">基于真实业务数据问答 · 工序质量 / 工单 / 库存 / 操作指引</p>
+          <p class="truncate text-xs text-muted-foreground">
+            基于真实业务数据问答 · 工序质量 / 工单 / 库存 / 操作指引
+          </p>
         </div>
       </header>
 
       <!-- 消息区 -->
       <div ref="scrollEl" class="min-h-0 flex-1 overflow-y-auto px-4 py-5">
         <!-- 空态：欢迎 + 建议提问 -->
-        <div v-if="isEmpty && !loadingHistory" class="mx-auto flex h-full max-w-2xl flex-col items-center justify-center text-center">
-          <span class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/50 text-primary-foreground shadow-lg">
+        <div
+          v-if="isEmpty && !loadingHistory"
+          class="mx-auto flex h-full max-w-2xl flex-col items-center justify-center text-center"
+        >
+          <span
+            class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/50 text-primary-foreground shadow-lg"
+          >
             <Bot class="h-8 w-8" />
           </span>
           <h2 class="text-xl font-semibold">你好，我是 MES 智能助手</h2>
@@ -316,7 +331,9 @@ onBeforeUnmount(() => {
               class="flex items-center gap-3 rounded-xl border bg-background/60 px-4 py-3 text-left text-sm transition-colors hover:border-primary/40 hover:bg-accent"
               @click="useSuggestion(s.text)"
             >
-              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <span
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+              >
                 <component :is="s.icon" class="h-4 w-4" />
               </span>
               <span class="text-foreground/90">{{ s.text }}</span>
@@ -376,13 +393,20 @@ onBeforeUnmount(() => {
               >
                 <!-- 思考中：内容尚空 -->
                 <div v-if="!m.content && m.streaming" class="flex items-center gap-1 py-1">
-                  <span class="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]" />
-                  <span class="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]" />
+                  <span
+                    class="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]"
+                  />
+                  <span
+                    class="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]"
+                  />
                   <span class="h-2 w-2 animate-bounce rounded-full bg-primary/60" />
                 </div>
                 <div v-else class="md-body" v-html="renderMarkdown(m.content)" />
                 <!-- 流式光标 -->
-                <span v-if="m.streaming && m.content" class="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary align-text-bottom" />
+                <span
+                  v-if="m.streaming && m.content"
+                  class="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary align-text-bottom"
+                />
               </div>
             </div>
           </div>
@@ -391,7 +415,9 @@ onBeforeUnmount(() => {
 
       <!-- 输入区 -->
       <footer class="border-t p-3">
-        <div class="flex items-end gap-2 rounded-2xl border bg-background px-3 py-2 transition-colors focus-within:border-primary/50">
+        <div
+          class="flex items-end gap-2 rounded-2xl border bg-background px-3 py-2 transition-colors focus-within:border-primary/50"
+        >
           <textarea
             ref="inputEl"
             v-model="input"

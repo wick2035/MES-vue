@@ -5,7 +5,13 @@ import { Search, RotateCcw, ScanLine, Route, LoaderCircle } from 'lucide-vue-nex
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -77,7 +83,12 @@ async function submitScan() {
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">工单</Label>
-        <Input v-model="query.orderCodeLike" placeholder="工单编号" class="w-40" @keyup.enter="search" />
+        <Input
+          v-model="query.orderCodeLike"
+          placeholder="工单编号"
+          class="w-40"
+          @keyup.enter="search"
+        />
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">结果</Label>
@@ -117,7 +128,12 @@ async function submitScan() {
         <SpStatusBadge :tone="value === 'OK' ? 'success' : 'danger'" :text="value" />
       </template>
       <template #action="{ row }">
-        <Button variant="ghost" size="icon-sm" title="SN 追溯" @click="router.push(`/wip/trace/${row.sn}`)">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="SN 追溯"
+          @click="router.push(`/wip/trace/${row.sn}`)"
+        >
           <Route class="h-4 w-4" />
         </Button>
       </template>

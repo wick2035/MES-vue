@@ -27,9 +27,21 @@ const columns: TableColumn[] = [
 ]
 
 const formFields: FormField[] = [
-  { field: 'flow', label: '工艺路线编码', type: 'input', readonly: true, placeholder: '保存后自动生成' },
+  {
+    field: 'flow',
+    label: '工艺路线编码',
+    type: 'input',
+    readonly: true,
+    placeholder: '保存后自动生成',
+  },
   { field: 'flowDesc', label: '工艺路线名称', type: 'input', required: true },
-  { field: 'process', label: '工序流程描述', type: 'textarea', span: 2, placeholder: '如：备料→冲压→焊接→检验' },
+  {
+    field: 'process',
+    label: '工序流程描述',
+    type: 'textarea',
+    span: 2,
+    placeholder: '如：备料→冲压→焊接→检验',
+  },
 ]
 
 const dialogOpen = ref(false)
@@ -89,7 +101,9 @@ async function onDelete() {
         <Input v-model="query.flowDescLike" placeholder="名称" class="w-40" @keyup.enter="search" />
       </div>
       <Button @click="search"><Search class="h-4 w-4" />查询</Button>
-      <Button variant="outline" @click="reset(['flowLike', 'flowDescLike'])"><RotateCcw class="h-4 w-4" />重置</Button>
+      <Button variant="outline" @click="reset(['flowLike', 'flowDescLike'])"
+        ><RotateCcw class="h-4 w-4" />重置</Button
+      >
     </div>
 
     <SpDataTable

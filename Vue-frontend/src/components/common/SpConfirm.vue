@@ -10,10 +10,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-withDefaults(
-  defineProps<{ open: boolean; title?: string; description?: string }>(),
-  { title: '确认操作', description: '确定要执行此操作吗？' },
-)
+withDefaults(defineProps<{ open: boolean; title?: string; description?: string }>(), {
+  title: '确认操作',
+  description: '确定要执行此操作吗？',
+})
 const emit = defineEmits<{
   (e: 'update:open', v: boolean): void
   (e: 'confirm'): void

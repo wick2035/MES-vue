@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import SpForm from './SpForm.vue'
 import type { FormField } from '@/types/table'
 
-defineProps<{
+const props = defineProps<{
   open: boolean
   title: string
   fields: FormField[]
@@ -23,12 +23,18 @@ defineProps<{
 }>()
 const emit = defineEmits<{
   (e: 'update:open', v: boolean): void
+  (e: 'update:model', v: Record<string, any>): void
   (e: 'submit'): void
 }>()
 
 const formRef = ref<InstanceType<typeof SpForm>>()
 function onSubmit() {
   if (formRef.value?.validate()) emit('submit')
+}
+
+function onModelUpdate(next: Record<string, any>) {
+  Object.assign(props.model, next)
+  emit('update:model', next)
 }
 </script>
 
@@ -42,7 +48,7 @@ function onSubmit() {
         </DialogDescription>
       </DialogHeader>
 
-      <SpForm ref="formRef" :fields="fields" :model="model" />
+      <SpForm ref="formRef" :fields="fields" :model="model" @update:model="onModelUpdate" />
 
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)">取消</Button>

@@ -16,7 +16,11 @@ import type { Equipment } from '@/types/domain'
 defineOptions({ name: 'Equipment' })
 
 const { loading, list, total, query, load, onPageChange, onSizeChange, search, reset } =
-  useTable<Equipment>(pageEquipments, { equipmentCodeLike: '', equipmentNameLike: '', purposeLike: '' })
+  useTable<Equipment>(pageEquipments, {
+    equipmentCodeLike: '',
+    equipmentNameLike: '',
+    purposeLike: '',
+  })
 onMounted(load)
 
 const columns: TableColumn[] = [
@@ -90,11 +94,21 @@ function onReset() {
     <div class="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4 shadow-sp">
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">设备编码</Label>
-        <Input v-model="query.equipmentCodeLike" placeholder="编码" class="w-40" @keyup.enter="search" />
+        <Input
+          v-model="query.equipmentCodeLike"
+          placeholder="编码"
+          class="w-40"
+          @keyup.enter="search"
+        />
       </div>
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">设备名称</Label>
-        <Input v-model="query.equipmentNameLike" placeholder="名称" class="w-40" @keyup.enter="search" />
+        <Input
+          v-model="query.equipmentNameLike"
+          placeholder="名称"
+          class="w-40"
+          @keyup.enter="search"
+        />
       </div>
       <Button @click="search"><Search class="h-4 w-4" />查询</Button>
       <Button variant="outline" @click="onReset"><RotateCcw class="h-4 w-4" />重置</Button>

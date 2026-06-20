@@ -60,7 +60,7 @@ async function load() {
     if (activeIdx.value >= warehouses.value.length) activeIdx.value = 0
     scene?.setWarehouse(active.value)
     updatedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
-  } catch (e) {
+  } catch {
     loadError.value = '库房孪生数据加载失败，请确认后端服务与库存台账可用'
   } finally {
     loading.value = false
@@ -188,7 +188,9 @@ onBeforeUnmount(() => {
       <!-- 右侧指标面板 -->
       <div class="absolute right-4 top-24 hidden w-64 space-y-3 lg:block">
         <div class="grid grid-cols-2 gap-2">
-          <div class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur">
+          <div
+            class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur"
+          >
             <div class="flex items-center gap-1 text-[11px] text-slate-500">
               <MapPin class="h-3 w-3" />库位总数
             </div>
@@ -196,7 +198,9 @@ onBeforeUnmount(() => {
               {{ active?.summary.locationCount ?? 0 }}
             </div>
           </div>
-          <div class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur">
+          <div
+            class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur"
+          >
             <div class="flex items-center gap-1 text-[11px] text-slate-500">
               <Layers class="h-3 w-3" />已占用
             </div>
@@ -204,7 +208,9 @@ onBeforeUnmount(() => {
               {{ active?.summary.occupiedCount ?? 0 }}
             </div>
           </div>
-          <div class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur">
+          <div
+            class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur"
+          >
             <div class="flex items-center gap-1 text-[11px] text-slate-500">
               <Gauge class="h-3 w-3" />占用率
             </div>
@@ -213,7 +219,9 @@ onBeforeUnmount(() => {
               }}<span class="text-xs text-slate-400">%</span>
             </div>
           </div>
-          <div class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur">
+          <div
+            class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur"
+          >
             <div class="flex items-center gap-1 text-[11px] text-slate-500">
               <Boxes class="h-3 w-3" />库存量
             </div>
@@ -224,19 +232,25 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="grid grid-cols-3 gap-2">
-          <div class="rounded-lg border border-slate-200/80 bg-white/86 p-2.5 shadow-sp backdrop-blur">
+          <div
+            class="rounded-lg border border-slate-200/80 bg-white/86 p-2.5 shadow-sp backdrop-blur"
+          >
             <div class="text-[10px] text-slate-500">空闲</div>
             <div class="mt-0.5 text-lg font-semibold text-slate-700">
               {{ active?.summary.emptyCount ?? 0 }}
             </div>
           </div>
-          <div class="rounded-lg border border-slate-200/80 bg-white/86 p-2.5 shadow-sp backdrop-blur">
+          <div
+            class="rounded-lg border border-slate-200/80 bg-white/86 p-2.5 shadow-sp backdrop-blur"
+          >
             <div class="text-[10px] text-slate-500">禁用</div>
             <div class="mt-0.5 text-lg font-semibold text-slate-500">
               {{ active?.summary.disabledCount ?? 0 }}
             </div>
           </div>
-          <div class="rounded-lg border border-slate-200/80 bg-white/86 p-2.5 shadow-sp backdrop-blur">
+          <div
+            class="rounded-lg border border-slate-200/80 bg-white/86 p-2.5 shadow-sp backdrop-blur"
+          >
             <div class="text-[10px] text-slate-500">峰值</div>
             <div class="mt-0.5 text-lg font-semibold text-amber-600">
               {{ Number(active?.summary.maxQty ?? 0).toFixed(0) }}
@@ -259,7 +273,9 @@ onBeforeUnmount(() => {
                     : 'bg-slate-100 text-slate-500'
               "
             >
-              {{ detail.statusText || (detail.disabled ? '禁用' : detail.occupied ? '占用' : '空闲') }}
+              {{
+                detail.statusText || (detail.disabled ? '禁用' : detail.occupied ? '占用' : '空闲')
+              }}
             </span>
           </div>
           <template v-if="detail">
@@ -277,11 +293,15 @@ onBeforeUnmount(() => {
               </div>
               <div class="mt-1 flex items-center justify-between">
                 <span>物料</span>
-                <span class="max-w-[150px] truncate text-right">{{ detail.materiel || detail.materialCode || '—' }}</span>
+                <span class="max-w-[150px] truncate text-right">{{
+                  detail.materiel || detail.materialCode || '—'
+                }}</span>
               </div>
               <div class="mt-1 flex items-center justify-between">
                 <span>批次</span>
-                <span class="max-w-[150px] truncate font-mono text-[11px]">{{ detail.batchNo || '—' }}</span>
+                <span class="max-w-[150px] truncate font-mono text-[11px]">{{
+                  detail.batchNo || '—'
+                }}</span>
               </div>
             </div>
           </template>

@@ -24,7 +24,16 @@ use([
   LegendComponent,
 ])
 
-const PALETTE = ['#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED', '#0891B2', '#DB2777', '#65A30D']
+const PALETTE = [
+  '#2563EB',
+  '#16A34A',
+  '#D97706',
+  '#DC2626',
+  '#7C3AED',
+  '#0891B2',
+  '#DB2777',
+  '#65A30D',
+]
 
 function axis(text: string, line: string, split: string) {
   return {

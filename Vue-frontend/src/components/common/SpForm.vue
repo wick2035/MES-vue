@@ -3,7 +3,13 @@ import { reactive } from 'vue'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { FormField } from '@/types/table'
 
@@ -12,11 +18,15 @@ import type { FormField } from '@/types/table'
  * 父组件传入 model（响应式对象），表单直接读写其字段；调用 validate() 触发校验。
  */
 const props = defineProps<{ fields: FormField[]; model: Record<string, any> }>()
+const emit = defineEmits<{
+  (e: 'update:model', model: Record<string, any>): void
+}>()
 
 const errors = reactive<Record<string, string>>({})
 
 function onUpdate(f: FormField, val: any) {
-  props.model[f.field] = f.type === 'number' ? (val === '' || val === null ? null : Number(val)) : val
+  const nextValue = f.type === 'number' ? (val === '' || val === null ? null : Number(val)) : val
+  emit('update:model', { ...props.model, [f.field]: nextValue })
   if (errors[f.field]) errors[f.field] = ''
 }
 

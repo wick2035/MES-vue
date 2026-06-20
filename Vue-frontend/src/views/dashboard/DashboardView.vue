@@ -40,12 +40,12 @@ onUnmounted(() => timer && clearInterval(timer))
 
 const ov = computed(() => data.value?.overview)
 const kpis = computed(() => [
-  { label: '工单总数', value: ov.value?.orderCount ?? 0, icon: ClipboardList, tone: 'text-primary' },
-  { label: '计划产量', value: ov.value?.planQty ?? 0, icon: Boxes, tone: 'text-primary' },
-  { label: '完工数量', value: ov.value?.completedQty ?? 0, icon: CheckCircle2, tone: 'text-success' },
-  { label: '在制数量', value: ov.value?.inProcessQty ?? 0, icon: Loader, tone: 'text-warning' },
-  { label: '报废数量', value: ov.value?.scrappedQty ?? 0, icon: Trash2, tone: 'text-destructive' },
-  { label: '良品率', value: `${ov.value?.yieldRate ?? 0}%`, icon: Gauge, tone: 'text-success' },
+  { label: '工单总数', value: ov.value?.orderCount ?? 0, icon: ClipboardList, gradient: 'from-blue-500 to-indigo-500' },
+  { label: '计划产量', value: ov.value?.planQty ?? 0, icon: Boxes, gradient: 'from-violet-500 to-purple-500' },
+  { label: '完工数量', value: ov.value?.completedQty ?? 0, icon: CheckCircle2, gradient: 'from-emerald-500 to-green-500' },
+  { label: '在制数量', value: ov.value?.inProcessQty ?? 0, icon: Loader, gradient: 'from-amber-500 to-orange-500' },
+  { label: '报废数量', value: ov.value?.scrappedQty ?? 0, icon: Trash2, gradient: 'from-rose-500 to-red-500' },
+  { label: '良品率', value: `${ov.value?.yieldRate ?? 0}%`, icon: Gauge, gradient: 'from-cyan-500 to-sky-500' },
 ])
 
 const orderStatusOption = computed<EChartsOption>(() => ({
@@ -148,15 +148,25 @@ const personnelOption = computed<EChartsOption>(() => {
 
     <!-- KPI -->
     <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-      <Card v-for="k in kpis" :key="k.label">
+      <Card
+        v-for="k in kpis"
+        :key="k.label"
+        class="group relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      >
+        <div :class="['absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r opacity-70', k.gradient]" />
         <CardContent class="flex items-center gap-3 p-4">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-            <component :is="k.icon" :class="['h-5 w-5', k.tone]" />
+          <div
+            :class="[
+              'flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm transition-transform duration-200 group-hover:scale-105',
+              k.gradient,
+            ]"
+          >
+            <component :is="k.icon" class="h-5 w-5" />
           </div>
           <div class="min-w-0">
             <div class="truncate text-xs text-muted-foreground">{{ k.label }}</div>
-            <Skeleton v-if="loading" class="mt-1 h-6 w-16" />
-            <div v-else class="text-xl font-semibold">{{ k.value }}</div>
+            <Skeleton v-if="loading" class="mt-1 h-7 w-16" />
+            <div v-else class="text-2xl font-bold tracking-tight tabular-nums">{{ k.value }}</div>
           </div>
         </CardContent>
       </Card>

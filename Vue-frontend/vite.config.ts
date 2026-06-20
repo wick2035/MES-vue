@@ -42,5 +42,16 @@ export default defineConfig({
   build: {
     target: 'es2020',
     chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        // 将重型第三方库拆分为独立缓存块：ECharts(看板) / three(数字孪生) / 核心框架，
+        // 配合路由级懒加载，按需加载且利于浏览器长期缓存
+        manualChunks: {
+          echarts: ['echarts', 'vue-echarts'],
+          three: ['three'],
+          vendor: ['vue', 'vue-router', 'pinia', '@vueuse/core'],
+        },
+      },
+    },
   },
 })

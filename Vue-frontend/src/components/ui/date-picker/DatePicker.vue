@@ -60,7 +60,7 @@ function onSelect(value: DateValue | DateValue[] | undefined) {
       </Button>
     </PopoverTrigger>
 
-    <PopoverContent class="z-[80] w-auto bg-white p-3" align="start" :side-offset="6">
+    <PopoverContent class="z-[1000] w-auto bg-white p-3" align="start" :side-offset="6">
       <Calendar
         :model-value="selected"
         :placeholder="placeholderDate"

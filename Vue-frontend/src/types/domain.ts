@@ -111,10 +111,23 @@ export interface ProductionOrder extends BaseEntity {
   /** DEMAND 需求 / FORECAST 预测 */
   sourceType?: string
   customerName?: string
+  customerGroup?: string
+  externalNo?: string
+  salesContractNo?: string
   businessType?: string
   orderDate?: string
+  settlementCurrency?: string
+  transportMode?: string
+  paymentTerms?: string
+  taxRate?: string
+  receiverName?: string
+  receiverPhone?: string
+  receiverAddress?: string
   /** REVERSE 逆向排产 / FORWARD 正向排产 */
   schedulingMethod?: string
+  creationMethod?: string
+  erpSourceNo?: string
+  erpSyncTime?: string
   remark?: string
   status?: string
   approvalStatus?: string
@@ -138,9 +151,13 @@ export interface ProductionOrderItem extends BaseEntity {
   model?: string
   specification?: string
   qty?: number
+  unitPrice?: number
+  configuration?: string
   planDeliveryDate?: string
   planStartDate?: string
   leadTimeDays?: number
+  targetCapacity?: number
+  adjustNote?: string
   workOrderId?: string
   workOrderCode?: string
 }

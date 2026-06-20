@@ -112,10 +112,48 @@ function selectBom(bom: Bom) {
   bomPickerOpen.value = false
 }
 
-function clearBomLink(item: ProductionOrderItem) {
-  item.bomId = ''
-  item.bomCode = ''
-  item.bomVersion = ''
+function buildPayload() {
+  return {
+    order: {
+      id: header.id,
+      sourceType: header.sourceType,
+      customerName: header.customerName,
+      customerGroup: header.customerGroup,
+      externalNo: header.externalNo,
+      salesContractNo: header.salesContractNo,
+      businessType: header.businessType,
+      orderDate: header.orderDate,
+      settlementCurrency: header.settlementCurrency,
+      transportMode: header.transportMode,
+      paymentTerms: header.paymentTerms,
+      taxRate: header.taxRate,
+      receiverName: header.receiverName,
+      receiverPhone: header.receiverPhone,
+      receiverAddress: header.receiverAddress,
+      remark: header.remark,
+      creationMethod: header.creationMethod,
+      schedulingMethod: header.schedulingMethod,
+      erpSourceNo: header.erpSourceNo,
+      erpSyncTime: header.erpSyncTime,
+    },
+    items: items.value.map((item) => ({
+      bomId: item.bomId,
+      bomCode: item.bomCode,
+      bomVersion: item.bomVersion,
+      productMateriel: item.productMateriel,
+      productName: item.productName,
+      model: item.model,
+      specification: item.specification,
+      qty: item.qty,
+      unitPrice: item.unitPrice,
+      configuration: item.configuration,
+      planDeliveryDate: item.planDeliveryDate,
+      planStartDate: item.planStartDate,
+      leadTimeDays: item.leadTimeDays,
+      targetCapacity: item.targetCapacity,
+      adjustNote: item.adjustNote,
+    })),
+  }
 }
 
 function validate(): boolean {
@@ -152,7 +190,7 @@ async function doSave(submit: boolean) {
   if (!validate()) return
   saving.value = true
   try {
-    const payload = { order: { ...header }, items: items.value }
+    const payload = buildPayload()
     if (submit) {
       await submitProductionOrder(payload)
       notify.success('已提交生产主管审批并生成生产工单')
@@ -255,8 +293,8 @@ async function doSave(submit: boolean) {
                     <Input
                       v-model="it.productMateriel"
                       placeholder="请选择产品物料"
-                      class="h-8"
-                      @update:model-value="clearBomLink(it)"
+                      class="h-8 bg-muted/40"
+                      readonly
                     />
                     <Button
                       type="button"
@@ -277,7 +315,12 @@ async function doSave(submit: boolean) {
                   </div>
                 </td>
                 <td class="px-2 py-1.5">
-                  <Input v-model="it.productName" placeholder="选择 BOM 后自动回填" class="h-8" />
+                  <Input
+                    v-model="it.productName"
+                    placeholder="选择 BOM 后自动回填"
+                    class="h-8 bg-muted/40"
+                    readonly
+                  />
                 </td>
                 <td class="px-2 py-1.5">
                   <Input v-model.number="it.qty" type="number" min="1" class="h-8 text-right" />

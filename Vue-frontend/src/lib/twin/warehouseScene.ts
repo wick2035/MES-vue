@@ -15,6 +15,7 @@ interface WarehouseLayout {
   totalX: number
   totalZ: number
   rackHeight: number
+  cell: number
 }
 
 /**
@@ -245,12 +246,12 @@ export class WarehouseTwinScene {
     const maxLayer = Math.max(wh.dims?.layer || 1, ...locs.map((l) => l.layer))
     const maxColumn = Math.max(wh.dims?.column || 1, ...locs.map((l) => l.column))
 
-    const cell = 1.15
-    const gap = 0.48
+    const cell = 1.35
+    const gap = 0.62
     const stepX = cell + gap
-    const stepY = cell + 0.6 // 层高（含横梁余量）
+    const stepY = cell + 0.82 // 层高（含横梁余量）
     const stepZ = cell + gap
-    const groupGap = stepZ * 2.2 // 组间通道更宽，可走 AGV
+    const groupGap = stepZ * 2.35 // 组间通道更宽，可走 AGV
 
     const rowsPerGroup = maxRow
     const totalZ = maxGroup * (rowsPerGroup * stepZ) + (maxGroup - 1) * groupGap
@@ -271,6 +272,7 @@ export class WarehouseTwinScene {
       totalX,
       totalZ,
       rackHeight,
+      cell,
     }
 
     // 1) 逐个库位放置：拾取盒（透明，命中用）+ 占用则放托盘货箱
@@ -370,7 +372,7 @@ export class WarehouseTwinScene {
     const col = Math.max(1, loc.column)
     return new THREE.Vector3(
       layout.offsetX + (col - 1) * layout.stepX,
-      (layer - 1) * layout.stepY + 0.5 + 0.05,
+      (layer - 1) * layout.stepY + layout.cell / 2 + 0.05,
       layout.offsetZ +
         (g - 1) * (layout.maxRow * layout.stepZ + layout.groupGap) +
         (r - 1) * layout.stepZ,
@@ -465,7 +467,7 @@ export class WarehouseTwinScene {
     level: 'low' | 'mid' | 'high',
   ) {
     // 木托盘
-    const palletGeo = new THREE.BoxGeometry(cell * 0.9, 0.12, cell * 0.9)
+    const palletGeo = new THREE.BoxGeometry(cell * 0.96, 0.14, cell * 0.96)
     const pallet = new THREE.Mesh(palletGeo, this.palletMat)
     pallet.position.set(x, y - cell / 2 + 0.06, z)
     pallet.castShadow = true
@@ -478,37 +480,37 @@ export class WarehouseTwinScene {
     const highCount = seeded(`${seedBase}:count`) > 0.55 ? 4 : 3
     const countMap = { low: 1, mid: 2, high: highCount }
     const count = countMap[level]
-    const baseTop = y - cell / 2 + 0.12
-    const baseH = cell * 0.34
+    const baseTop = y - cell / 2 + 0.14
+    const baseH = cell * 0.4
     const placements =
       count === 1
         ? [{ px: 0, pz: 0, stack: 0 }]
         : count === 2
           ? [
-              { px: -0.21, pz: -0.04, stack: 0 },
-              { px: 0.21, pz: 0.05, stack: 0 },
+              { px: -0.24, pz: -0.05, stack: 0 },
+              { px: 0.24, pz: 0.05, stack: 0 },
             ]
           : count === 3
             ? [
-                { px: -0.22, pz: -0.05, stack: 0 },
-                { px: 0.22, pz: 0.06, stack: 0 },
+                { px: -0.25, pz: -0.06, stack: 0 },
+                { px: 0.25, pz: 0.06, stack: 0 },
                 { px: 0.02, pz: 0, stack: 1 },
               ]
             : [
-                { px: -0.22, pz: -0.06, stack: 0 },
-                { px: 0.22, pz: 0.06, stack: 0 },
-                { px: -0.2, pz: 0.05, stack: 1 },
-                { px: 0.2, pz: -0.05, stack: 1 },
+                { px: -0.25, pz: -0.07, stack: 0 },
+                { px: 0.25, pz: 0.07, stack: 0 },
+                { px: -0.22, pz: 0.06, stack: 1 },
+                { px: 0.22, pz: -0.06, stack: 1 },
               ]
 
     placements.forEach((place, index) => {
       const v = seeded(`${seedBase}:box:${index}`)
-      const w = cell * (0.38 + v * 0.08)
-      const d = cell * (0.48 + seeded(`${seedBase}:depth:${index}`) * 0.08)
+      const w = cell * (0.44 + v * 0.09)
+      const d = cell * (0.55 + seeded(`${seedBase}:depth:${index}`) * 0.1)
       const h = baseH * (0.92 + seeded(`${seedBase}:height:${index}`) * 0.16)
       const boxGeo = new THREE.BoxGeometry(w, h, d)
       const box = new THREE.Mesh(boxGeo, this.cartonMat)
-      const stackY = baseTop + place.stack * (baseH + 0.035)
+      const stackY = baseTop + place.stack * (baseH + 0.055)
       box.position.set(x + place.px * cell, stackY + h / 2, z + place.pz * cell)
       box.rotation.y = (v - 0.5) * 0.12
       box.castShadow = true

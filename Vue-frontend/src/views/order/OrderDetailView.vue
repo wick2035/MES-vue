@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
@@ -32,6 +33,8 @@ defineOptions({ name: 'OrderDetail' })
 const route = useRoute()
 const router = useRouter()
 const id = route.params.id as string
+// 从「审批中心」进入时仅做复核/审批，不展示动工/完工/交付等执行流转
+const fromApproval = computed(() => route.query.from === 'approval')
 
 const order = ref<Order | null>(null)
 const loading = ref(true)
@@ -46,7 +49,7 @@ async function load() {
     loading.value = false
   }
 }
-onMounted(load)
+useAutoRefresh(load)
 
 // 生命周期步骤
 const steps = computed(() => {
@@ -178,7 +181,9 @@ const infoRows = computed(() => {
 
       <!-- 操作 -->
       <Card>
-        <CardHeader><CardTitle class="text-base">流转操作</CardTitle></CardHeader>
+        <CardHeader
+          ><CardTitle class="text-base">{{ fromApproval ? '审批操作' : '流转操作' }}</CardTitle></CardHeader
+        >
         <CardContent class="flex flex-wrap items-center gap-3">
           <Button
             v-if="order.statue === 1"
@@ -189,7 +194,7 @@ const infoRows = computed(() => {
             <CheckCircle2 v-else class="h-4 w-4" />审批通过
           </Button>
           <Button
-            v-if="order.workStatus !== 'STARTED'"
+            v-if="!fromApproval && order.statue !== 1 && order.workStatus !== 'STARTED'"
             variant="secondary"
             :disabled="acting"
             @click="runAction(startWorkOrder, '工单已动工')"
@@ -197,7 +202,7 @@ const infoRows = computed(() => {
             <Play class="h-4 w-4" />动工
           </Button>
           <Button
-            v-if="order.canComplete"
+            v-if="!fromApproval && order.canComplete"
             variant="secondary"
             :disabled="acting"
             @click="runAction(completeOrder, '工单已完工')"
@@ -205,14 +210,21 @@ const infoRows = computed(() => {
             <Flag class="h-4 w-4" />完工
           </Button>
           <Button
-            v-if="order.canDeliver"
+            v-if="!fromApproval && order.canDeliver"
             :disabled="acting"
             @click="runAction(deliverOrder, '工单已交付')"
           >
             <Truck class="h-4 w-4" />交付
           </Button>
           <span
+            v-if="fromApproval && order.statue !== 1"
+            class="text-sm text-muted-foreground"
+          >
+            工单已审批，动工/完工/交付请在「生产工单」中操作
+          </span>
+          <span
             v-if="
+              !fromApproval &&
               order.statue !== 1 &&
               order.workStatus === 'STARTED' &&
               !order.canComplete &&

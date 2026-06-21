@@ -111,12 +111,6 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: { title: '审批中心', icon: 'ClipboardCheck', keepAlive: true },
           },
           {
-            path: 'order',
-            name: 'Order',
-            component: () => import('@/views/order/OrderListView.vue'),
-            meta: { title: '生产工单', icon: 'Factory', keepAlive: true },
-          },
-          {
             path: 'material-plan',
             name: 'MaterialPlan',
             component: () => import('@/views/production/MaterialPlanView.vue'),
@@ -139,6 +133,12 @@ export const constantRoutes: RouteRecordRaw[] = [
             name: 'ProductionDispatch',
             component: () => import('@/views/production/ProductionDispatchView.vue'),
             meta: { title: '生产计划下发', icon: 'Send', keepAlive: true },
+          },
+          {
+            path: 'order',
+            name: 'Order',
+            component: () => import('@/views/order/OrderListView.vue'),
+            meta: { title: '生产工单', icon: 'Factory', keepAlive: true },
           },
           {
             path: 'change',

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRouter } from 'vue-router'
 import { Search, RotateCcw, Eye, CheckCircle2, XCircle, Inbox, LoaderCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -38,7 +39,7 @@ const { loading, list, total, query, load, onPageChange, onSizeChange, search } 
     materielDescLike: '',
     statue: getApprovalCenterStatue('todo'),
   })
-onMounted(load)
+useAutoRefresh(load)
 
 const activeStatus = ref<ApprovalCenterStatus>('todo')
 const statusTabs: Array<{
@@ -86,7 +87,7 @@ const columns: TableColumn[] = [
 ]
 
 function goDetail(row: Order) {
-  router.push(`/production/order/${row.id}`)
+  router.push(`/production/order/${row.id}?from=approval`)
 }
 
 function switchStatus(status: ApprovalCenterStatus) {

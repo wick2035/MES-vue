@@ -468,10 +468,8 @@ public class SpMaterialRequirementPlanServiceImpl
                 ? BigDecimal.ZERO : new BigDecimal(material.getSafetyStock());
         int leadTime = material == null || material.getLeadTime() == null || material.getLeadTime() < 1
                 ? DEFAULT_LEAD_TIME : material.getLeadTime();
-        BigDecimal net = draft.grossRequirement.subtract(available).add(safety);
-        if (net.compareTo(BigDecimal.ZERO) < 0) {
-            net = BigDecimal.ZERO;
-        }
+        // 净需求按毛需求计算（始终等于毛需求，不再扣减库存/安全库存），库存扣减交由配套出库环节处理
+        BigDecimal net = draft.grossRequirement;
 
         SpMaterialRequirementPlan plan = new SpMaterialRequirementPlan();
         plan.setProductionOrderId(draft.order.getId());
@@ -657,8 +655,8 @@ public class SpMaterialRequirementPlanServiceImpl
     }
 
     private BigDecimal calculateNetRequirement(SpMaterialRequirementPlan row, BigDecimal available) {
-        BigDecimal net = nvl(row.getGrossRequirement()).add(nvl(row.getSafetyStock())).subtract(nvl(available));
-        return net.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : net;
+        // 净需求始终等于毛需求（不再扣减库存/安全库存），available 仅用于快照展示
+        return nvl(row.getGrossRequirement());
     }
 
     private SpMaterile resolvePlanMaterial(SpMaterialRequirementPlan row) {

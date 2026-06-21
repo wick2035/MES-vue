@@ -17,6 +17,9 @@ public class SpProductionDispatchReq extends BasePageReq {
 
     private String assignStatus;
 
+    /** 下发列表筛选：ASSIGNED=待下发(默认)，DISPATCHED=已下发 */
+    private String dispatchStatus;
+
     public String getOrderNoLike() { return orderNoLike; }
     public void setOrderNoLike(String orderNoLike) { this.orderNoLike = orderNoLike; }
 
@@ -31,4 +34,7 @@ public class SpProductionDispatchReq extends BasePageReq {
 
     public String getAssignStatus() { return assignStatus; }
     public void setAssignStatus(String assignStatus) { this.assignStatus = assignStatus; }
+
+    public String getDispatchStatus() { return dispatchStatus; }
+    public void setDispatchStatus(String dispatchStatus) { this.dispatchStatus = dispatchStatus; }
 }

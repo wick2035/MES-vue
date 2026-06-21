@@ -487,7 +487,11 @@ public class SpProductionPlanCenterController extends BaseController {
 
     private List<Map<String, Object>> buildDispatchRows(SpProductionDispatchReq req) {
         List<Map<String, Object>> rows = new ArrayList<>();
-        for (SpProductionOrder order : productionOrders(req, SpProductionOrderServiceImpl.OP_ASSIGNED)) {
+        String operationStatus = req != null
+                && SpProductionOrderServiceImpl.OP_DISPATCHED.equals(req.getDispatchStatus())
+                ? SpProductionOrderServiceImpl.OP_DISPATCHED
+                : SpProductionOrderServiceImpl.OP_ASSIGNED;
+        for (SpProductionOrder order : productionOrders(req, operationStatus)) {
             if (!SpProductionOrderServiceImpl.APPROVAL_APPROVED.equals(order.getApprovalStatus())) {
                 continue;
             }

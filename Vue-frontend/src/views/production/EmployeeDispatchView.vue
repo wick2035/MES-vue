@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, reactive, watch } from 'vue'
+import { reactive, watch } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRoute } from 'vue-router'
 import { RotateCcw, Save, Search, UserCheck } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -129,7 +130,7 @@ async function save(row: ProductionDispatchTask) {
   }
 }
 
-onMounted(table.load)
+useAutoRefresh(() => table.load())
 </script>
 
 <template>

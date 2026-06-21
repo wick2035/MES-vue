@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue'
+import { computed, reactive } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRoute } from 'vue-router'
 import { Cpu, RotateCcw, Save, Search } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -79,9 +80,7 @@ async function save(row: ProductionDispatchTask) {
   }
 }
 
-onMounted(async () => {
-  await Promise.all([loadEquipments(), table.load()])
-})
+useAutoRefresh(() => Promise.all([loadEquipments(), table.load()]))
 </script>
 
 <template>

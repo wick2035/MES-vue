@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRoute } from 'vue-router'
 import { Boxes, Calculator, PackageCheck, RotateCcw, Search, Send } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -133,7 +134,7 @@ function calculate() {
   run('MRP运算', () => calculateMaterialPlan(String(table.query.productionOrderId)))
 }
 
-onMounted(table.load)
+useAutoRefresh(() => table.load())
 </script>
 
 <template>

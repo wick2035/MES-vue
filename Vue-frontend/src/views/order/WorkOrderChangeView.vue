@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { Search, RotateCcw, Eye, ArrowRight } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,7 +32,7 @@ defineOptions({ name: 'WorkOrderChange' })
 const ALL = 'ALL'
 const { loading, list, total, query, load, onPageChange, onSizeChange, search, reset } =
   useTable<WorkOrderChange>(pageWorkOrderChanges, { workOrderCodeLike: '', status: '' })
-onMounted(load)
+useAutoRefresh(load)
 
 const statusMap: Record<string, string> = {
   APPROVING: '审批中',

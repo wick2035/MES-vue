@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRouter } from 'vue-router'
 import {
   Boxes,
@@ -52,7 +53,7 @@ const { loading, list, total, query, load, onPageChange, onSizeChange, search, r
     customerNameLike: '',
     productLike: '',
   })
-onMounted(load)
+useAutoRefresh(load)
 
 const sourceMap: Record<string, string> = { DEMAND: '需求', FORECAST: '预测' }
 const statusMap: Record<string, string> = {

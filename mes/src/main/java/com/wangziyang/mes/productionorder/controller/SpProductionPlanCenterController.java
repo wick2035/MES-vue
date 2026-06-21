@@ -29,6 +29,7 @@ import com.wangziyang.mes.productionorder.service.ISpProductionOrderItemService;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderOperPlanService;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderService;
 import com.wangziyang.mes.productionorder.service.ISpWorkOrderChangeService;
+import com.wangziyang.mes.productionorder.service.impl.SpMaterialRequirementPlanServiceImpl;
 import com.wangziyang.mes.productionorder.service.impl.SpProductionOrderServiceImpl;
 import com.wangziyang.mes.system.entity.SysUser;
 import com.wangziyang.mes.technology.entity.SpFlow;
@@ -524,6 +525,7 @@ public class SpProductionPlanCenterController extends BaseController {
             row.put("schedulingMethod", order.getSchedulingMethod());
             row.put("approvalStatus", order.getApprovalStatus());
             row.put("operationStatus", order.getOperationStatus());
+            row.put("mrpStatus", SpMaterialRequirementPlanServiceImpl.MRP_COMPLETED);
             row.put("totalQty", totalQty);
             row.put("itemCount", items.size());
             row.put("firstProductName", first.getProductName());

@@ -201,6 +201,16 @@ public class SystemWiringStaticTest {
     }
 
     @Test
+    public void productionDispatchRowsExposeCompletedMrpStatus() throws Exception {
+        String controller = read("src/main/java/com/wangziyang/mes/productionorder/controller/SpProductionPlanCenterController.java");
+        String dispatchView = read("../Vue-frontend/src/views/production/ProductionDispatchView.vue");
+
+        assertTrue(controller.contains("materialPlanService.isProductionOrderMrpCompleted(order.getId())"));
+        assertTrue(controller.contains("row.put(\"mrpStatus\", SpMaterialRequirementPlanServiceImpl.MRP_COMPLETED)"));
+        assertTrue(dispatchView.contains("key: 'mrpStatus'"));
+    }
+
+    @Test
     public void warehouseTwinContractExposesRealStorageFieldsAndSmokeCoverage() throws Exception {
         String dashboardController = read("src/main/java/com/wangziyang/mes/digitization/controller/DashboardController.java");
         String domainTypes = read("../Vue-frontend/src/types/domain.ts");

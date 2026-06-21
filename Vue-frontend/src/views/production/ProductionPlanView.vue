@@ -37,6 +37,7 @@ import {
   confirmProductionOrder,
   createWorkOrder,
   deleteProductionOrder,
+  calculateMaterialPlan,
 } from '@/api/modules/productionOrder'
 import { notify } from '@/lib/toast'
 import { getProductionOrderActions } from '@/lib/productionOrderActions'
@@ -180,6 +181,25 @@ function askDelete(row: ProductionOrder) {
   })
 }
 
+// MRP：未运算过先运算，再跳转物料需求计划；已运算过直接跳转，避免覆盖已下发/出库状态
+const mrpRunning = ref('')
+async function goMaterialPlan(row: ProductionOrder) {
+  if (!row.id) return
+  if (!row.mrpStatus || row.mrpStatus === 'NONE') {
+    mrpRunning.value = row.id
+    try {
+      await calculateMaterialPlan(row.id)
+      notify.success('MRP运算完成')
+    } finally {
+      mrpRunning.value = ''
+    }
+  }
+  router.push({
+    path: '/production/material-plan',
+    query: { orderId: row.id, orderNo: row.orderNo },
+  })
+}
+
 function onReset() {
   reset(['orderNoLike', 'customerNameLike', 'productLike'])
 }
@@ -286,14 +306,10 @@ function onReset() {
               variant="ghost"
               size="icon-sm"
               title="MRP物料计划"
-              @click="
-                router.push({
-                  path: '/production/material-plan',
-                  query: { orderId: row.id, orderNo: row.orderNo },
-                })
-              "
+              :disabled="mrpRunning === row.id"
+              @click="goMaterialPlan(row)"
             >
-              <Boxes class="h-4 w-4 text-primary" />
+              <Boxes class="h-4 w-4 text-primary" :class="mrpRunning === row.id && 'animate-pulse'" />
             </Button>
             <Button
               v-else-if="action.key === 'equipmentDispatch'"

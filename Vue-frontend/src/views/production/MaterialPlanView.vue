@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRoute } from 'vue-router'
-import { Boxes, Calculator, PackageCheck, RotateCcw, Search, Send } from 'lucide-vue-next'
+import { Calculator, RotateCcw, Search, Send } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,10 +10,7 @@ import SpDataTable from '@/components/common/SpDataTable.vue'
 import SpStatusBadge from '@/components/common/SpStatusBadge.vue'
 import { useTable } from '@/composables/useTable'
 import {
-  applyKittingOutbound,
   calculateMaterialPlan,
-  generateInboundRequest,
-  generateKittingOutbound,
   pageMaterialPlans,
   releaseMaterialPlans,
 } from '@/api/modules/productionOrder'
@@ -51,9 +48,6 @@ const columns: TableColumn[] = [
   { key: 'netRequirement', title: '净需求', slot: 'net', align: 'right', width: '100px' },
   { key: 'requirementDate', title: '需求日期', width: '120px' },
   { key: 'deliveryStatus', title: '下发', slot: 'delivery', width: '90px', align: 'center' },
-  { key: 'inboundStatus', title: '入库', slot: 'inbound', width: '90px', align: 'center' },
-  { key: 'outboundStatus', title: '出库', slot: 'outbound', width: '90px', align: 'center' },
-  { key: 'action', title: '操作', slot: 'action', width: '110px', align: 'center' },
 ]
 
 const hasOrderContext = computed(() => !!table.query.productionOrderId)
@@ -106,24 +100,6 @@ function release(row?: MaterialRequirementPlan) {
   const values = ensureSelected(row)
   if (!values) return
   run('MRP下发', () => releaseMaterialPlans(values))
-}
-
-function inbound(row?: MaterialRequirementPlan) {
-  const values = ensureSelected(row)
-  if (!values) return
-  run('生成入库申请', () => generateInboundRequest(values))
-}
-
-function kitting(row?: MaterialRequirementPlan) {
-  const values = ensureSelected(row)
-  if (!values) return
-  run('申请配套出库', () => applyKittingOutbound(values))
-}
-
-function kittingRequest(row?: MaterialRequirementPlan) {
-  const values = ensureSelected(row)
-  if (!values) return
-  run('生成配套出库单', () => generateKittingOutbound(values))
 }
 
 function calculate() {
@@ -179,9 +155,14 @@ useAutoRefresh(() => table.load())
       @size-change="table.onSizeChange"
     >
       <template #toolbar>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-sm font-medium">物料需求计划</span>
-          <span class="text-xs text-muted-foreground">已选 {{ selected.length }} 项</span>
+        <div class="flex flex-col">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium">物料需求计划</span>
+            <span class="text-xs text-muted-foreground">已选 {{ selected.length }} 项</span>
+          </div>
+          <span class="hidden text-xs text-muted-foreground sm:inline">
+            计算需求并下发；入库、配套出库到「出入库管理」处理
+          </span>
         </div>
         <div class="flex flex-wrap gap-2">
           <Button
@@ -191,22 +172,6 @@ useAutoRefresh(() => table.load())
             @click="release()"
           >
             <Send class="h-4 w-4" />批量下发
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            :disabled="!selected.length || !!operating"
-            @click="inbound()"
-          >
-            <PackageCheck class="h-4 w-4" />生成入库
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            :disabled="!selected.length || !!operating"
-            @click="kitting()"
-          >
-            <Boxes class="h-4 w-4" />配套出库
           </Button>
         </div>
       </template>
@@ -250,31 +215,6 @@ useAutoRefresh(() => table.load())
           :tone="value === 'RELEASED' ? 'success' : 'warning'"
           :text="statusText[value] || value || '未处理'"
         />
-      </template>
-      <template #inbound="{ value }">
-        <SpStatusBadge
-          :tone="value === 'COMPLETED' || value === 'CONFIRMED' ? 'success' : 'muted'"
-          :text="statusText[value] || value || '未处理'"
-        />
-      </template>
-      <template #outbound="{ value }">
-        <SpStatusBadge
-          :tone="value === 'COMPLETED' || value === 'CONFIRMED' ? 'success' : 'muted'"
-          :text="statusText[value] || value || '未处理'"
-        />
-      </template>
-      <template #action="{ row }">
-        <Button
-          size="sm"
-          variant="ghost"
-          class="h-8 px-2 text-xs text-primary hover:bg-primary/10 hover:text-primary"
-          title="生成配套出库单"
-          :disabled="!!operating"
-          @click="kittingRequest(row)"
-        >
-          <Send class="h-4 w-4" />
-          出库单
-        </Button>
       </template>
     </SpDataTable>
   </div>

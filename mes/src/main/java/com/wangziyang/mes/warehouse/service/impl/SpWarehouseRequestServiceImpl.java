@@ -91,7 +91,7 @@ public class SpWarehouseRequestServiceImpl
             req = new SpWarehouseRequestReq();
         }
         if (WarehouseConstants.BUSINESS_PLAN_IN.equals(req.getBusinessType())) {
-            syncPlanInboundRequests();
+            syncPlanInboundRequests(null);
         }
         return baseMapper.pageList(new Page<SpWarehouseRequest>(req.getCurrent(), req.getSize()), req);
     }
@@ -237,7 +237,25 @@ public class SpWarehouseRequestServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result syncPlanInboundRequests() {
+    public Result syncPlanInboundRequests(SysUser user) {
+        List<SpMaterialRequirementPlan> pendingPlans = materialPlanService.list(new QueryWrapper<SpMaterialRequirementPlan>()
+                .eq("is_deleted", "0")
+                .eq("delivery_status", "RELEASED")
+                .gt("net_requirement", BigDecimal.ZERO)
+                .and(w -> w.isNull("inbound_status").or().eq("inbound_status", "").or().eq("inbound_status", "NONE"))
+                .orderByAsc("production_order_no")
+                .orderByAsc("material_code"));
+        if (!pendingPlans.isEmpty()) {
+            List<String> planIds = new ArrayList<String>();
+            for (SpMaterialRequirementPlan plan : pendingPlans) {
+                planIds.add(plan.getId());
+            }
+            Result generated = materialPlanService.generateInboundRequest(planIds, user);
+            if (!ok(generated)) {
+                return generated;
+            }
+        }
+
         List<SpMaterialInboundRequest> rows = planInboundService.list(new QueryWrapper<SpMaterialInboundRequest>()
                 .eq("is_deleted", "0"));
         int count = 0;
@@ -327,8 +345,24 @@ public class SpWarehouseRequestServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result syncKittingOutboundRequests() {
-        return Result.success(0, "\u8bf7\u5728\u7269\u6599\u9700\u6c42\u8ba1\u5212\u4e2d\u751f\u6210\u914d\u5957\u51fa\u5e93\u5355");
+    public Result syncKittingOutboundRequests(SysUser user) {
+        List<SpMaterialRequirementPlan> pendingPlans = materialPlanService.list(new QueryWrapper<SpMaterialRequirementPlan>()
+                .eq("is_deleted", "0")
+                .eq("delivery_status", "RELEASED")
+                .gt("gross_requirement", BigDecimal.ZERO)
+                .and(w -> w.isNull("outbound_status").or().eq("outbound_status", "").or().eq("outbound_status", "NONE"))
+                .and(w -> w.isNull("outbound_request_id").or().eq("outbound_request_id", ""))
+                .orderByAsc("production_order_no")
+                .orderByAsc("material_code"));
+        if (pendingPlans.isEmpty()) {
+            return Result.success(0, "没有待生成的配套出库单");
+        }
+
+        List<String> planIds = new ArrayList<String>();
+        for (SpMaterialRequirementPlan plan : pendingPlans) {
+            planIds.add(plan.getId());
+        }
+        return createKittingOutboundRequest(planIds, user, false);
     }
 
     @Override

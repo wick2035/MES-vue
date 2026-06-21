@@ -123,13 +123,13 @@ public class SpWarehouseCenterController extends BaseController {
     @PostMapping("/plan-inbound/sync")
     @ResponseBody
     public Result syncPlanInbound() {
-        return warehouseRequestService.syncPlanInboundRequests();
+        return warehouseRequestService.syncPlanInboundRequests(currentUser());
     }
 
     @PostMapping("/kitting-outbound/sync")
     @ResponseBody
     public Result syncKittingOutbound() {
-        return warehouseRequestService.syncKittingOutboundRequests();
+        return warehouseRequestService.syncKittingOutboundRequests(currentUser());
     }
 
     @PostMapping("/kitting-outbound/precheck")

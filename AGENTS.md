@@ -21,7 +21,7 @@ mvn -s .\.codex-maven-settings.xml -f .\mes\pom.xml -DskipTests package
 
 ## 技术栈
 
-Java 11 · Spring Boot · MyBatis-Plus · Druid · MySQL · Redis · EhCache · Shiro（鉴权）· FreeMarker（`.ftl` 模板）· 前端 layui + 自封装 `sp*` 组件（`spTable`/`spLayer`/`spUtil`）。
+永远是vue+库shadcn。永远不用layui
 
 ## 目录约定
 
@@ -41,11 +41,7 @@ Java 11 · Spring Boot · MyBatis-Plus · Druid · MySQL · Redis · EhCache · 
 - **唯一性校验**：在 Service 实现 `isXxxCodeDuplicate(code, excludeId)`（`ne is_deleted '1'`，编辑排除自身），保存前在 Controller 调用。
 - **菜单**：存于 `sp_sys_menu` 表，通过 SQL 脚本 `INSERT IGNORE` 注册，并向 `sp_sys_role_menu` 授权（管理员 role code `888888`）。
 
-## 前端范式
 
-- 列表页用 `spTable.render`（POST 取数）+ `script[type=text/html]` 工具栏模板；编辑用 `spLayer.open({content: '.../add-or-update-ui', spWhere:{id}, spCallback})`。
-- 主从布局（选主表行→刷新从表）参考 `templates/basedata/team/list.ftl`。
-- 选择弹窗回传：子页设置 `window.spChildFrameResult = {code:0, data:[...]}`，父页 `spCallback(res)` 接收；参考 `templates/basedata/team/employeeSelect.ftl`、`processing-unit/team-select.ftl`。
 
 ## 注意
 

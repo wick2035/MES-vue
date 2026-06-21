@@ -335,7 +335,7 @@ function confirmRequest(row: WarehouseRequest) {
           <div class="flex flex-col">
             <span class="text-sm font-medium">出入库单据</span>
             <span class="hidden text-xs text-muted-foreground sm:inline"
-              >手工/计划入库与手工/配套出库单据</span
+              >从已下发的物料需求计划生成并同步入库、配套出库单</span
             >
           </div>
           <div class="flex flex-wrap gap-2">
@@ -354,11 +354,18 @@ function confirmRequest(row: WarehouseRequest) {
               size="sm"
               variant="outline"
               :disabled="!!actionLoading"
+              title="从已下发的物料需求计划生成并同步计划入库单"
               @click="syncPlanInbound"
             >
               <RefreshCw class="h-4 w-4" />同步计划入库
             </Button>
-            <Button size="sm" variant="outline" :disabled="!!actionLoading" @click="syncKitting">
+            <Button
+              size="sm"
+              variant="outline"
+              :disabled="!!actionLoading"
+              title="从已下发的物料需求计划生成并同步配套出库单"
+              @click="syncKitting"
+            >
               <RefreshCw class="h-4 w-4" />同步配套出库
             </Button>
           </div>

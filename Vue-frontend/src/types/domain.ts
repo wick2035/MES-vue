@@ -248,6 +248,9 @@ export interface WorkOrderChange extends BaseEntity {
   workOrderId?: string
   workOrderCode?: string
   productionOrderId?: string
+  orderItemId?: string
+  beforeFlowId?: string
+  afterFlowId?: string
   beforeQty?: number
   afterQty?: number
   beforePlanStartTime?: string
@@ -258,7 +261,36 @@ export interface WorkOrderChange extends BaseEntity {
   afterRemark?: string
   /** APPROVING/APPROVED/REJECTED/APPLIED */
   status?: string
+  workflowInstanceId?: string
   applyTime?: string
+}
+
+/** 工作流审批任务 */
+export interface WorkflowTask extends BaseEntity {
+  instanceId?: string
+  definitionId?: string
+  businessType?: string
+  businessId?: string
+  businessCode?: string
+  taskName?: string
+  nodeKey?: string
+  nodeName?: string
+  assigneeType?: string
+  assigneeId?: string
+  assigneeName?: string
+  status?: string
+  action?: string
+  opinion?: string
+  startTime?: string
+  completeTime?: string
+  formName?: string
+  formTitle?: string
+  pcFormUrl?: string
+  mobileFormUrl?: string
+  allowReturn?: number
+  allowTransfer?: number
+  allowEntrust?: number
+  allowRevoke?: number
 }
 
 /** 设备 */

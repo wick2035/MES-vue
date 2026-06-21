@@ -7,3 +7,7 @@ const BASE = '/production-order/work-order-change'
 export function pageWorkOrderChanges(params: Record<string, any>) {
   return http.post<IPage<WorkOrderChange>>(`${BASE}/page`, params)
 }
+
+export function getWorkOrderChangeDetail(id: string) {
+  return http.post<WorkOrderChange>(`${BASE}/detail`, { id })
+}

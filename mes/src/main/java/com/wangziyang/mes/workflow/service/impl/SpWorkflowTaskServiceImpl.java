@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wangziyang.mes.common.Result;
-import com.wangziyang.mes.productionorder.service.ISpWorkOrderChangeService;
 import com.wangziyang.mes.system.entity.SysUser;
 import com.wangziyang.mes.system.service.ISysUserService;
 import com.wangziyang.mes.workflow.WorkflowConstants;
@@ -45,9 +44,6 @@ public class SpWorkflowTaskServiceImpl extends ServiceImpl<SpWorkflowTaskMapper,
 
     @Autowired
     private ISysUserService userService;
-
-    @Autowired
-    private ISpWorkOrderChangeService workOrderChangeService;
 
     @Override
     public void createFirstTask(SpWorkflowInstance instance) {
@@ -125,9 +121,6 @@ public class SpWorkflowTaskServiceImpl extends ServiceImpl<SpWorkflowTaskMapper,
             instance.setCurrentNodeName(task.getNodeName());
             instance.setEndTime(now());
             instanceService.updateById(instance);
-        }
-        if (WorkflowConstants.BUSINESS_WORK_ORDER_CHANGE.equals(task.getBusinessType())) {
-            workOrderChangeService.rejectChange(task.getBusinessId());
         }
         return Result.success();
     }

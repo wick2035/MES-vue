@@ -211,6 +211,38 @@ public class SystemWiringStaticTest {
     }
 
     @Test
+    public void workOrderChangeFeatureIsNoLongerExposed() throws Exception {
+        String routes = read("../Vue-frontend/src/router/routes.ts");
+        String approvalCenter = read("../Vue-frontend/src/views/approval/ApprovalCenterView.vue");
+        String domainTypes = read("../Vue-frontend/src/types/domain.ts");
+        String workflowConstants = read("src/main/java/com/wangziyang/mes/workflow/WorkflowConstants.java");
+        String workflowInstanceService = read("src/main/java/com/wangziyang/mes/workflow/service/ISpWorkflowInstanceService.java");
+        String workflowTaskService = read("src/main/java/com/wangziyang/mes/workflow/service/impl/SpWorkflowTaskServiceImpl.java");
+        String workflowEventService = read("src/main/java/com/wangziyang/mes/workflow/service/impl/SpWorkflowEventServiceImpl.java");
+        String workflowDefinitionService = read("src/main/java/com/wangziyang/mes/workflow/service/impl/SpWorkflowDefinitionServiceImpl.java");
+        String productionPlanController = read("src/main/java/com/wangziyang/mes/productionorder/controller/SpProductionPlanCenterController.java");
+        String removalScriptPath = "../scripts/sql/remove-work-order-change-upgrade-20260622.sql";
+        assertTrue(Files.exists(Paths.get(removalScriptPath).toAbsolutePath().normalize()));
+        String removalScript = read(removalScriptPath);
+
+        assertFalse(routes.contains("WorkOrderChange"));
+        assertFalse(routes.contains("/production/change"));
+        assertFalse(approvalCenter.contains("WORK_ORDER_CHANGE"));
+        assertFalse(approvalCenter.contains("WorkOrderChange"));
+        assertFalse(domainTypes.contains("interface WorkOrderChange"));
+        assertFalse(workflowConstants.contains("BUSINESS_WORK_ORDER_CHANGE"));
+        assertFalse(workflowConstants.contains("ACTION_WORK_ORDER_CHANGE_APPLY"));
+        assertFalse(workflowInstanceService.contains("startWorkOrderChangeApproval"));
+        assertFalse(workflowTaskService.contains("ISpWorkOrderChangeService"));
+        assertFalse(workflowEventService.contains("applyWorkOrderChange"));
+        assertFalse(workflowDefinitionService.contains("ensureDefaultWorkOrderChange"));
+        assertFalse(productionPlanController.contains("@PostMapping(\"/work-order/update\")"));
+        assertTrue(removalScript.contains("wf_model_work_order_change"));
+        assertTrue(removalScript.contains("sp_work_order_change"));
+        assertFalse(removalScript.toUpperCase().contains("DROP TABLE"));
+    }
+
+    @Test
     public void warehouseTwinContractExposesRealStorageFieldsAndSmokeCoverage() throws Exception {
         String dashboardController = read("src/main/java/com/wangziyang/mes/digitization/controller/DashboardController.java");
         String domainTypes = read("../Vue-frontend/src/types/domain.ts");

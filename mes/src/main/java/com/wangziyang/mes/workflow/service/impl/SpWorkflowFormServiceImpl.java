@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,9 +25,8 @@ public class SpWorkflowFormServiceImpl extends ServiceImpl<SpWorkflowFormMapper,
 
     private static final String CURRENT_ORDER_URL = "/order/release/add-or-update-ui?id=${task.procIns.bizKey}";
     private static final String DEFAULT_TITLE = "生产订单审批-${task.businessCode}";
-    private static final Set<String> ALLOWED_EVENTS = new HashSet<>(Arrays.asList(
-            WorkflowConstants.ACTION_ORDER_APPROVE,
-            WorkflowConstants.ACTION_WORK_ORDER_CHANGE_APPLY
+    private static final Set<String> ALLOWED_EVENTS = new HashSet<>(Collections.singletonList(
+            WorkflowConstants.ACTION_ORDER_APPROVE
     ));
 
     @Override
@@ -184,8 +183,7 @@ public class SpWorkflowFormServiceImpl extends ServiceImpl<SpWorkflowFormMapper,
         for (String action : StringUtils.split(record.getEventTemplate(), ",")) {
             String event = StringUtils.trimToEmpty(action);
             if (StringUtils.isNotBlank(event) && !ALLOWED_EVENTS.contains(event)) {
-                return Result.failure("事件模板只允许：" + WorkflowConstants.ACTION_ORDER_APPROVE
-                        + "、" + WorkflowConstants.ACTION_WORK_ORDER_CHANGE_APPLY);
+                return Result.failure("事件模板只允许：" + WorkflowConstants.ACTION_ORDER_APPROVE);
             }
         }
         if (!WorkflowConstants.STATUS_NORMAL.equals(record.getStatus())

@@ -17,7 +17,6 @@ const statusMeta: Record<ApprovalCenterStatus, { label: string; tone: Tone }> = 
 
 const businessTypeLabels: Record<string, string> = {
   ORDER_APPROVAL: '生产工单审批',
-  WORK_ORDER_CHANGE: '工单变更',
 }
 
 export function getApprovalCenterStatusLabel(status?: string) {

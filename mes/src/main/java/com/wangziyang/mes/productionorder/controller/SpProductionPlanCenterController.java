@@ -18,27 +18,21 @@ import com.wangziyang.mes.productionorder.entity.SpOrderOperEquipmentAssign;
 import com.wangziyang.mes.productionorder.entity.SpProductionOrder;
 import com.wangziyang.mes.productionorder.entity.SpProductionOrderItem;
 import com.wangziyang.mes.productionorder.entity.SpProductionOrderOperPlan;
-import com.wangziyang.mes.productionorder.entity.SpWorkOrderChange;
 import com.wangziyang.mes.productionorder.request.SpProductionDispatchReq;
 import com.wangziyang.mes.productionorder.request.SpProductionOrderImportDTO;
 import com.wangziyang.mes.productionorder.request.SpProductionOrderReq;
-import com.wangziyang.mes.productionorder.request.WorkOrderChangeReq;
 import com.wangziyang.mes.productionorder.service.ISpOrderOperEquipmentAssignService;
 import com.wangziyang.mes.productionorder.service.ISpMaterialRequirementPlanService;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderItemService;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderOperPlanService;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderService;
-import com.wangziyang.mes.productionorder.service.ISpWorkOrderChangeService;
 import com.wangziyang.mes.productionorder.service.impl.SpMaterialRequirementPlanServiceImpl;
 import com.wangziyang.mes.productionorder.service.impl.SpProductionOrderServiceImpl;
-import com.wangziyang.mes.system.entity.SysUser;
 import com.wangziyang.mes.technology.entity.SpFlow;
 import com.wangziyang.mes.technology.entity.SpOper;
 import com.wangziyang.mes.technology.service.ISpFlowService;
 import com.wangziyang.mes.technology.service.ISpOperService;
-import com.wangziyang.mes.workflow.entity.SpWorkflowInstance;
 import com.wangziyang.mes.workflow.entity.SpWorkflowTask;
-import com.wangziyang.mes.workflow.service.ISpWorkflowInstanceService;
 import com.wangziyang.mes.workflow.service.ISpWorkflowTaskService;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.StringUtils;
@@ -47,7 +41,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -55,11 +48,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -110,16 +99,10 @@ public class SpProductionPlanCenterController extends BaseController {
     private ISpWorkflowTaskService workflowTaskService;
 
     @Autowired
-    private ISpWorkflowInstanceService workflowInstanceService;
-
-    @Autowired
     private ISpFlowService flowService;
 
     @Autowired
     private ISpOperService operService;
-
-    @Autowired
-    private ISpWorkOrderChangeService workOrderChangeService;
 
     @ApiOperation("生产计划下发页面")
     @GetMapping("/dispatch/list-ui")
@@ -179,34 +162,6 @@ public class SpProductionPlanCenterController extends BaseController {
     @ResponseBody
     public Result workOrderPage(SpProductionDispatchReq req) {
         return Result.success(paginate(buildWorkOrderRows(req), req));
-    }
-
-    @ApiOperation("修改已下达工单")
-    @PostMapping("/work-order/update")
-    @ResponseBody
-    @Transactional(rollbackFor = Exception.class)
-    public Result updateDispatchedWorkOrder(@RequestBody WorkOrderChangeReq req) {
-        Result validate = validateWorkOrderChangeReq(req);
-        if (validate != null) {
-            return validate;
-        }
-        WorkOrderTarget target = resolveWorkOrderTarget(req.getId());
-        if (target.error != null) {
-            return Result.failure(target.error);
-        }
-        if (isWorkOrderStarted(target.workOrder)) {
-            if (workOrderChangeService.hasApprovingChange(target.workOrder.getId())) {
-                return Result.failure("该工单已有变更审批处理中");
-            }
-            SpWorkOrderChange change = workOrderChangeService.buildApprovingChange(
-                    target.workOrder, target.productionOrder, target.item, req);
-            workOrderChangeService.save(change);
-            SpWorkflowInstance instance = workflowInstanceService.startWorkOrderChangeApproval(change, currentUser());
-            change.setWorkflowInstanceId(instance.getId());
-            workOrderChangeService.updateById(change);
-            return Result.success(change.getId(), "已提交审批");
-        }
-        return workOrderChangeService.updateUnstarted(target.workOrder, target.item, req);
     }
 
     @ApiOperation("设备作业派工分页")
@@ -887,34 +842,7 @@ public class SpProductionPlanCenterController extends BaseController {
     }
 
     private boolean isWorkOrderStarted(SpOrder workOrder) {
-        return workOrder != null
-                && (WORK_STATUS_STARTED.equals(workOrder.getWorkStatus())
-                || workOrderChangeService.hasStarted(workOrder.getId()));
-    }
-
-    private Result validateWorkOrderChangeReq(WorkOrderChangeReq req) {
-        if (req == null || StringUtils.isBlank(req.getId())) {
-            return Result.failure("请选择要修改的工单");
-        }
-        req.setFlowId(StringUtils.trimToEmpty(req.getFlowId()));
-        req.setPlanStartTime(StringUtils.trimToEmpty(req.getPlanStartTime()));
-        req.setPlanEndTime(StringUtils.trimToEmpty(req.getPlanEndTime()));
-        req.setRemark(StringUtils.trimToEmpty(req.getRemark()));
-        if (StringUtils.isBlank(req.getFlowId()) || flowService.getById(req.getFlowId()) == null) {
-            return Result.failure("请选择有效的工艺路线");
-        }
-        if (req.getQty() == null || req.getQty() <= 0) {
-            return Result.failure("计划数量必须大于 0");
-        }
-        Date start = parsePlanTime(req.getPlanStartTime());
-        Date end = parsePlanTime(req.getPlanEndTime());
-        if (start == null || end == null) {
-            return Result.failure("请填写有效的计划开始和计划结束时间");
-        }
-        if (end.before(start)) {
-            return Result.failure("计划结束时间不能早于计划开始时间");
-        }
-        return null;
+        return workOrder != null && WORK_STATUS_STARTED.equals(workOrder.getWorkStatus());
     }
 
     private WorkOrderTarget resolveWorkOrderTarget(String workOrderId) {
@@ -952,30 +880,6 @@ public class SpProductionPlanCenterController extends BaseController {
         target.item = item;
         target.productionOrder = order;
         return target;
-    }
-
-    private Date parsePlanTime(String value) {
-        if (StringUtils.isBlank(value)) {
-            return null;
-        }
-        List<String> patterns = Arrays.asList("yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd");
-        for (String pattern : patterns) {
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat(pattern);
-                sdf.setLenient(false);
-                return sdf.parse(value);
-            } catch (ParseException ignore) {
-            }
-        }
-        return null;
-    }
-
-    private SysUser currentUser() {
-        try {
-            return getSysUser();
-        } catch (Exception ignore) {
-            return null;
-        }
     }
 
     private static class WorkOrderTarget {

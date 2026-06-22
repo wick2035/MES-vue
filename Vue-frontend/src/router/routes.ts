@@ -141,12 +141,6 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: { title: '生产工单', icon: 'Factory', keepAlive: true },
           },
           {
-            path: 'change',
-            name: 'WorkOrderChange',
-            component: () => import('@/views/order/WorkOrderChangeView.vue'),
-            meta: { title: '工单变更', icon: 'FileClock', keepAlive: true },
-          },
-          {
             path: 'order/:id',
             name: 'OrderDetail',
             component: () => import('@/views/order/OrderDetailView.vue'),

@@ -42,7 +42,6 @@ import {
   rejectWorkflowTask,
   type WorkflowTaskSummary,
 } from '@/api/modules/workflow'
-import { getWorkOrderChangeDetail } from '@/api/modules/workOrderChange'
 import { notify } from '@/lib/toast'
 import {
   getApprovalCenterActions,
@@ -52,9 +51,8 @@ import {
   type ApprovalCenterAction,
   type ApprovalCenterStatus,
 } from '@/lib/approvalCenter'
-import { getWorkOrderChangeStatusMeta } from '@/lib/workOrderChange'
 import type { TableColumn } from '@/types/table'
-import type { WorkflowTask, WorkOrderChange } from '@/types/domain'
+import type { WorkflowTask } from '@/types/domain'
 
 const route = useRoute()
 const router = useRouter()
@@ -84,7 +82,6 @@ const statusTabs: Array<{ key: ApprovalCenterStatus; icon: any }> = [
 const businessTypeOptions = [
   { label: '全部流程', value: ALL },
   { label: '生产工单审批', value: 'ORDER_APPROVAL' },
-  { label: '工单变更', value: 'WORK_ORDER_CHANGE' },
 ]
 
 const currentTab = computed(() => statusTabs.find((item) => item.key === activeStatus.value) ?? statusTabs[0])
@@ -188,29 +185,10 @@ async function onReject() {
   }
 }
 
-const changeOpen = ref(false)
-const changeLoading = ref(false)
-const currentChange = ref<WorkOrderChange | null>(null)
-async function openWorkOrderChange(row: WorkflowTask) {
-  if (!row.businessId) return
-  changeOpen.value = true
-  changeLoading.value = true
-  currentChange.value = null
-  try {
-    const res = await getWorkOrderChangeDetail(row.businessId)
-    currentChange.value = res.data ?? null
-  } finally {
-    changeLoading.value = false
-  }
-}
-
 function viewTask(row: WorkflowTask) {
   if (row.businessType === 'ORDER_APPROVAL' && row.businessId) {
     router.push(`/production/order/${row.businessId}?from=approval`)
     return
-  }
-  if (row.businessType === 'WORK_ORDER_CHANGE') {
-    void openWorkOrderChange(row)
   }
 }
 
@@ -226,12 +204,6 @@ function runRowAction(action: ApprovalCenterAction, row: WorkflowTask) {
   viewTask(row)
 }
 
-function changeStatusText(change?: WorkOrderChange | null) {
-  return getWorkOrderChangeStatusMeta(change?.status).label
-}
-function changeStatusTone(change?: WorkOrderChange | null) {
-  return getWorkOrderChangeStatusMeta(change?.status).tone
-}
 </script>
 
 <template>
@@ -306,7 +278,7 @@ function changeStatusTone(change?: WorkOrderChange | null) {
             :tone="getApprovalCenterStatusTone(currentTab.key)"
             :text="getApprovalCenterStatusLabel(currentTab.key)"
           />
-          <span class="text-xs text-muted-foreground">生产工单审批与工单变更审批统一办理</span>
+          <span class="text-xs text-muted-foreground">生产工单审批统一办理</span>
         </div>
       </template>
       <template #status="{ value }">
@@ -355,49 +327,6 @@ function changeStatusTone(change?: WorkOrderChange | null) {
             <LoaderCircle v-if="rejecting" class="h-4 w-4 animate-spin" />确认驳回
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <Dialog v-model:open="changeOpen">
-      <DialogContent class="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>工单变更审批详情</DialogTitle>
-          <DialogDescription>审批通过后，变更内容会自动写回已下发工单。</DialogDescription>
-        </DialogHeader>
-        <div v-if="changeLoading" class="py-8 text-center text-sm text-muted-foreground">加载中...</div>
-        <div v-else-if="currentChange" class="space-y-4 text-sm">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="font-medium">{{ currentChange.workOrderCode }}</span>
-            <SpStatusBadge :tone="changeStatusTone(currentChange)" :text="changeStatusText(currentChange)" />
-            <Button
-              v-if="currentChange.workOrderId"
-              variant="outline"
-              size="sm"
-              class="ml-auto"
-              @click="router.push(`/production/order/${currentChange?.workOrderId}`)"
-            >
-              查看工单
-            </Button>
-          </div>
-          <div class="grid grid-cols-[120px_1fr_1fr] gap-2 rounded-lg border p-3">
-            <div class="text-muted-foreground">字段</div>
-            <div class="text-muted-foreground">变更前</div>
-            <div class="text-muted-foreground">变更后</div>
-            <div class="text-muted-foreground">数量</div>
-            <div>{{ currentChange.beforeQty ?? '-' }}</div>
-            <div class="font-medium text-primary">{{ currentChange.afterQty ?? '-' }}</div>
-            <div class="text-muted-foreground">计划开始</div>
-            <div>{{ currentChange.beforePlanStartTime || '-' }}</div>
-            <div class="font-medium text-primary">{{ currentChange.afterPlanStartTime || '-' }}</div>
-            <div class="text-muted-foreground">计划结束</div>
-            <div>{{ currentChange.beforePlanEndTime || '-' }}</div>
-            <div class="font-medium text-primary">{{ currentChange.afterPlanEndTime || '-' }}</div>
-            <div class="text-muted-foreground">备注</div>
-            <div>{{ currentChange.beforeRemark || '-' }}</div>
-            <div class="font-medium text-primary">{{ currentChange.afterRemark || '-' }}</div>
-          </div>
-        </div>
-        <div v-else class="py-8 text-center text-sm text-muted-foreground">变更记录不存在</div>
       </DialogContent>
     </Dialog>
   </div>

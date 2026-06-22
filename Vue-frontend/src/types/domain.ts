@@ -243,28 +243,6 @@ export interface ProductionDispatchRow {
   mrpStatus?: string
 }
 
-/** 工单变更记录 */
-export interface WorkOrderChange extends BaseEntity {
-  workOrderId?: string
-  workOrderCode?: string
-  productionOrderId?: string
-  orderItemId?: string
-  beforeFlowId?: string
-  afterFlowId?: string
-  beforeQty?: number
-  afterQty?: number
-  beforePlanStartTime?: string
-  afterPlanStartTime?: string
-  beforePlanEndTime?: string
-  afterPlanEndTime?: string
-  beforeRemark?: string
-  afterRemark?: string
-  /** APPROVING/APPROVED/REJECTED/APPLIED */
-  status?: string
-  workflowInstanceId?: string
-  applyTime?: string
-}
-
 /** 工作流审批任务 */
 export interface WorkflowTask extends BaseEntity {
   instanceId?: string

@@ -175,7 +175,7 @@ function askConfirm(row: ProductionOrder) {
   })
 }
 function askDelete(row: ProductionOrder) {
-  ask('删除订单', `确定删除订单「${row.orderNo}」吗？此操作不可恢复。`, async () => {
+  ask('删除订单', `确定删除订单「${row.orderNo}」吗？将同步清理生产工单、派工、MRP 与入库申请。`, async () => {
     await deleteProductionOrder(row.id!)
     notify.success('删除成功')
   })

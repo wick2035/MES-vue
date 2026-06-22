@@ -1,6 +1,7 @@
 package com.wangziyang.mes.productionorder.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.wangziyang.mes.basedata.entity.SpMaterile;
@@ -10,6 +11,8 @@ import com.wangziyang.mes.order.entity.SpOrder;
 import com.wangziyang.mes.order.entity.SpOrderOperAssign;
 import com.wangziyang.mes.order.service.ISpOrderOperAssignService;
 import com.wangziyang.mes.order.service.ISpOrderService;
+import com.wangziyang.mes.productionorder.entity.SpMaterialInboundRequest;
+import com.wangziyang.mes.productionorder.entity.SpMaterialInboundRequestItem;
 import com.wangziyang.mes.productionorder.entity.SpOrderOperEquipmentAssign;
 import com.wangziyang.mes.productionorder.entity.SpMaterialRequirementPlan;
 import com.wangziyang.mes.productionorder.entity.SpProductionOrder;
@@ -22,6 +25,9 @@ import com.wangziyang.mes.productionorder.request.SpProductionOrderForecastReq;
 import com.wangziyang.mes.productionorder.request.SpProductionOrderImportDTO;
 import com.wangziyang.mes.productionorder.request.SpProductionOrderReq;
 import com.wangziyang.mes.productionorder.request.SpProductionOrderSaveReq;
+import com.wangziyang.mes.productionorder.service.ISpMaterialInboundRequestItemService;
+import com.wangziyang.mes.productionorder.service.ISpMaterialInboundRequestService;
+import com.wangziyang.mes.productionorder.service.ISpMaterialRequirementPlanService;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderItemService;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderOperPlanService;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderService;
@@ -36,6 +42,10 @@ import com.wangziyang.mes.technology.service.ISpFlowOperRelationService;
 import com.wangziyang.mes.technology.service.ISpOperService;
 import com.wangziyang.mes.technology.service.ISpProcessRouteService;
 import com.wangziyang.mes.workflow.service.ISpWorkflowInstanceService;
+import com.wangziyang.mes.workflow.WorkflowConstants;
+import com.wangziyang.mes.workflow.entity.SpWorkflowInstance;
+import com.wangziyang.mes.workflow.entity.SpWorkflowTask;
+import com.wangziyang.mes.workflow.service.ISpWorkflowTaskService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -131,10 +141,22 @@ public class SpProductionOrderServiceImpl extends ServiceImpl<SpProductionOrderM
     private ISpWorkflowInstanceService workflowInstanceService;
 
     @Autowired
+    private ISpWorkflowTaskService workflowTaskService;
+
+    @Autowired
     private ISpOrderOperEquipmentAssignService equipmentAssignService;
 
     @Autowired
     private ISpOrderOperAssignService employeeAssignService;
+
+    @Autowired
+    private ISpMaterialRequirementPlanService materialRequirementPlanService;
+
+    @Autowired
+    private ISpMaterialInboundRequestService inboundRequestService;
+
+    @Autowired
+    private ISpMaterialInboundRequestItemService inboundRequestItemService;
 
     @Autowired
     private SpMaterialRequirementPlanMapper materialRequirementPlanMapper;
@@ -215,14 +237,81 @@ public class SpProductionOrderServiceImpl extends ServiceImpl<SpProductionOrderM
         if (APPROVAL_APPROVING.equals(order.getApprovalStatus())) {
             return Result.failure("审核中的订单不能删除");
         }
-        if (STATUS_WORK_ORDER_CREATED.equals(order.getStatus())) {
-            return Result.failure("已生成生产工单的订单不能删除");
-        }
+        List<SpProductionOrderItem> items = listItems(id);
+        cleanupProductionOrderRelations(order, items);
         order.setDeleted("1");
         order.setStatus(STATUS_CANCELLED);
         order.setApprovalStatus(APPROVAL_CANCELLED);
+        order.setOperationStatus(OP_NONE);
         updateById(order);
         return Result.success();
+    }
+
+    private void cleanupProductionOrderRelations(SpProductionOrder order, List<SpProductionOrderItem> items) {
+        String orderId = order.getId();
+        List<String> workOrderIds = collectWorkOrderIds(items);
+
+        revokeWorkOrderApprovals(workOrderIds);
+        equipmentAssignService.update(new UpdateWrapper<SpOrderOperEquipmentAssign>()
+                .eq("production_order_id", orderId)
+                .set("is_deleted", "1")
+                .set("status", "CANCELLED"));
+        if (!workOrderIds.isEmpty()) {
+            employeeAssignService.update(new UpdateWrapper<SpOrderOperAssign>()
+                    .in("order_id", workOrderIds)
+                    .set("is_deleted", "1")
+                    .set("status", "4"));
+            workOrderService.removeByIds(workOrderIds);
+        }
+        materialRequirementPlanService.update(new UpdateWrapper<SpMaterialRequirementPlan>()
+                .eq("production_order_id", orderId)
+                .set("is_deleted", "1"));
+        inboundRequestService.update(new UpdateWrapper<SpMaterialInboundRequest>()
+                .eq("production_order_id", orderId)
+                .set("is_deleted", "1")
+                .set("status", "CANCELLED"));
+        inboundRequestItemService.update(new UpdateWrapper<SpMaterialInboundRequestItem>()
+                .eq("production_order_id", orderId)
+                .set("is_deleted", "1"));
+        operPlanService.update(new UpdateWrapper<SpProductionOrderOperPlan>()
+                .eq("order_id", orderId)
+                .set("is_deleted", "1"));
+        itemService.remove(new QueryWrapper<SpProductionOrderItem>()
+                .eq("order_id", orderId));
+    }
+
+    private List<String> collectWorkOrderIds(List<SpProductionOrderItem> items) {
+        List<String> ids = new ArrayList<>();
+        if (items == null) {
+            return ids;
+        }
+        for (SpProductionOrderItem item : items) {
+            if (item != null && StringUtils.isNotBlank(item.getWorkOrderId()) && !ids.contains(item.getWorkOrderId())) {
+                ids.add(item.getWorkOrderId());
+            }
+        }
+        return ids;
+    }
+
+    private void revokeWorkOrderApprovals(List<String> workOrderIds) {
+        if (workOrderIds == null || workOrderIds.isEmpty()) {
+            return;
+        }
+        workflowTaskService.update(new UpdateWrapper<SpWorkflowTask>()
+                .eq("business_type", WorkflowConstants.BUSINESS_ORDER_APPROVAL)
+                .in("business_id", workOrderIds)
+                .eq("status", WorkflowConstants.TASK_TODO)
+                .set("status", WorkflowConstants.TASK_REVOKED)
+                .set("action", "revoke")
+                .set("opinion", "生产订单已删除")
+                .set("complete_time", now()));
+        workflowInstanceService.update(new UpdateWrapper<SpWorkflowInstance>()
+                .eq("business_type", WorkflowConstants.BUSINESS_ORDER_APPROVAL)
+                .in("business_id", workOrderIds)
+                .eq("status", WorkflowConstants.INSTANCE_RUNNING)
+                .set("status", WorkflowConstants.INSTANCE_REVOKED)
+                .set("end_time", now())
+                .set("remark", "生产订单已删除"));
     }
 
     @Override

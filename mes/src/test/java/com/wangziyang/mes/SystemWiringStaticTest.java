@@ -243,6 +243,31 @@ public class SystemWiringStaticTest {
     }
 
     @Test
+    public void productionOrderDeleteCleansProductionManagementChain() throws Exception {
+        String service = read("src/main/java/com/wangziyang/mes/productionorder/service/impl/SpProductionOrderServiceImpl.java");
+        String deleteMethod = slice(service, "public Result deleteOrder(String id)", "public Result createWorkOrder(String id");
+
+        assertFalse(deleteMethod.contains("STATUS_WORK_ORDER_CREATED.equals"));
+        assertFalse(deleteMethod.contains("OP_DISPATCHED.equals"));
+        assertTrue(deleteMethod.contains("cleanupProductionOrderRelations"));
+        assertTrue(deleteMethod.contains("order.setDeleted(\"1\")"));
+        assertTrue(deleteMethod.contains("order.setStatus(STATUS_CANCELLED)"));
+        assertTrue(deleteMethod.contains("order.setApprovalStatus(APPROVAL_CANCELLED)"));
+
+        assertTrue(service.contains("private void cleanupProductionOrderRelations"));
+        assertTrue(service.contains("itemService.remove"));
+        assertTrue(service.contains("operPlanService.update"));
+        assertTrue(service.contains("workOrderService.removeByIds"));
+        assertTrue(service.contains("equipmentAssignService.update"));
+        assertTrue(service.contains("employeeAssignService.update"));
+        assertTrue(service.contains("materialRequirementPlanService.update"));
+        assertTrue(service.contains("inboundRequestService.update"));
+        assertTrue(service.contains("inboundRequestItemService.update"));
+        assertTrue(service.contains("workflowTaskService.update"));
+        assertTrue(service.contains("workflowInstanceService.update"));
+    }
+
+    @Test
     public void warehouseTwinContractExposesRealStorageFieldsAndSmokeCoverage() throws Exception {
         String dashboardController = read("src/main/java/com/wangziyang/mes/digitization/controller/DashboardController.java");
         String domainTypes = read("../Vue-frontend/src/types/domain.ts");
@@ -349,5 +374,13 @@ public class SystemWiringStaticTest {
     private String read(String path) throws Exception {
         Path resolved = Paths.get(path).toAbsolutePath().normalize();
         return new String(Files.readAllBytes(resolved), StandardCharsets.UTF_8);
+    }
+
+    private String slice(String text, String begin, String end) {
+        int start = text.indexOf(begin);
+        assertTrue("Missing begin marker: " + begin, start >= 0);
+        int stop = text.indexOf(end, start + begin.length());
+        assertTrue("Missing end marker: " + end, stop >= 0);
+        return text.substring(start, stop);
     }
 }

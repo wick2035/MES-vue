@@ -51,12 +51,6 @@ export const constantRoutes: RouteRecordRaw[] = [
         ],
       },
       {
-        path: 'profile',
-        name: 'Profile',
-        component: () => import('@/views/profile/ProfileView.vue'),
-        meta: { title: '个人中心', hidden: true },
-      },
-      {
         path: 'basedata',
         redirect: '/basedata/material',
         meta: { title: '基础数据', icon: 'Database' },

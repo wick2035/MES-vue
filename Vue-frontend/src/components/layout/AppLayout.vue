@@ -5,6 +5,7 @@ import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
 import AppTabs from './AppTabs.vue'
 import CommandPalette from './CommandPalette.vue'
+import ProfileDialog from './ProfileDialog.vue'
 import { useTabsStore } from '@/stores/tabs'
 import { useNotifyStore } from '@/stores/notify'
 
@@ -41,5 +42,6 @@ onBeforeUnmount(() => notifyStore.disconnect())
       </main>
     </div>
     <CommandPalette />
+    <ProfileDialog />
   </div>
 </template>

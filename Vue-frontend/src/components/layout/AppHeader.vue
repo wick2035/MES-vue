@@ -16,12 +16,14 @@ import NotificationBell from './NotificationBell.vue'
 import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
 import { useCommandPalette } from '@/composables/useCommandPalette'
+import { useProfileDialog } from '@/composables/useProfileDialog'
 import { notify } from '@/lib/toast'
 
 const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
 const { show: showPalette } = useCommandPalette()
+const { show: showProfile } = useProfileDialog()
 
 const collapsed = computed(() => appStore.sidebarCollapsed)
 const initials = computed(() => (userStore.displayName || '用户').slice(0, 1))
@@ -100,7 +102,7 @@ async function handleLogout() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem class="cursor-pointer" @click="router.push('/profile')">
+          <DropdownMenuItem class="cursor-pointer" @click="showProfile()">
             <UserCog class="mr-2 h-4 w-4" />个人中心
           </DropdownMenuItem>
           <DropdownMenuItem class="cursor-pointer text-destructive" @click="handleLogout">

@@ -120,6 +120,25 @@ public class SpWorkflowEventServiceImpl extends ServiceImpl<SpWorkflowEventMappe
         eventLogService.save(log);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void rejectOrder(SpWorkflowTask task) {
+        if (task == null || !WorkflowConstants.BUSINESS_ORDER_APPROVAL.equals(task.getBusinessType())) {
+            return;
+        }
+        SpProductionOrderItem current = productionOrderItemService.getOne(new QueryWrapper<SpProductionOrderItem>()
+                .eq("work_order_id", task.getBusinessId())
+                .last("limit 1"), false);
+        if (current == null || StringUtils.isBlank(current.getOrderId())) {
+            return;
+        }
+        // 任一工单被驳回即整单标记为已驳回（与「全部通过才置已审批」对称），使其退出派工/MRP 等后续流程
+        SpProductionOrder update = new SpProductionOrder();
+        update.setId(current.getOrderId());
+        update.setApprovalStatus(SpProductionOrderServiceImpl.APPROVAL_REJECTED);
+        productionOrderService.updateById(update);
+    }
+
     private void approveOrder(SpWorkflowTask task) {
         if (!WorkflowConstants.BUSINESS_ORDER_APPROVAL.equals(task.getBusinessType())) {
             return;

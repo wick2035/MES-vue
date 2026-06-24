@@ -122,6 +122,7 @@ public class SpWorkflowTaskServiceImpl extends ServiceImpl<SpWorkflowTaskMapper,
             instance.setEndTime(now());
             instanceService.updateById(instance);
         }
+        eventService.rejectOrder(task);
         return Result.success();
     }
 

@@ -1,6 +1,6 @@
 import { http } from '@/api/request'
 import type { IPage } from '@/types/api'
-import type { Bom, BomItem, Oper, Flow } from '@/types/domain'
+import type { Bom, BomItem, BomTreeNode, ComponentDef, Oper, Flow } from '@/types/domain'
 
 // ===== BOM =====
 export function pageBoms(params: Record<string, any>) {
@@ -17,6 +17,25 @@ export function lockBom(id: string) {
 }
 export function deleteBom(id: string) {
   return http.post('/technology/bom/delete', { id })
+}
+/** 事务性保存 BOM 头 + 全部子项（后端最严校验，对应 /save-with-items） */
+export function saveBomWithItems(header: Partial<Bom>, items: Partial<BomItem>[]) {
+  return http.post('/technology/bom/save-with-items', {
+    ...(header as Record<string, any>),
+    itemsJson: JSON.stringify(items ?? []),
+  })
+}
+/** 获取完整 BOM 结构树 */
+export function getBomTree(bomId: string) {
+  return http.get<BomTreeNode>('/technology/bom/tree-data', { bomId })
+}
+/** 可选子 BOM（已定版且有效，按子项类型过滤层级） */
+export function listSelectableBoms(itemMatType?: string, itemCode?: string) {
+  return http.get<Bom[]>('/technology/bom/selectable-boms', { itemMatType, itemCode })
+}
+/** 按产品查询已启用零部件（产品 BOM 子项来源） */
+export function listSelectableComponents(productName?: string, componentType?: string) {
+  return http.get<ComponentDef[]>('/technology/component/selectable', { productName, componentType })
 }
 
 // ===== 工序 Oper =====

@@ -179,6 +179,12 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: { title: 'BOM 结构', hidden: true },
           },
           {
+            path: 'bom/:id/tree',
+            name: 'BomTree',
+            component: () => import('@/views/technology/bom/BomTreeView.vue'),
+            meta: { title: 'BOM 结构树', hidden: true },
+          },
+          {
             path: 'oper',
             name: 'Oper',
             component: () => import('@/views/technology/oper/OperListView.vue'),

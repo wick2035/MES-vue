@@ -389,6 +389,7 @@ export interface Bom extends BaseEntity {
   bomLevel?: number
   lockStatus?: string
   validity?: string
+  remark?: string
 }
 
 /** BOM 子项 */
@@ -400,8 +401,44 @@ export interface BomItem extends BaseEntity {
   itemNum?: number
   itemUnit?: string
   operTyper?: string
+  /** 关联子 BOM 的 ID（PG/COMP 子项有效，后端实际持久化字段） */
+  childBomId?: string
+  /** 关联子 BOM 编码（仅展示，后端联表带出） */
   childBomCode?: string
+  /** 物料类型：FG 成品 / PG 半成品 / COMP 组件 / PART 零件 */
   itemMatType?: string
+}
+
+/** BOM 结构树节点（对齐后端 BomTreeNodeVO） */
+export interface BomTreeNode {
+  id: string
+  pid?: string | null
+  materielCode?: string
+  materielDesc?: string
+  matType?: string
+  nodeCode?: string
+  /** 产品 / 零部件 / 物料 */
+  nodeType?: string
+  level?: number
+  itemNum?: number
+  itemUnit?: string
+  operTyper?: string
+  lineNo?: string
+  childBomId?: string
+  updateTime?: string
+  open?: boolean
+  haveChild?: boolean
+  children?: BomTreeNode[]
+}
+
+/** 零部件定义（产品 BOM 子项的合法来源） */
+export interface ComponentDef extends BaseEntity {
+  productName?: string
+  componentCode?: string
+  componentName?: string
+  /** PG 半成品 / COMP 组件 */
+  componentType?: string
+  remark?: string
 }
 
 /** 工序 */

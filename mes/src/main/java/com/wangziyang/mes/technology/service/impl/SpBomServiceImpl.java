@@ -40,6 +40,8 @@ public class SpBomServiceImpl extends ServiceImpl<SpBomMapper, SpBom> implements
 
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+    private static final String BOM_CODE_PREFIX = "BOM";
+
     @Autowired
     private SpBomItemMapper bomItemMapper;
 
@@ -398,6 +400,24 @@ public class SpBomServiceImpl extends ServiceImpl<SpBomMapper, SpBom> implements
         }
         bom.setDeleted("1");
         updateById(bom);
+    }
+
+    @Override
+    public String nextBomCode() {
+        QueryWrapper<SpBom> qw = new QueryWrapper<>();
+        qw.likeRight("bom_code", BOM_CODE_PREFIX)
+                .orderByDesc("bom_code")
+                .last("limit 1");
+        SpBom last = getOne(qw, false);
+        int next = 1;
+        if (last != null && StringUtils.isNotEmpty(last.getBomCode())
+                && last.getBomCode().length() > BOM_CODE_PREFIX.length()) {
+            try {
+                next = Integer.parseInt(last.getBomCode().substring(BOM_CODE_PREFIX.length())) + 1;
+            } catch (NumberFormatException ignore) {
+            }
+        }
+        return BOM_CODE_PREFIX + String.format("%06d", next);
     }
 
     private void ensureNoCycle(String bomId, Set<String> visiting) {

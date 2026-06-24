@@ -159,8 +159,8 @@ onBeforeUnmount(() => {
               class="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45"
               :class="
                 viewMode === action.key
-                  ? 'border-[#94afc9] bg-[#94afc9] text-slate-800'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-[#94afc9] hover:text-[#5b7799]'
+                  ? 'border-[#0d9488] bg-[#0d9488] text-white shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-[#0d9488]/50 hover:text-[#0d9488]'
               "
               :disabled="action.disabled"
               @click="setView(action.key)"

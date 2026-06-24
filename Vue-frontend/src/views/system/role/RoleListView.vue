@@ -1,6 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Plus, Pencil, Trash2, Search, RotateCcw, ListTree, LoaderCircle } from 'lucide-vue-next'
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  RotateCcw,
+  ListTree,
+  LoaderCircle,
+  ShieldCheck,
+  Shield,
+  Crown,
+  UserCog,
+  FileText,
+} from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,6 +29,8 @@ import SpDataTable from '@/components/common/SpDataTable.vue'
 import SpFormDialog from '@/components/common/SpFormDialog.vue'
 import SpConfirm from '@/components/common/SpConfirm.vue'
 import SpTree from '@/components/common/SpTree.vue'
+import SpPageHeader from '@/components/common/SpPageHeader.vue'
+import SpStatCard from '@/components/common/SpStatCard.vue'
 import { useTable } from '@/composables/useTable'
 import { pageRoles, saveRole, deleteRole, getRoleMenuTree, authMenu } from '@/api/modules/system'
 import { notify } from '@/lib/toast'
@@ -26,7 +41,35 @@ defineOptions({ name: 'Role' })
 
 const { loading, list, total, query, load, onPageChange, onSizeChange, search, reset } =
   useTable<SysRole>(pageRoles, { nameLike: '', codeLike: '' })
-onMounted(load)
+
+// ===== 概览统计（独立取样）=====
+const statsList = ref<SysRole[]>([])
+const statsTotal = ref(0)
+async function loadStats() {
+  const res = await pageRoles({ current: 1, size: 200 })
+  statsList.value = res.data?.records ?? []
+  statsTotal.value = res.data?.total ?? 0
+}
+const stats = computed(() => {
+  const sample = statsList.value
+  const approx = statsTotal.value > sample.length
+  const hint = approx ? '基于前 200 条统计' : undefined
+  const admin = sample.filter((r) => r.code === '888888').length
+  const custom = sample.length - admin
+  const withRemark = sample.filter((r) => !!(r.remark && r.remark.trim())).length
+  return [
+    { label: '角色总数', value: statsTotal.value, icon: Shield, tone: 'primary' as const },
+    { label: '系统管理员', value: admin, icon: Crown, tone: 'warning' as const, hint },
+    { label: '自定义角色', value: custom, icon: UserCog, tone: 'success' as const, hint },
+    { label: '含备注说明', value: withRemark, icon: FileText, tone: 'muted' as const, hint },
+  ]
+})
+
+function reloadAll() {
+  load()
+  loadStats()
+}
+onMounted(reloadAll)
 
 const columns: TableColumn[] = [
   { key: 'name', title: '角色名称', width: '180px' },
@@ -64,7 +107,7 @@ async function onSubmit() {
     await saveRole(formModel)
     notify.success(isEdit.value ? '修改成功' : '新增成功')
     dialogOpen.value = false
-    load()
+    reloadAll()
   } finally {
     saving.value = false
   }
@@ -81,7 +124,7 @@ async function onDelete() {
   await deleteRole(target.value.id)
   notify.success('删除成功')
   confirmOpen.value = false
-  load()
+  reloadAll()
 }
 
 // 菜单授权
@@ -119,19 +162,44 @@ async function submitMenu() {
 
 <template>
   <div class="space-y-4">
+    <SpPageHeader
+      :icon="ShieldCheck"
+      title="角色管理"
+      subtitle="维护角色及其菜单数据权限"
+    >
+      <template #actions>
+        <Button @click="openCreate"><Plus class="h-4 w-4" />新增角色</Button>
+      </template>
+    </SpPageHeader>
+
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <SpStatCard
+        v-for="(s, i) in stats"
+        :key="s.label"
+        :label="s.label"
+        :value="s.value"
+        :icon="s.icon"
+        :tone="s.tone"
+        :hint="s.hint"
+        :index="i"
+      />
+    </div>
+
     <div class="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4 shadow-sp">
-      <div class="space-y-1">
+      <div class="min-w-[160px] flex-1 space-y-1">
         <Label class="text-xs text-muted-foreground">角色名称</Label>
-        <Input v-model="query.nameLike" placeholder="名称" class="w-36" @keyup.enter="search" />
+        <Input v-model="query.nameLike" placeholder="名称" class="w-full" @keyup.enter="search" />
       </div>
-      <div class="space-y-1">
+      <div class="min-w-[160px] flex-1 space-y-1">
         <Label class="text-xs text-muted-foreground">角色编码</Label>
-        <Input v-model="query.codeLike" placeholder="编码" class="w-36" @keyup.enter="search" />
+        <Input v-model="query.codeLike" placeholder="编码" class="w-full" @keyup.enter="search" />
       </div>
-      <Button @click="search"><Search class="h-4 w-4" />查询</Button>
-      <Button variant="outline" @click="reset(['nameLike', 'codeLike'])"
-        ><RotateCcw class="h-4 w-4" />重置</Button
-      >
+      <div class="ml-auto flex items-end gap-2">
+        <Button @click="search"><Search class="h-4 w-4" />查询</Button>
+        <Button variant="outline" @click="reset(['nameLike', 'codeLike'])"
+          ><RotateCcw class="h-4 w-4" />重置</Button
+        >
+      </div>
     </div>
 
     <SpDataTable
@@ -141,13 +209,10 @@ async function submitMenu() {
       :total="total"
       :page="query.current"
       :page-size="query.size"
+      animated
       @page-change="onPageChange"
       @size-change="onSizeChange"
     >
-      <template #toolbar>
-        <span class="text-sm font-medium">角色管理</span>
-        <Button size="sm" @click="openCreate"><Plus class="h-4 w-4" />新增角色</Button>
-      </template>
       <template #action="{ row }">
         <div class="flex items-center justify-center gap-1">
           <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(row)"

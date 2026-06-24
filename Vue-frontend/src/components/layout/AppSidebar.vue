@@ -2,15 +2,18 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ChevronRight, Factory } from 'lucide-vue-next'
+import { Motion, AnimatePresence } from 'motion-v'
 import { getMenuTree, type MenuItem } from '@/router/menu'
 import { resolveIcon } from '@/lib/icons'
 import { useAppStore } from '@/stores/app'
 import { useUserStore } from '@/stores/user'
+import { SPRING_SOFT } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 const route = useRoute()
 const appStore = useAppStore()
 const userStore = useUserStore()
+const reduce = usePreferredReducedMotion()
 const collapsed = computed(() => appStore.sidebarCollapsed)
 
 /** 按角色过滤菜单（管理员放行全部） */
@@ -98,28 +101,40 @@ function toggleGroup(path: string) {
               :class="openGroups.has(item.path) ? 'rotate-90' : ''"
             />
           </button>
-          <div v-show="!collapsed && openGroups.has(item.path)" class="mt-1 space-y-1 pl-4">
-            <RouterLink
-              v-for="child in item.children"
-              :key="child.path"
-              :to="child.path"
-              :class="
-                cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent',
-                  route.path === child.path
-                    ? 'bg-sidebar-accent font-medium text-primary'
-                    : 'text-muted-foreground',
-                )
-              "
+          <AnimatePresence>
+            <Motion
+              v-if="!collapsed && openGroups.has(item.path)"
+              :key="item.path"
+              :initial="reduce === 'reduce' ? false : { height: 0, opacity: 0 }"
+              :animate="{ height: 'auto', opacity: 1 }"
+              :exit="reduce === 'reduce' ? undefined : { height: 0, opacity: 0 }"
+              :transition="SPRING_SOFT"
+              class="overflow-hidden"
             >
-              <component
-                :is="resolveIcon(child.icon)"
-                v-if="resolveIcon(child.icon)"
-                class="h-4 w-4 shrink-0"
-              />
-              <span class="truncate">{{ child.title }}</span>
-            </RouterLink>
-          </div>
+              <div class="mt-1 space-y-1 pl-4">
+                <RouterLink
+                  v-for="child in item.children"
+                  :key="child.path"
+                  :to="child.path"
+                  :class="
+                    cn(
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent',
+                      route.path === child.path
+                        ? 'bg-sidebar-accent font-medium text-primary'
+                        : 'text-muted-foreground',
+                    )
+                  "
+                >
+                  <component
+                    :is="resolveIcon(child.icon)"
+                    v-if="resolveIcon(child.icon)"
+                    class="h-4 w-4 shrink-0"
+                  />
+                  <span class="truncate">{{ child.title }}</span>
+                </RouterLink>
+              </div>
+            </Motion>
+          </AnimatePresence>
         </div>
       </template>
     </nav>

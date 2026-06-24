@@ -123,6 +123,32 @@
   }
 }
 
+/* 路由/页面切换过渡：克制的淡入 + 轻微上移（与 AppLayout 的 <Transition name="page"> 对应） */
+.page-enter-active,
+.page-leave-active {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active {
+    transition: none;
+  }
+  .page-enter-from,
+  .page-leave-to {
+    transform: none;
+  }
+}
+
 /* 路由进度条配色跟随主色 */
 #nprogress .bar {
   background: hsl(var(--primary)) !important;

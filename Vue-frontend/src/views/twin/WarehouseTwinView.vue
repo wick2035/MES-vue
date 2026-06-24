@@ -122,7 +122,7 @@ onBeforeUnmount(() => {
         >
           <div class="flex items-center gap-2.5">
             <span
-              class="flex h-9 w-9 items-center justify-center rounded-md bg-[#12323f] text-cyan-50 shadow-sm"
+              class="flex h-9 w-9 items-center justify-center rounded-md bg-[#94afc9] text-slate-800 shadow-sm"
             >
               <Warehouse class="h-5 w-5" />
             </span>
@@ -143,8 +143,8 @@ onBeforeUnmount(() => {
               class="rounded-md border px-2.5 py-1 text-xs font-medium transition-colors"
               :class="
                 i === activeIdx
-                  ? 'border-[#0f766e] bg-[#0f766e] text-white shadow-sm'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-[#0f766e]/50 hover:text-[#0f766e]'
+                  ? 'border-[#2563eb] bg-[#2563eb] text-white shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-[#2563eb]/50 hover:text-[#2563eb]'
               "
               @click="selectWarehouse(i)"
             >
@@ -159,8 +159,8 @@ onBeforeUnmount(() => {
               class="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45"
               :class="
                 viewMode === action.key
-                  ? 'border-[#12323f] bg-[#12323f] text-white'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-[#12323f]/40 hover:text-[#12323f]'
+                  ? 'border-[#94afc9] bg-[#94afc9] text-slate-800'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-[#94afc9] hover:text-[#5b7799]'
               "
               :disabled="action.disabled"
               @click="setView(action.key)"
@@ -172,7 +172,7 @@ onBeforeUnmount(() => {
         </div>
 
         <button
-          class="pointer-events-auto flex items-center gap-1.5 rounded-md border border-white bg-white/95 px-3 py-2 text-xs font-medium text-slate-700 shadow-[0_14px_34px_rgba(15,23,42,0.14)] ring-1 ring-slate-950/5 backdrop-blur-sm transition-colors hover:text-[#0f766e]"
+          class="pointer-events-auto flex items-center gap-1.5 rounded-md border border-white bg-white/95 px-3 py-2 text-xs font-medium text-slate-700 shadow-[0_14px_34px_rgba(15,23,42,0.14)] ring-1 ring-slate-950/5 backdrop-blur-sm transition-colors hover:text-[#2563eb]"
           @click="refresh"
         >
           <RefreshCw class="h-3.5 w-3.5" :class="loading && 'animate-spin'" />

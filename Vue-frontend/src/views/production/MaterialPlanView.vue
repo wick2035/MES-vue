@@ -33,7 +33,7 @@ const table = reactive(
 )
 
 const columns: TableColumn[] = [
-  { key: 'select', title: '选择', slot: 'select', width: '64px', align: 'center' },
+  { key: 'select', title: '选择', slot: 'select', headSlot: 'selectHead', width: '64px', align: 'center' },
   { key: 'productionOrderNo', title: '生产订单', width: '160px' },
   {
     key: 'productName',
@@ -52,6 +52,7 @@ const columns: TableColumn[] = [
 
 const hasOrderContext = computed(() => !!table.query.productionOrderId)
 const statusText: Record<string, string> = {
+  WAIT: '待下发',
   NONE: '未处理',
   RELEASED: '已下发',
   GENERATED: '已生成',
@@ -68,6 +69,17 @@ function toggle(id: string | undefined, checked: boolean) {
   selected.value = checked
     ? Array.from(new Set([...selected.value, id]))
     : selected.value.filter((v) => v !== id)
+}
+
+// 全选（按当前页）
+const allSelected = computed(
+  () => table.list.length > 0 && table.list.every((r) => !!r.id && selected.value.includes(r.id)),
+)
+const someSelected = computed(
+  () => !allSelected.value && table.list.some((r) => !!r.id && selected.value.includes(r.id)),
+)
+function toggleAll(checked: boolean) {
+  selected.value = checked ? table.list.map((r) => r.id!).filter(Boolean) : []
 }
 
 function ids(row?: MaterialRequirementPlan) {
@@ -174,6 +186,16 @@ useAutoRefresh(() => table.load())
             <Send class="h-4 w-4" />批量下发
           </Button>
         </div>
+      </template>
+      <template #selectHead>
+        <input
+          type="checkbox"
+          class="h-4 w-4 rounded border-input accent-primary"
+          aria-label="全选当前页物料计划"
+          :checked="allSelected"
+          :indeterminate="someSelected"
+          @change="toggleAll(($event.target as HTMLInputElement).checked)"
+        />
       </template>
       <template #select="{ row }">
         <input

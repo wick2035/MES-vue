@@ -1,25 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { RefreshCw, Plus, Pencil, Trash2, ChevronRight, Building2, Layers } from 'lucide-vue-next'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { RefreshCw, Plus, Pencil, Trash2, Building2, Building, Layers, Network } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import SpFormDialog from '@/components/common/SpFormDialog.vue'
 import SpConfirm from '@/components/common/SpConfirm.vue'
+import SpPageHeader from '@/components/common/SpPageHeader.vue'
+import SpStatCard from '@/components/common/SpStatCard.vue'
+import SpTreeTable from '@/components/common/SpTreeTable.vue'
 import { getDeptTree, saveDept, deleteDept } from '@/api/modules/system'
+import { treeStats } from '@/composables/useTreeStats'
 import { notify } from '@/lib/toast'
-import type { FormField } from '@/types/table'
+import type { FormField, TableColumn } from '@/types/table'
 import type { TreeNode } from '@/types/domain'
 
 defineOptions({ name: 'Dept' })
 
-interface FlatNode extends TreeNode {
-  level: number
-  hasChildren: boolean
-}
+type DeptNode = TreeNode & { level?: number; hasChildren?: boolean }
 
 const nodes = ref<TreeNode[]>([])
-const expanded = ref<Set<string>>(new Set())
 const loading = ref(true)
 
 async function load() {
@@ -27,30 +25,29 @@ async function load() {
   try {
     const res = await getDeptTree()
     nodes.value = res.data ?? []
-    nodes.value.forEach((n) => expanded.value.add(n.id))
   } finally {
     loading.value = false
   }
 }
 onMounted(load)
 
-function toggle(id: string) {
-  if (expanded.value.has(id)) expanded.value.delete(id)
-  else expanded.value.add(id)
-}
+// ===== 概览统计 =====
+const stats = computed(() => {
+  const s = treeStats(nodes.value)
+  return [
+    { label: '部门总数', value: s.total, icon: Building2, tone: 'primary' as const },
+    { label: '一级部门', value: s.roots, icon: Building, tone: 'warning' as const },
+    { label: '最大层级', value: s.maxDepth, icon: Layers, tone: 'success' as const },
+    { label: '含子部门', value: s.withChildren, icon: Network, tone: 'muted' as const },
+  ]
+})
 
-function flatten(list: TreeNode[], level = 0): FlatNode[] {
-  const result: FlatNode[] = []
-  for (const node of list) {
-    const hasChildren = !!node.children?.length
-    result.push({ ...node, level, hasChildren })
-    if (hasChildren && expanded.value.has(node.id)) {
-      result.push(...flatten(node.children!, level + 1))
-    }
-  }
-  return result
-}
-const flatList = computed(() => flatten(nodes.value))
+const columns: TableColumn[] = [
+  { key: 'name', title: '名称' },
+  { key: 'sortNum', title: '排序', width: '100px', align: 'center' },
+  { key: 'childCount', title: '子部门数', slot: 'childCount', width: '110px', align: 'center' },
+  { key: 'action', title: '操作', slot: 'action', width: '140px', align: 'center' },
+]
 
 // --- CRUD ---
 const formFields: FormField[] = [
@@ -69,12 +66,12 @@ function resetModel(data: Record<string, any> = {}) {
   Object.keys(formModel).forEach((k) => delete formModel[k])
   Object.assign(formModel, { sort: 100 }, data)
 }
-function openCreate(parentNode?: FlatNode) {
+function openCreate(parentNode?: DeptNode) {
   resetModel({ parentId: parentNode?.id ?? null })
   dialogTitle.value = parentNode ? `新增「${parentNode.name}」的子部门` : '新增根部门'
   dialogOpen.value = true
 }
-function openEdit(node: FlatNode) {
+function openEdit(node: DeptNode) {
   resetModel({ ...node })
   dialogTitle.value = `编辑「${node.name}」`
   dialogOpen.value = true
@@ -92,8 +89,8 @@ async function onSubmit() {
 }
 
 const confirmOpen = ref(false)
-const target = ref<FlatNode | null>(null)
-function askDelete(node: FlatNode) {
+const target = ref<DeptNode | null>(null)
+function askDelete(node: DeptNode) {
   if (node.hasChildren) {
     notify.error('请先删除子部门')
     return
@@ -112,53 +109,58 @@ async function onDelete() {
 
 <template>
   <div class="space-y-4">
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between">
-        <CardTitle class="text-base">部门管理</CardTitle>
-        <div class="flex items-center gap-2">
-          <Button size="sm" @click="openCreate()"><Plus class="h-4 w-4" />新增根部门</Button>
-          <Button variant="ghost" size="icon-sm" title="刷新" @click="load"
-            ><RefreshCw class="h-4 w-4"
-          /></Button>
+    <SpPageHeader
+      :icon="Building2"
+      title="部门管理"
+      subtitle="维护组织架构与部门层级"
+    >
+      <template #actions>
+        <Button @click="openCreate()"><Plus class="h-4 w-4" />新增根部门</Button>
+        <Button variant="outline" size="icon" title="刷新" @click="load">
+          <RefreshCw class="h-4 w-4" />
+        </Button>
+      </template>
+    </SpPageHeader>
+
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <SpStatCard
+        v-for="(s, i) in stats"
+        :key="s.label"
+        :label="s.label"
+        :value="s.value"
+        :icon="s.icon"
+        :tone="s.tone"
+        :index="i"
+      />
+    </div>
+
+    <SpTreeTable
+      :nodes="nodes"
+      :loading="loading"
+      :columns="columns"
+      :branch-icon="Building2"
+      :leaf-icon="Layers"
+    >
+      <template #toolbar>
+        <span class="text-sm font-medium">组织架构</span>
+      </template>
+      <template #childCount="{ node }">
+        <span class="tabular-nums text-muted-foreground">{{ node.children?.length ?? 0 }}</span>
+      </template>
+      <template #action="{ node }">
+        <div class="flex items-center justify-center gap-0.5">
+          <Button variant="ghost" size="icon-sm" title="新增子部门" @click="openCreate(node)">
+            <Plus class="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(node)">
+            <Pencil class="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" title="删除" @click="askDelete(node)">
+            <Trash2 class="h-3.5 w-3.5 text-destructive" />
+          </Button>
         </div>
-      </CardHeader>
-      <CardContent>
-        <Skeleton v-if="loading" class="h-64 w-full" />
-        <ul v-else class="space-y-0.5">
-          <li v-for="node in flatList" :key="node.id">
-            <div
-              class="group flex items-center gap-1.5 rounded px-1 py-1.5 hover:bg-accent"
-              :style="{ paddingLeft: `${node.level * 20 + 4}px` }"
-            >
-              <button class="shrink-0 text-muted-foreground" @click="toggle(node.id)">
-                <ChevronRight
-                  v-if="node.hasChildren"
-                  class="h-4 w-4 transition-transform"
-                  :class="expanded.has(node.id) ? 'rotate-90' : ''"
-                />
-                <span v-else class="inline-block w-4" />
-              </button>
-              <component
-                :is="node.hasChildren ? Building2 : Layers"
-                class="h-4 w-4 shrink-0 text-muted-foreground"
-              />
-              <span class="flex-1 text-sm">{{ node.name }}</span>
-              <div class="hidden items-center gap-0.5 group-hover:flex">
-                <Button variant="ghost" size="icon-sm" title="新增子部门" @click="openCreate(node)">
-                  <Plus class="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(node)">
-                  <Pencil class="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon-sm" title="删除" @click="askDelete(node)">
-                  <Trash2 class="h-3.5 w-3.5 text-destructive" />
-                </Button>
-              </div>
-            </div>
-          </li>
-        </ul>
-      </CardContent>
-    </Card>
+      </template>
+    </SpTreeTable>
 
     <SpFormDialog
       v-model:open="dialogOpen"

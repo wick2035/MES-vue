@@ -11,6 +11,7 @@ import {
   Ban,
   CheckCircle2,
   LoaderCircle,
+  Users,
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,6 +29,8 @@ import SpDataTable from '@/components/common/SpDataTable.vue'
 import SpFormDialog from '@/components/common/SpFormDialog.vue'
 import SpConfirm from '@/components/common/SpConfirm.vue'
 import SpStatusBadge from '@/components/common/SpStatusBadge.vue'
+import SpPageHeader from '@/components/common/SpPageHeader.vue'
+import SpStatCard from '@/components/common/SpStatCard.vue'
 import { useTable } from '@/composables/useTable'
 import {
   pageUsers,
@@ -46,7 +49,42 @@ defineOptions({ name: 'User' })
 
 const { loading, list, total, query, load, onPageChange, onSizeChange, search, reset } =
   useTable<SysUser>(pageUsers, { nameLike: '', usernameLike: '' })
-onMounted(load)
+
+// ===== 概览统计（独立取样，不影响列表分页）=====
+const statsList = ref<SysUser[]>([])
+const statsTotal = ref(0)
+async function loadStats() {
+  const res = await pageUsers({ current: 1, size: 200 })
+  statsList.value = res.data?.records ?? []
+  statsTotal.value = res.data?.total ?? 0
+}
+const stats = computed(() => {
+  const sample = statsList.value
+  const approx = statsTotal.value > sample.length
+  const hint = approx ? '基于前 200 条统计' : undefined
+  const enabled = sample.filter((u) => u.deleted !== '2').length
+  const disabled = sample.filter((u) => u.deleted === '2').length
+  const roleSet = new Set<string>()
+  sample.forEach((u) =>
+    (u.roleNames || '')
+      .split(/[、,]/)
+      .filter(Boolean)
+      .forEach((r) => roleSet.add(r)),
+  )
+  return [
+    { label: '用户总数', value: statsTotal.value, icon: Users, tone: 'primary' as const },
+    { label: '启用中', value: enabled, icon: CheckCircle2, tone: 'success' as const, hint },
+    { label: '已禁用', value: disabled, icon: Ban, tone: 'muted' as const, hint },
+    { label: '角色种类', value: roleSet.size, icon: ShieldCheck, tone: 'warning' as const, hint },
+  ]
+})
+
+/** 列表 + 统计一并刷新（数据变更后调用） */
+function reloadAll() {
+  load()
+  loadStats()
+}
+onMounted(reloadAll)
 
 const columns: TableColumn[] = [
   { key: 'name', title: '姓名', width: '120px' },
@@ -137,7 +175,7 @@ async function onSubmit() {
     await saveUser(formModel)
     notify.success(isEdit.value ? '修改成功' : '新增成功')
     dialogOpen.value = false
-    load()
+    reloadAll()
   } finally {
     saving.value = false
   }
@@ -155,7 +193,7 @@ async function onDelete() {
   await deleteUser(target.value.id)
   notify.success('删除成功')
   confirmOpen.value = false
-  load()
+  reloadAll()
 }
 
 // 启用/禁用
@@ -163,7 +201,7 @@ async function toggleStatus(row: SysUser) {
   const next = row.deleted === '2' ? '0' : '2'
   await disableUser(row.id!, next)
   notify.success(next === '0' ? '已启用' : '已禁用')
-  load()
+  reloadAll()
 }
 
 // 重置密码
@@ -202,7 +240,7 @@ async function submitRoles() {
     await assignRole(roleUser.value.id, checkedRoleIds.value)
     notify.success('角色分配成功')
     roleOpen.value = false
-    load()
+    reloadAll()
   } finally {
     roleSaving.value = false
   }
@@ -211,24 +249,49 @@ async function submitRoles() {
 
 <template>
   <div class="space-y-4">
+    <SpPageHeader
+      :icon="Users"
+      title="用户管理"
+      subtitle="管理系统账号、角色分配与登录状态"
+    >
+      <template #actions>
+        <Button @click="openCreate"><Plus class="h-4 w-4" />新增用户</Button>
+      </template>
+    </SpPageHeader>
+
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <SpStatCard
+        v-for="(s, i) in stats"
+        :key="s.label"
+        :label="s.label"
+        :value="s.value"
+        :icon="s.icon"
+        :tone="s.tone"
+        :hint="s.hint"
+        :index="i"
+      />
+    </div>
+
     <div class="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4 shadow-sp">
-      <div class="space-y-1">
+      <div class="min-w-[160px] flex-1 space-y-1">
         <Label class="text-xs text-muted-foreground">姓名</Label>
-        <Input v-model="query.nameLike" placeholder="姓名" class="w-36" @keyup.enter="search" />
+        <Input v-model="query.nameLike" placeholder="姓名" class="w-full" @keyup.enter="search" />
       </div>
-      <div class="space-y-1">
+      <div class="min-w-[160px] flex-1 space-y-1">
         <Label class="text-xs text-muted-foreground">用户名</Label>
         <Input
           v-model="query.usernameLike"
           placeholder="用户名"
-          class="w-36"
+          class="w-full"
           @keyup.enter="search"
         />
       </div>
-      <Button @click="search"><Search class="h-4 w-4" />查询</Button>
-      <Button variant="outline" @click="reset(['nameLike', 'usernameLike'])"
-        ><RotateCcw class="h-4 w-4" />重置</Button
-      >
+      <div class="ml-auto flex items-end gap-2">
+        <Button @click="search"><Search class="h-4 w-4" />查询</Button>
+        <Button variant="outline" @click="reset(['nameLike', 'usernameLike'])"
+          ><RotateCcw class="h-4 w-4" />重置</Button
+        >
+      </div>
     </div>
 
     <SpDataTable
@@ -238,13 +301,10 @@ async function submitRoles() {
       :total="total"
       :page="query.current"
       :page-size="query.size"
+      animated
       @page-change="onPageChange"
       @size-change="onSizeChange"
     >
-      <template #toolbar>
-        <span class="text-sm font-medium">用户管理</span>
-        <Button size="sm" @click="openCreate"><Plus class="h-4 w-4" />新增用户</Button>
-      </template>
       <template #status="{ value }">
         <SpStatusBadge
           :tone="value === '2' ? 'muted' : 'success'"

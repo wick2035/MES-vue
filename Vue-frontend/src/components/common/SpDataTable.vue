@@ -98,7 +98,8 @@ function cellText(col: TableColumn, row: any) {
                 'text-right': col.align === 'right',
               }"
             >
-              {{ col.title }}
+              <slot v-if="col.headSlot" :name="col.headSlot" />
+              <template v-else>{{ col.title }}</template>
             </TableHead>
           </TableRow>
         </TableHeader>

@@ -142,7 +142,9 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
     @Override
     public List<TreeVO<SysMenu>> listMenuTree() throws Exception {
         List<TreeVO<SysMenu>> menus = new ArrayList<>();
-        List<SysMenu> sysMenus = sysMenuMapper.selectList(null);
+        QueryWrapper<SysMenu> qw = new QueryWrapper<>();
+        qw.orderByAsc("sort_num");
+        List<SysMenu> sysMenus = sysMenuMapper.selectList(qw);
         for (SysMenu m : sysMenus) {
             TreeVO<SysMenu> tree = new TreeVO<>();
             tree.setId(m.getId());
@@ -153,6 +155,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
             tree.setIcon(m.getIcon());
             tree.setType(m.getType());
             tree.setPermission(m.getPermission());
+            tree.setSortNum(m.getSortNum());
             menus.add(tree);
         }
         return TreeUtil.buildList(menus, "0");

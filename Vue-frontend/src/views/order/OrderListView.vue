@@ -297,7 +297,10 @@ function onReset() {
         >
       </template>
       <template #statue="{ row }">
-        <SpStatusBadge :tone="statueTone(row.statue)" :text="row.mainStatusName" />
+        <SpStatusBadge
+          :tone="row.approvalRejected ? 'danger' : statueTone(row.statue)"
+          :text="row.mainStatusName"
+        />
       </template>
       <template #work="{ row }">
         <SpStatusBadge :tone="workTone(row.workStatus)" :text="row.workStatusName" />

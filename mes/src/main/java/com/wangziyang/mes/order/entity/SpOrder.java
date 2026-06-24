@@ -138,6 +138,10 @@ public class SpOrder extends BaseEntity {
     @TableField(exist = false)
     private String mainStatusName;
 
+    /** 审批是否被驳回（由工作流驳回任务派生，用于「已驳回」红色徽标展示） */
+    @TableField(exist = false)
+    private Boolean approvalRejected;
+
     @TableField(exist = false)
     private String workStatusName;
 
@@ -412,6 +416,14 @@ public class SpOrder extends BaseEntity {
 
     public void setMainStatusName(String mainStatusName) {
         this.mainStatusName = mainStatusName;
+    }
+
+    public Boolean getApprovalRejected() {
+        return approvalRejected;
+    }
+
+    public void setApprovalRejected(Boolean approvalRejected) {
+        this.approvalRejected = approvalRejected;
     }
 
     public String getWorkStatusName() {

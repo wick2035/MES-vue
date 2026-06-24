@@ -128,7 +128,11 @@ const infoRows = computed(() => {
         <ArrowLeft class="h-4 w-4" />返回
       </Button>
       <h2 class="text-lg font-semibold">{{ order?.orderCode || '工单详情' }}</h2>
-      <SpStatusBadge v-if="order" :tone="statueTone(order.statue)" :text="order.mainStatusName" />
+      <SpStatusBadge
+        v-if="order"
+        :tone="order.approvalRejected ? 'danger' : statueTone(order.statue)"
+        :text="order.mainStatusName"
+      />
       <Button variant="ghost" size="icon-sm" class="ml-auto" title="刷新" @click="load">
         <RefreshCw class="h-4 w-4" />
       </Button>

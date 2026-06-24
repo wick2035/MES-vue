@@ -86,6 +86,8 @@ export interface Order extends BaseEntity {
   deliveryStatus?: string
   mainStatusName?: string
   approvalStatusName?: string
+  /** 审批被驳回（后端按工作流驳回任务派生），用于「已驳回」红色徽标 */
+  approvalRejected?: boolean
   workStatusName?: string
   completeStatusName?: string
   deliveryStatusName?: string

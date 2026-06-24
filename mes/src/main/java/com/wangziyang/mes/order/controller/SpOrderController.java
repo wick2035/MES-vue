@@ -23,7 +23,9 @@ import com.wangziyang.mes.productionorder.service.impl.SpProductionOrderServiceI
 import com.wangziyang.mes.system.entity.SysUser;
 import com.wangziyang.mes.technology.entity.SpFlow;
 import com.wangziyang.mes.technology.service.ISpFlowService;
+import com.wangziyang.mes.workflow.WorkflowConstants;
 import com.wangziyang.mes.workflow.WorkflowPermissionUtil;
+import com.wangziyang.mes.workflow.entity.SpWorkflowTask;
 import com.wangziyang.mes.workflow.service.ISpWorkflowInstanceService;
 import com.wangziyang.mes.workflow.service.ISpWorkflowTaskService;
 import io.swagger.annotations.ApiOperation;
@@ -440,9 +442,17 @@ public class SpOrderController extends BaseController {
         if (orders == null || orders.isEmpty()) {
             return;
         }
+        Set<String> rejectedWorkOrderIds = rejectedApprovalWorkOrderIds(orders);
         for (SpOrder order : orders) {
             order.setApprovalStatusName(statueName(order.getStatue()));
             order.setMainStatusName(statueName(order.getStatue()));
+            // 工单审批被驳回（仍处待审批 statue=1）时，审批状态展示为「已驳回」
+            if (rejectedWorkOrderIds.contains(order.getId())
+                    && order.getStatue() != null && order.getStatue() == STATUE_CREATED_PENDING_APPROVAL) {
+                order.setApprovalRejected(true);
+                order.setApprovalStatusName("已驳回");
+                order.setMainStatusName("已驳回");
+            }
             normalizeWorkStatus(order);
             normalizeLifecycleStatus(order);
             order.setDispatchStatusName(order.getStatue() != null && order.getStatue() == STATUE_DISPATCHED ? "已下发" : "待下发");
@@ -610,6 +620,31 @@ public class SpOrderController extends BaseController {
             }
         }
         return null;
+    }
+
+    /** 批量识别本页中「审批被驳回」的工单（其审批流程任务 status=rejected） */
+    private Set<String> rejectedApprovalWorkOrderIds(List<SpOrder> orders) {
+        List<String> ids = new ArrayList<>();
+        for (SpOrder o : orders) {
+            if (StringUtils.isNotBlank(o.getId())) {
+                ids.add(o.getId());
+            }
+        }
+        if (ids.isEmpty()) {
+            return Collections.emptySet();
+        }
+        List<SpWorkflowTask> rejectedTasks = workflowTaskService.list(new QueryWrapper<SpWorkflowTask>()
+                .select("business_id")
+                .eq("business_type", WorkflowConstants.BUSINESS_ORDER_APPROVAL)
+                .eq("status", WorkflowConstants.TASK_REJECTED)
+                .in("business_id", ids));
+        Set<String> result = new HashSet<>();
+        for (SpWorkflowTask task : rejectedTasks) {
+            if (StringUtils.isNotBlank(task.getBusinessId())) {
+                result.add(task.getBusinessId());
+            }
+        }
+        return result;
     }
 
     private String statueName(Integer statue) {

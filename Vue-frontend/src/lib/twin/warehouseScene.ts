@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import type { TwinLocation, TwinWarehouse } from '@/types/domain'
 
 type WarehouseViewMode = 'overview' | 'dock' | 'aisle' | 'focus'
@@ -44,6 +45,8 @@ export class WarehouseTwinScene {
   private dockDoors: THREE.Mesh[] = []
   private patrolAgv: THREE.Group | null = null
   private patrolPath: THREE.Vector3[] = []
+  private agvWheels: THREE.Mesh[] = []
+  private agvBeaconMat: THREE.MeshStandardMaterial | null = null
 
   // 共享几何：库位拾取盒（透明，仅用于射线命中）+ 货箱/托盘
   private pickGeo = new THREE.BoxGeometry(1, 1, 1)
@@ -652,39 +655,78 @@ export class WarehouseTwinScene {
 
   private buildPatrolAgv(totalX: number, totalZ: number) {
     const group = new THREE.Group()
-    const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0x5b7e8c,
-      metalness: 0.3,
+
+    // 银灰圆角下底盘
+    const chassisMat = new THREE.MeshStandardMaterial({
+      color: 0xbcc2ca,
+      metalness: 0.4,
+      roughness: 0.45,
+    })
+    const chassisGeo = new RoundedBoxGeometry(1.5, 0.3, 0.84, 4, 0.08)
+    const chassis = new THREE.Mesh(chassisGeo, chassisMat)
+    chassis.position.y = 0.13 // 顶面≈0.28
+
+    // 橙色圆角顶板（顶面=0.36 让货箱落座）
+    const topMat = new THREE.MeshStandardMaterial({
+      color: 0xe2873a,
+      metalness: 0.2,
       roughness: 0.5,
     })
-    const glowMat = new THREE.MeshStandardMaterial({
-      color: 0x9ec7d4,
-      emissive: 0x6aa6ba,
-      emissiveIntensity: 0.25,
-    })
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x26313d, roughness: 0.6 })
-    const bodyGeo = new THREE.BoxGeometry(1.7, 0.32, 1.0)
-    const lampGeo = new THREE.BoxGeometry(0.18, 0.08, 0.72)
-    const wheelGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.12, 16)
-    const body = new THREE.Mesh(bodyGeo, bodyMat)
-    body.position.y = 0.18
-    const lamp = new THREE.Mesh(lampGeo, glowMat)
-    lamp.position.set(0.82, 0.39, 0)
-    group.add(body, lamp)
-    for (const wx of [-0.58, 0.58]) {
-      for (const wz of [-0.42, 0.42]) {
-        const wheel = new THREE.Mesh(wheelGeo, wheelMat)
-        wheel.rotation.z = Math.PI / 2
-        wheel.position.set(wx, 0.12, wz)
-        group.add(wheel)
-      }
-    }
+    const topGeo = new RoundedBoxGeometry(1.46, 0.08, 0.8, 3, 0.04)
+    const deck = new THREE.Mesh(topGeo, topMat)
+    deck.position.y = 0.32 // 顶面=0.36
 
+    // 货箱 box —— 原样保留（位置/几何/材质不变）
     const cargoGeo = new THREE.BoxGeometry(0.58, 0.32, 0.5)
     const cargo = new THREE.Mesh(cargoGeo, this.cartonMat)
     cargo.position.set(-0.18, 0.52, 0)
-    cargo.castShadow = true
-    group.add(cargo)
+
+    // 大轮子 + 灰色轮毂（4 个，轮轴沿 Z，可滚动）
+    const tireMat = new THREE.MeshStandardMaterial({ color: 0x282c33, metalness: 0.1, roughness: 0.7 })
+    const hubMat = new THREE.MeshStandardMaterial({ color: 0xccd1d8, metalness: 0.55, roughness: 0.4 })
+    const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.14, 22)
+    wheelGeo.rotateX(Math.PI / 2)
+    const hubGeo = new THREE.CylinderGeometry(0.085, 0.085, 0.15, 18)
+    hubGeo.rotateX(Math.PI / 2)
+    this.agvWheels = []
+    for (const wx of [-0.52, 0.52]) {
+      for (const wz of [-0.46, 0.46]) {
+        const wheel = new THREE.Mesh(wheelGeo, tireMat)
+        wheel.position.set(wx, 0.18, wz) // 半径=0.18，落地 y=0
+        wheel.add(new THREE.Mesh(hubGeo, hubMat))
+        group.add(wheel)
+        this.agvWheels.push(wheel)
+      }
+    }
+
+    // 车顶黄色警示灯（细杆 + 圆顶球，会呼吸闪烁），放车尾右后角（避开尾部货箱）
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x3a3f47, metalness: 0.3, roughness: 0.6 })
+    const poleGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.16, 10)
+    const pole = new THREE.Mesh(poleGeo, poleMat)
+    pole.position.set(-0.62, 0.44, 0.3)
+    this.agvBeaconMat = new THREE.MeshStandardMaterial({
+      color: 0xffd23f,
+      emissive: 0xffb300,
+      emissiveIntensity: 0.6,
+    })
+    const domeGeo = new THREE.SphereGeometry(0.085, 16, 12)
+    const dome = new THREE.Mesh(domeGeo, this.agvBeaconMat)
+    dome.position.set(-0.62, 0.56, 0.3)
+
+    // 车头白色前灯（朝 +X 行驶方向，自发光暖白）
+    const headMat = new THREE.MeshStandardMaterial({
+      color: 0xfff3d4,
+      emissive: 0xffe9b0,
+      emissiveIntensity: 0.7,
+    })
+    const headGeo = new THREE.SphereGeometry(0.045, 12, 10)
+    for (const hz of [-0.24, 0.24]) {
+      const h = new THREE.Mesh(headGeo, headMat)
+      h.position.set(0.76, 0.16, hz)
+      group.add(h)
+    }
+
+    group.add(chassis, deck, cargo, pole, dome)
     group.traverse((obj) => {
       const mesh = obj as THREE.Mesh
       if (mesh.isMesh) {
@@ -704,7 +746,23 @@ export class WarehouseTwinScene {
     group.position.copy(this.patrolPath[0])
     this.patrolAgv = group
     this.rackGroup.add(group)
-    this.disposables.push(bodyMat, glowMat, wheelMat, bodyGeo, lampGeo, wheelGeo, cargoGeo)
+    this.disposables.push(
+      chassisMat,
+      topMat,
+      tireMat,
+      hubMat,
+      poleMat,
+      this.agvBeaconMat,
+      headMat,
+      chassisGeo,
+      topGeo,
+      cargoGeo,
+      wheelGeo,
+      hubGeo,
+      poleGeo,
+      domeGeo,
+      headGeo,
+    )
   }
 
   /** 环境：外墙立柱 + 顶部钢构 + 照明灯排 */
@@ -916,6 +974,12 @@ export class WarehouseTwinScene {
       this.patrolAgv.rotation.y = Math.atan2(-dir.z, dir.x)
       break
     }
+    // 轮子随行进滚动 + 车顶警示灯呼吸闪烁
+    const spin = -(t * 2.4) / 0.18 // 行进距离 / 轮半径
+    for (const w of this.agvWheels) w.rotation.z = spin
+    if (this.agvBeaconMat) {
+      this.agvBeaconMat.emissiveIntensity = 0.45 + 0.6 * (0.5 + 0.5 * Math.sin(t * 6))
+    }
   }
 
   private makeTextSprite(text: string): THREE.Sprite {
@@ -990,6 +1054,8 @@ export class WarehouseTwinScene {
     this.dockDoors = []
     this.patrolAgv = null
     this.patrolPath = []
+    this.agvWheels = []
+    this.agvBeaconMat = null
     for (const child of [...this.rackGroup.children]) {
       this.rackGroup.remove(child)
     }

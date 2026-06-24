@@ -196,6 +196,12 @@ export const constantRoutes: RouteRecordRaw[] = [
             component: () => import('@/views/technology/flow/FlowListView.vue'),
             meta: { title: '工艺路线', icon: 'GitBranch', keepAlive: true },
           },
+          {
+            path: 'flow/:id',
+            name: 'FlowDetail',
+            component: () => import('@/views/technology/flow/FlowDetailView.vue'),
+            meta: { title: '工艺路线配置', hidden: true },
+          },
         ],
       },
       {

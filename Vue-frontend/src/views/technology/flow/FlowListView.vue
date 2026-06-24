@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Plus, Pencil, Trash2, Search, RotateCcw } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Plus, Pencil, Trash2, Search, RotateCcw, Workflow } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,6 +16,8 @@ import type { Flow } from '@/types/domain'
 
 defineOptions({ name: 'Flow' })
 
+const router = useRouter()
+
 const { loading, list, total, query, load, onPageChange, onSizeChange, search, reset } =
   useTable<Flow>(pageFlows, { flowLike: '', flowDescLike: '' })
 onMounted(load)
@@ -22,8 +25,8 @@ onMounted(load)
 const columns: TableColumn[] = [
   { key: 'flow', title: '工艺路线编码', width: '200px' },
   { key: 'flowDesc', title: '工艺路线名称' },
-  { key: 'process', title: '工序流程' },
-  { key: 'action', title: '操作', slot: 'action', width: '110px', align: 'center' },
+  { key: 'process', title: '工序流程（备注）' },
+  { key: 'action', title: '操作', slot: 'action', width: '180px', align: 'center' },
 ]
 
 const formFields: FormField[] = [
@@ -122,6 +125,15 @@ async function onDelete() {
       </template>
       <template #action="{ row }">
         <div class="flex items-center justify-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-7 px-2 text-xs"
+            title="配置工序步骤"
+            @click="router.push(`/technology/flow/${row.id}`)"
+          >
+            <Workflow class="h-3.5 w-3.5" />配置工序
+          </Button>
           <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(row)">
             <Pencil class="h-4 w-4" />
           </Button>

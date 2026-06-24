@@ -80,6 +80,15 @@ public class SpTeamController extends BaseController {
         return Result.success(result);
     }
 
+    @ApiOperation("班组全部列表（下拉数据源，仅正常状态）")
+    @GetMapping("/list")
+    @ResponseBody
+    public Result list() {
+        QueryWrapper<SpTeam> qw = new QueryWrapper<>();
+        qw.eq("is_deleted", "0").orderByAsc("team_code");
+        return Result.success(spTeamService.list(qw));
+    }
+
     @ApiOperation("班组新增/编辑")
     @PostMapping("/add-or-update")
     @ResponseBody

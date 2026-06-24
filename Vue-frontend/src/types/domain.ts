@@ -445,11 +445,34 @@ export interface ComponentDef extends BaseEntity {
 export interface Oper extends BaseEntity {
   oper?: string
   operDesc?: string
+  /** 归口部门ID（sp_sys_department.id） */
+  deptId?: string
+  /** 归口部门名称（联表回显） */
+  deptName?: string
+  /** 执行班组ID（sp_team.id） */
+  teamId?: string
+  /** 执行班组名称（联表回显） */
+  teamName?: string
+  /** 加工单元ID（sp_processing_unit.id） */
   unitId?: string
+  /** 加工单元名称（联表回显） */
+  unitName?: string
+  /** 加工单元类型名称（联表回显） */
+  unitTypeName?: string
   operHours?: number
   manuCycle?: number
   genPlan?: string
   remark?: string
+}
+
+/** 加工单元（下拉数据源） */
+export interface ProcessingUnit extends BaseEntity {
+  unitCode?: string
+  unitName?: string
+  /** person 人员作业单元 / device 设备作业单元 */
+  unitType?: string
+  description?: string
+  status?: string
 }
 
 /** 流程/工艺路线 */
@@ -457,6 +480,21 @@ export interface Flow extends BaseEntity {
   flow?: string
   flowDesc?: string
   process?: string
+}
+
+/** 工艺路线步骤（引用工序，继承部门/班组/加工单元，只读展示） */
+export interface FlowStep {
+  operId: string
+  oper?: string
+  operDesc?: string
+  operHours?: number
+  manuCycle?: number
+  deptName?: string
+  teamName?: string
+  unitName?: string
+  unitTypeName?: string
+  sortNum?: number
+  operType?: string
 }
 
 /** SN 工序采集记录 */
@@ -492,6 +530,14 @@ export interface TreeNode {
   icon?: string
   type?: string
   url?: string
+  /** 编码（菜单 code） */
+  code?: string
+  /** 权限标识（菜单 permission） */
+  permission?: string
+  /** 排序号 */
+  sortNum?: number
+  /** 父节点 ID */
+  pid?: string
   children?: TreeNode[]
 }
 

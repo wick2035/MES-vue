@@ -27,4 +27,44 @@
         </where>
     </delete>
 
+    <resultMap id="FlowStepVoMap" type="com.wangziyang.mes.technology.vo.FlowStepVo">
+        <result column="oper_id" property="operId" jdbcType="VARCHAR"/>
+        <result column="oper" property="oper" jdbcType="VARCHAR"/>
+        <result column="oper_desc" property="operDesc" jdbcType="VARCHAR"/>
+        <result column="oper_hours" property="operHours" jdbcType="DECIMAL"/>
+        <result column="manu_cycle" property="manuCycle" jdbcType="DECIMAL"/>
+        <result column="dept_name" property="deptName" jdbcType="VARCHAR"/>
+        <result column="team_name" property="teamName" jdbcType="VARCHAR"/>
+        <result column="unit_name" property="unitName" jdbcType="VARCHAR"/>
+        <result column="unit_type_name" property="unitTypeName" jdbcType="VARCHAR"/>
+        <result column="sort_num" property="sortNum" jdbcType="INTEGER"/>
+        <result column="oper_type" property="operType" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="queryStepsByFlowId" parameterType="string" resultMap="FlowStepVoMap">
+        SELECT
+            r.oper_id        AS oper_id,
+            o.oper           AS oper,
+            o.oper_desc      AS oper_desc,
+            o.oper_hours     AS oper_hours,
+            o.manu_cycle     AS manu_cycle,
+            d.name           AS dept_name,
+            t.team_name      AS team_name,
+            u.unit_name      AS unit_name,
+            CASE
+                WHEN u.unit_type = 'device' THEN '设备作业单元'
+                WHEN u.unit_type = 'person' THEN '人员作业单元'
+                ELSE ''
+            END              AS unit_type_name,
+            r.sort_num       AS sort_num,
+            r.oper_type      AS oper_type
+        FROM sp_flow_oper_relation r
+        LEFT JOIN sp_oper o            ON o.id = r.oper_id
+        LEFT JOIN sp_sys_department d  ON d.id = o.dept_id
+        LEFT JOIN sp_team t            ON t.id = o.team_id
+        LEFT JOIN sp_processing_unit u ON u.id = o.unit_id
+        WHERE r.flow_id = #{flowId}
+        ORDER BY r.sort_num
+    </select>
+
 </mapper>

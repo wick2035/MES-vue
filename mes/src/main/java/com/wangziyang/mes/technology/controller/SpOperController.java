@@ -3,9 +3,13 @@ package com.wangziyang.mes.technology.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.wangziyang.mes.basedata.entity.SpProcessingUnit;
+import com.wangziyang.mes.basedata.entity.SpTeam;
 import com.wangziyang.mes.basedata.service.ISpProcessingUnitService;
+import com.wangziyang.mes.basedata.service.ISpTeamService;
 import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
+import com.wangziyang.mes.system.entity.SysDepartment;
+import com.wangziyang.mes.system.service.ISysDepartmentService;
 import com.wangziyang.mes.technology.entity.SpOper;
 import com.wangziyang.mes.technology.request.SpOperReq;
 import com.wangziyang.mes.technology.service.ISpOperService;
@@ -34,6 +38,12 @@ public class SpOperController extends BaseController {
 
     @Autowired
     private ISpProcessingUnitService unitService;
+
+    @Autowired
+    private ISysDepartmentService departmentService;
+
+    @Autowired
+    private ISpTeamService teamService;
 
     @GetMapping("/list-ui")
     public String listUI() {
@@ -75,6 +85,7 @@ public class SpOperController extends BaseController {
         if (StringUtils.isNotEmpty(req.getOperLike())) qw.like("oper", req.getOperLike());
         if (StringUtils.isNotEmpty(req.getOperDescLike())) qw.like("oper_desc", req.getOperDescLike());
         if (StringUtils.isNotEmpty(req.getUnitId())) qw.eq("unit_id", req.getUnitId());
+        if (StringUtils.isNotEmpty(req.getDeptId())) qw.eq("dept_id", req.getDeptId());
         qw.orderByDesc("update_time");
         IPage<SpOper> result = operService.page(req, qw);
 
@@ -90,11 +101,31 @@ public class SpOperController extends BaseController {
             }
         }
 
+        List<String> deptIds = records.stream()
+                .map(SpOper::getDeptId).filter(StringUtils::isNotEmpty).distinct().collect(Collectors.toList());
+        Map<String, SysDepartment> deptMap = new HashMap<>();
+        if (!deptIds.isEmpty()) {
+            for (SysDepartment d : departmentService.listByIds(deptIds)) {
+                deptMap.put(d.getId(), d);
+            }
+        }
+
+        List<String> teamIds = records.stream()
+                .map(SpOper::getTeamId).filter(StringUtils::isNotEmpty).distinct().collect(Collectors.toList());
+        Map<String, SpTeam> teamMap = new HashMap<>();
+        if (!teamIds.isEmpty()) {
+            for (SpTeam t : teamService.listByIds(teamIds)) {
+                teamMap.put(t.getId(), t);
+            }
+        }
+
         List<Map<String, Object>> rows = records.stream().map(o -> {
             Map<String, Object> m = new HashMap<>();
             m.put("id", o.getId());
             m.put("oper", o.getOper());
             m.put("operDesc", o.getOperDesc());
+            m.put("deptId", o.getDeptId());
+            m.put("teamId", o.getTeamId());
             m.put("unitId", o.getUnitId());
             m.put("operHours", o.getOperHours());
             m.put("manuCycle", o.getManuCycle());
@@ -105,6 +136,10 @@ public class SpOperController extends BaseController {
             m.put("unitName", unit != null ? unit.getUnitName() : "");
             m.put("unitTypeName", unit == null ? "" :
                     ("device".equals(unit.getUnitType()) ? "设备作业单元" : "人员作业单元"));
+            SysDepartment dept = deptMap.get(o.getDeptId());
+            m.put("deptName", dept != null ? dept.getName() : "");
+            SpTeam team = teamMap.get(o.getTeamId());
+            m.put("teamName", team != null ? team.getTeamName() : "");
             return m;
         }).collect(Collectors.toList());
 
@@ -167,11 +202,20 @@ public class SpOperController extends BaseController {
         if (StringUtils.isEmpty(record.getOperDesc())) {
             return Result.failure("请填写工序名称");
         }
+        if (StringUtils.isEmpty(record.getDeptId())) {
+            return Result.failure("请绑定归口部门");
+        }
+        if (departmentService.getById(record.getDeptId()) == null) {
+            return Result.failure("部门不存在，请重新选择");
+        }
         if (StringUtils.isEmpty(record.getUnitId())) {
             return Result.failure("请绑定具体加工单元");
         }
         if (unitService.getById(record.getUnitId()) == null) {
             return Result.failure("加工单元不存在，请重新选择");
+        }
+        if (StringUtils.isNotEmpty(record.getTeamId()) && teamService.getById(record.getTeamId()) == null) {
+            return Result.failure("班组不存在，请重新选择");
         }
         if (!isPositiveInteger(record.getOperHours())) {
             return Result.failure("工序工时必须为正整数");

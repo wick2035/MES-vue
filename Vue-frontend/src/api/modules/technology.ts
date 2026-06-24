@@ -1,6 +1,15 @@
 import { http } from '@/api/request'
 import type { IPage } from '@/types/api'
-import type { Bom, BomItem, BomTreeNode, ComponentDef, Oper, Flow } from '@/types/domain'
+import type {
+  Bom,
+  BomItem,
+  BomTreeNode,
+  ComponentDef,
+  Oper,
+  Flow,
+  FlowStep,
+  ProcessingUnit,
+} from '@/types/domain'
 
 // ===== BOM =====
 export function pageBoms(params: Record<string, any>) {
@@ -48,6 +57,14 @@ export function saveOper(data: Oper) {
 export function deleteOper(id: string) {
   return http.post('/technology/oper/delete', { id })
 }
+/** 全部工序（工艺路线步骤选择器用） */
+export function listOpers() {
+  return http.get<Oper[]>('/technology/oper/list')
+}
+/** 加工单元下拉数据源（仅正常状态） */
+export function listProcessingUnits() {
+  return http.get<ProcessingUnit[]>('/basedata/processing-unit/list')
+}
 
 // ===== 流程/工艺路线 Flow =====
 export function pageFlows(params: Record<string, any>) {
@@ -58,6 +75,21 @@ export function saveFlow(data: Partial<Flow>) {
 }
 export function deleteFlow(id: string) {
   return http.post('/basedata/flow/delete', { id })
+}
+/** 工艺路线头信息（单条） */
+export function getFlow(id: string) {
+  return http.get<Flow>('/basedata/flow/detail', { id })
+}
+/** 某工艺路线的有序步骤（继承部门/班组/加工单元） */
+export function getFlowSteps(flowId: string) {
+  return http.get<FlowStep[]>('/basedata/flow/process/steps', { flowId })
+}
+/** 按有序工序ID列表保存步骤（重建关系表，不覆盖 process 备注） */
+export function saveFlowSteps(flowId: string, operIds: string[]) {
+  return http.post('/basedata/flow/process/save-steps', {
+    flowId,
+    operIdsJson: JSON.stringify(operIds ?? []),
+  })
 }
 
 // ===== BOM 写操作 =====

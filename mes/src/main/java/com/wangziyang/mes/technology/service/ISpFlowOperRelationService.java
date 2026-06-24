@@ -3,6 +3,7 @@ package com.wangziyang.mes.technology.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.wangziyang.mes.technology.dto.SpFlowDto;
 import com.wangziyang.mes.technology.entity.SpFlowOperRelation;
+import com.wangziyang.mes.technology.vo.FlowStepVo;
 import com.wangziyang.mes.technology.vo.SpOperVo;
 import com.wangziyang.mes.common.Result;
 
@@ -41,4 +42,20 @@ public interface ISpFlowOperRelationService extends IService<SpFlowOperRelation>
      * @throws Exception 异常
      */
     List<SpOperVo> currentOperViewServer(String flowId) throws Exception;
+
+    /**
+     * 查询某流程的有序步骤（继承工序的部门/班组/加工单元，只读展示）
+     *
+     * @param flowId 流程ID
+     * @return 步骤VO集合
+     */
+    List<FlowStepVo> listSteps(String flowId);
+
+    /**
+     * 按有序工序ID列表重建流程步骤（不覆盖 sp_flow.process 备注）
+     *
+     * @param flowId  流程ID
+     * @param operIds 有序工序ID列表
+     */
+    void saveSteps(String flowId, List<String> operIds);
 }

@@ -103,7 +103,7 @@ function onSelect(option: ComboboxOption) {
         :disabled="disabled"
         :class="
           cn(
-            'h-9 w-full justify-between gap-2 bg-background px-3 text-left font-normal shadow-none transition-colors hover:bg-background hover:border-primary/40 data-[state=open]:border-primary/60',
+            'h-9 w-full justify-between gap-2 bg-white px-3 text-left font-normal shadow-none transition-colors hover:bg-white hover:border-primary/40 data-[state=open]:border-primary/60',
             !hasSelection && 'text-muted-foreground',
             props.class,
             props.triggerClass,

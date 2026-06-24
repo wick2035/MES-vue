@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import SpDataTable from '@/components/common/SpDataTable.vue'
-import SpFormDialog from '@/components/common/SpFormDialog.vue'
 import SpConfirm from '@/components/common/SpConfirm.vue'
+import OperFormDialog from './OperFormDialog.vue'
 import { useTable } from '@/composables/useTable'
 import { pageOpers, saveOper, deleteOper } from '@/api/modules/technology'
 import { notify } from '@/lib/toast'
-import type { TableColumn, FormField } from '@/types/table'
+import type { TableColumn } from '@/types/table'
 import type { Oper } from '@/types/domain'
 
 defineOptions({ name: 'Oper' })
@@ -20,48 +20,20 @@ const { loading, list, total, query, load, onPageChange, onSizeChange, search, r
 onMounted(load)
 
 const columns: TableColumn[] = [
-  { key: 'oper', title: '工序编码', width: '160px' },
-  { key: 'operDesc', title: '工序名称' },
-  { key: 'operHours', title: '工时(h)', width: '100px', align: 'right' },
-  { key: 'manuCycle', title: '制造周期', width: '100px', align: 'right' },
-  {
-    key: 'genPlan',
-    title: '生成计划',
-    width: '100px',
-    align: 'center',
-    formatter: (r) => (r.genPlan === 'Y' ? '是' : '否'),
-  },
-  { key: 'remark', title: '备注' },
+  { key: 'oper', title: '工序编码', width: '150px' },
+  { key: 'operDesc', title: '工序名称', width: '140px' },
+  { key: 'deptName', title: '归口部门', slot: 'dept', width: '130px' },
+  { key: 'unitName', title: '加工单元', slot: 'unit', width: '150px' },
+  { key: 'teamName', title: '执行班组', slot: 'team', width: '130px' },
+  { key: 'operHours', title: '工时(h)', width: '90px', align: 'right' },
+  { key: 'manuCycle', title: '制造周期', width: '90px', align: 'right' },
   { key: 'action', title: '操作', slot: 'action', width: '110px', align: 'center' },
-]
-const formFields: FormField[] = [
-  {
-    field: 'oper',
-    label: '工序编码',
-    type: 'input',
-    readonly: true,
-    placeholder: '保存后自动生成',
-  },
-  { field: 'operDesc', label: '工序名称', type: 'input', required: true },
-  { field: 'operHours', label: '工时(小时)', type: 'number', min: 0 },
-  { field: 'manuCycle', label: '制造周期', type: 'number', min: 0 },
-  {
-    field: 'genPlan',
-    label: '生成计划',
-    type: 'select',
-    options: [
-      { label: '是', value: 'Y' },
-      { label: '否', value: 'N' },
-    ],
-  },
-  { field: 'remark', label: '备注', type: 'textarea', span: 2 },
 ]
 
 const dialogOpen = ref(false)
 const saving = ref(false)
 const formModel = reactive<Record<string, any>>({})
 const isEdit = computed(() => !!formModel.id)
-const dialogTitle = computed(() => (isEdit.value ? '编辑工序' : '新增工序'))
 
 function resetModel(data: Record<string, any> = {}) {
   Object.keys(formModel).forEach((k) => delete formModel[k])
@@ -133,6 +105,21 @@ async function onDelete() {
         <span class="text-sm font-medium">工序定义</span>
         <Button size="sm" @click="openCreate"><Plus class="h-4 w-4" />新增工序</Button>
       </template>
+      <template #dept="{ value }">
+        <span :class="value ? '' : 'text-muted-foreground'">{{ value || '—' }}</span>
+      </template>
+      <template #unit="{ row }">
+        <div v-if="row.unitName" class="flex flex-col leading-tight">
+          <span>{{ row.unitName }}</span>
+          <span v-if="row.unitTypeName" class="text-xs text-muted-foreground">{{
+            row.unitTypeName
+          }}</span>
+        </div>
+        <span v-else class="text-muted-foreground">—</span>
+      </template>
+      <template #team="{ value }">
+        <span :class="value ? '' : 'text-muted-foreground'">{{ value || '—' }}</span>
+      </template>
       <template #action="{ row }">
         <div class="flex items-center justify-center gap-1">
           <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(row)">
@@ -145,10 +132,8 @@ async function onDelete() {
       </template>
     </SpDataTable>
 
-    <SpFormDialog
+    <OperFormDialog
       v-model:open="dialogOpen"
-      :title="dialogTitle"
-      :fields="formFields"
       :model="formModel"
       :loading="saving"
       @submit="onSubmit"

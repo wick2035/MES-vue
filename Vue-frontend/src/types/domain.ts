@@ -243,22 +243,32 @@ export interface ProductionDispatchRow {
   mrpStatus?: string
 }
 
-/** 工单变更记录 */
-export interface WorkOrderChange extends BaseEntity {
-  workOrderId?: string
-  workOrderCode?: string
-  productionOrderId?: string
-  beforeQty?: number
-  afterQty?: number
-  beforePlanStartTime?: string
-  afterPlanStartTime?: string
-  beforePlanEndTime?: string
-  afterPlanEndTime?: string
-  beforeRemark?: string
-  afterRemark?: string
-  /** APPROVING/APPROVED/REJECTED/APPLIED */
+/** 工作流审批任务 */
+export interface WorkflowTask extends BaseEntity {
+  instanceId?: string
+  definitionId?: string
+  businessType?: string
+  businessId?: string
+  businessCode?: string
+  taskName?: string
+  nodeKey?: string
+  nodeName?: string
+  assigneeType?: string
+  assigneeId?: string
+  assigneeName?: string
   status?: string
-  applyTime?: string
+  action?: string
+  opinion?: string
+  startTime?: string
+  completeTime?: string
+  formName?: string
+  formTitle?: string
+  pcFormUrl?: string
+  mobileFormUrl?: string
+  allowReturn?: number
+  allowTransfer?: number
+  allowEntrust?: number
+  allowRevoke?: number
 }
 
 /** 设备 */
@@ -379,6 +389,7 @@ export interface Bom extends BaseEntity {
   bomLevel?: number
   lockStatus?: string
   validity?: string
+  remark?: string
 }
 
 /** BOM 子项 */
@@ -390,19 +401,78 @@ export interface BomItem extends BaseEntity {
   itemNum?: number
   itemUnit?: string
   operTyper?: string
+  /** 关联子 BOM 的 ID（PG/COMP 子项有效，后端实际持久化字段） */
+  childBomId?: string
+  /** 关联子 BOM 编码（仅展示，后端联表带出） */
   childBomCode?: string
+  /** 物料类型：FG 成品 / PG 半成品 / COMP 组件 / PART 零件 */
   itemMatType?: string
+}
+
+/** BOM 结构树节点（对齐后端 BomTreeNodeVO） */
+export interface BomTreeNode {
+  id: string
+  pid?: string | null
+  materielCode?: string
+  materielDesc?: string
+  matType?: string
+  nodeCode?: string
+  /** 产品 / 零部件 / 物料 */
+  nodeType?: string
+  level?: number
+  itemNum?: number
+  itemUnit?: string
+  operTyper?: string
+  lineNo?: string
+  childBomId?: string
+  updateTime?: string
+  open?: boolean
+  haveChild?: boolean
+  children?: BomTreeNode[]
+}
+
+/** 零部件定义（产品 BOM 子项的合法来源） */
+export interface ComponentDef extends BaseEntity {
+  productName?: string
+  componentCode?: string
+  componentName?: string
+  /** PG 半成品 / COMP 组件 */
+  componentType?: string
+  remark?: string
 }
 
 /** 工序 */
 export interface Oper extends BaseEntity {
   oper?: string
   operDesc?: string
+  /** 归口部门ID（sp_sys_department.id） */
+  deptId?: string
+  /** 归口部门名称（联表回显） */
+  deptName?: string
+  /** 执行班组ID（sp_team.id） */
+  teamId?: string
+  /** 执行班组名称（联表回显） */
+  teamName?: string
+  /** 加工单元ID（sp_processing_unit.id） */
   unitId?: string
+  /** 加工单元名称（联表回显） */
+  unitName?: string
+  /** 加工单元类型名称（联表回显） */
+  unitTypeName?: string
   operHours?: number
   manuCycle?: number
   genPlan?: string
   remark?: string
+}
+
+/** 加工单元（下拉数据源） */
+export interface ProcessingUnit extends BaseEntity {
+  unitCode?: string
+  unitName?: string
+  /** person 人员作业单元 / device 设备作业单元 */
+  unitType?: string
+  description?: string
+  status?: string
 }
 
 /** 流程/工艺路线 */
@@ -410,6 +480,21 @@ export interface Flow extends BaseEntity {
   flow?: string
   flowDesc?: string
   process?: string
+}
+
+/** 工艺路线步骤（引用工序，继承部门/班组/加工单元，只读展示） */
+export interface FlowStep {
+  operId: string
+  oper?: string
+  operDesc?: string
+  operHours?: number
+  manuCycle?: number
+  deptName?: string
+  teamName?: string
+  unitName?: string
+  unitTypeName?: string
+  sortNum?: number
+  operType?: string
 }
 
 /** SN 工序采集记录 */
@@ -427,6 +512,16 @@ export interface SnRecord extends BaseEntity {
   remark?: string
 }
 
+/** SN 工艺路线执行状态 */
+export interface SnRouteStep {
+  operId: string
+  oper?: string
+  operDesc?: string
+  stepNo?: number
+  done?: boolean
+  current?: boolean
+}
+
 /** 通用树节点（对齐后端 TreeVO） */
 export interface TreeNode {
   id: string
@@ -435,6 +530,14 @@ export interface TreeNode {
   icon?: string
   type?: string
   url?: string
+  /** 编码（菜单 code） */
+  code?: string
+  /** 权限标识（菜单 permission） */
+  permission?: string
+  /** 排序号 */
+  sortNum?: number
+  /** 父节点 ID */
+  pid?: string
   children?: TreeNode[]
 }
 

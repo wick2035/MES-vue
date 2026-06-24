@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, reactive, watch } from 'vue'
+import { reactive, watch } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRoute } from 'vue-router'
 import { RotateCcw, Save, Search, UserCheck } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -129,7 +130,7 @@ async function save(row: ProductionDispatchTask) {
   }
 }
 
-onMounted(table.load)
+useAutoRefresh(() => table.load())
 </script>
 
 <template>
@@ -209,10 +210,17 @@ onMounted(table.load)
             class="min-w-0 flex-1"
             @update:model-value="selectedByPlan[row.operPlanId] = $event as string[]"
           />
-          <Button size="sm" :disabled="saving[row.operPlanId]" @click="save(row)">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            :disabled="saving[row.operPlanId]"
+            class="shrink-0"
+            aria-label="保存员工派工"
+            title="保存员工派工"
+            @click="save(row)"
+          >
             <Save v-if="!saving[row.operPlanId]" class="h-4 w-4" />
             <UserCheck v-else class="h-4 w-4 animate-spin" />
-            保存
           </Button>
         </div>
       </template>

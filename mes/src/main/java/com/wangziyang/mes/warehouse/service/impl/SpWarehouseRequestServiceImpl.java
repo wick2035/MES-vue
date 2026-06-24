@@ -91,7 +91,7 @@ public class SpWarehouseRequestServiceImpl
             req = new SpWarehouseRequestReq();
         }
         if (WarehouseConstants.BUSINESS_PLAN_IN.equals(req.getBusinessType())) {
-            syncPlanInboundRequests();
+            syncPlanInboundRequests(null);
         }
         return baseMapper.pageList(new Page<SpWarehouseRequest>(req.getCurrent(), req.getSize()), req);
     }
@@ -108,11 +108,11 @@ public class SpWarehouseRequestServiceImpl
     @Transactional(rollbackFor = Exception.class)
     public Result apply(SpWarehouseApplyReq req, SysUser user) {
         if (req == null) {
-            return Result.failure("鐢宠鍙傛暟涓嶈兘涓虹┖");
+            return Result.failure("申请参数不能为空");
         }
         if (!WarehouseConstants.BUSINESS_MANUAL_IN.equals(req.getBusinessType())
                 && !WarehouseConstants.BUSINESS_MANUAL_OUT.equals(req.getBusinessType())) {
-            return Result.failure("鎵嬪伐鐢宠鍙敮鎸佹墜宸ュ叆搴撴垨鎵嬪伐鍑哄簱");
+            return Result.failure("手工申请只支持手工入库或手工出库");
         }
         Result check = validateLocation(req.getWarehouseId(), req.getLocationId());
         if (!ok(check)) {
@@ -122,9 +122,12 @@ public class SpWarehouseRequestServiceImpl
         if (material == null || "1".equals(material.getDeleted()) || "00".equals(material.getDeleted())) {
             return Result.failure("请选择有效物料");
         }
-        BigDecimal qty = nvl(req.getQty());
+        if (req.getQty() == null) {
+            return Result.failure("请输入申请数量");
+        }
+        BigDecimal qty = req.getQty();
         if (qty.compareTo(BigDecimal.ZERO) <= 0) {
-            return Result.failure("鐢宠鏁伴噺蹇呴』澶т簬0");
+            return Result.failure("申请数量必须大于0");
         }
         if (WarehouseConstants.BUSINESS_MANUAL_IN.equals(req.getBusinessType())) {
             Result compatible = ensureInboundLocationCompatible(req.getLocationId(), req.getMaterialId());
@@ -191,11 +194,24 @@ public class SpWarehouseRequestServiceImpl
             return Result.failure("当前单据状态不能确认");
         }
 
+        String direction = direction(request.getBusinessType());
         String warehouseId = StringUtils.defaultIfBlank(req.getWarehouseId(), item.getWarehouseId());
         String locationId = StringUtils.defaultIfBlank(req.getLocationId(), item.getLocationId());
+        if (WarehouseConstants.DIRECTION_IN.equals(direction)
+                && (StringUtils.isBlank(warehouseId) || StringUtils.isBlank(locationId))) {
+            SpWarehouseLocation autoLocation = autoAssignInboundLocation(warehouseId, item.getMaterialId());
+            if (autoLocation == null) {
+                return Result.failure("没有可用空库位或同物料兼容库位，无法自动分配入库库位");
+            }
+            warehouseId = autoLocation.getWarehouseId();
+            locationId = autoLocation.getId();
+            if (StringUtils.isBlank(request.getWarehouseId())) {
+                request.setWarehouseId(warehouseId);
+            }
+        }
         BigDecimal qty = req.getQty() == null ? nvl(item.getRequestQty()) : req.getQty();
         if (qty.compareTo(BigDecimal.ZERO) <= 0) {
-            return Result.failure("纭鏁伴噺蹇呴』澶т簬0");
+            return Result.failure("确认数量必须大于0");
         }
         Result check = validateLocation(warehouseId, locationId);
         if (!ok(check)) {
@@ -203,7 +219,6 @@ public class SpWarehouseRequestServiceImpl
         }
         item.setWarehouseId(warehouseId);
         item.setLocationId(locationId);
-        String direction = direction(request.getBusinessType());
         if (WarehouseConstants.DIRECTION_IN.equals(direction)) {
             Result compatible = ensureInboundLocationCompatible(locationId, item.getMaterialId());
             if (!ok(compatible)) {
@@ -222,7 +237,25 @@ public class SpWarehouseRequestServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result syncPlanInboundRequests() {
+    public Result syncPlanInboundRequests(SysUser user) {
+        List<SpMaterialRequirementPlan> pendingPlans = materialPlanService.list(new QueryWrapper<SpMaterialRequirementPlan>()
+                .eq("is_deleted", "0")
+                .eq("delivery_status", "RELEASED")
+                .gt("net_requirement", BigDecimal.ZERO)
+                .and(w -> w.isNull("inbound_status").or().eq("inbound_status", "").or().eq("inbound_status", "NONE"))
+                .orderByAsc("production_order_no")
+                .orderByAsc("material_code"));
+        if (!pendingPlans.isEmpty()) {
+            List<String> planIds = new ArrayList<String>();
+            for (SpMaterialRequirementPlan plan : pendingPlans) {
+                planIds.add(plan.getId());
+            }
+            Result generated = materialPlanService.generateInboundRequest(planIds, user);
+            if (!ok(generated)) {
+                return generated;
+            }
+        }
+
         List<SpMaterialInboundRequest> rows = planInboundService.list(new QueryWrapper<SpMaterialInboundRequest>()
                 .eq("is_deleted", "0"));
         int count = 0;
@@ -243,11 +276,14 @@ public class SpWarehouseRequestServiceImpl
     @Transactional(rollbackFor = Exception.class)
     public Result syncPlanInboundRequest(String sourceRequestId) {
         if (StringUtils.isBlank(sourceRequestId)) {
-            return Result.failure("鏉ユ簮鍏ュ簱鐢宠鍗旾D涓嶈兘涓虹┖");
+            return Result.failure("来源入库申请单ID不能为空");
         }
         SpMaterialInboundRequest source = planInboundService.getById(sourceRequestId);
         if (source == null || "1".equals(source.getDeleted())) {
             return Result.failure("来源入库申请单不存在");
+        }
+        if (nvl(source.getTotalNetQty()).compareTo(BigDecimal.ZERO) <= 0) {
+            return Result.failure("来源入库申请单总数量必须大于0");
         }
         SpWarehouseRequest exists = getOne(new QueryWrapper<SpWarehouseRequest>()
                 .eq("source_type", WarehouseConstants.SOURCE_PLAN_INBOUND)
@@ -266,6 +302,9 @@ public class SpWarehouseRequestServiceImpl
             SpMaterile material = resolveMaterial(sourceItem.getMaterialId(), sourceItem.getMaterialCode());
             if (material == null) {
                 return Result.failure("material_id missing or invalid: " + sourceItem.getMaterialCode());
+            }
+            if (nvl(sourceItem.getRequestQty()).compareTo(BigDecimal.ZERO) <= 0) {
+                return Result.failure("来源入库申请单明细数量必须大于0：" + sourceItem.getMaterialCode());
             }
         }
         if (sourceItems.isEmpty()) {
@@ -306,8 +345,24 @@ public class SpWarehouseRequestServiceImpl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result syncKittingOutboundRequests() {
-        return Result.success(0, "\u8bf7\u5728\u7269\u6599\u9700\u6c42\u8ba1\u5212\u4e2d\u751f\u6210\u914d\u5957\u51fa\u5e93\u5355");
+    public Result syncKittingOutboundRequests(SysUser user) {
+        List<SpMaterialRequirementPlan> pendingPlans = materialPlanService.list(new QueryWrapper<SpMaterialRequirementPlan>()
+                .eq("is_deleted", "0")
+                .eq("delivery_status", "RELEASED")
+                .gt("gross_requirement", BigDecimal.ZERO)
+                .and(w -> w.isNull("outbound_status").or().eq("outbound_status", "").or().eq("outbound_status", "NONE"))
+                .and(w -> w.isNull("outbound_request_id").or().eq("outbound_request_id", ""))
+                .orderByAsc("production_order_no")
+                .orderByAsc("material_code"));
+        if (pendingPlans.isEmpty()) {
+            return Result.success(0, "没有待生成的配套出库单");
+        }
+
+        List<String> planIds = new ArrayList<String>();
+        for (SpMaterialRequirementPlan plan : pendingPlans) {
+            planIds.add(plan.getId());
+        }
+        return createKittingOutboundRequest(planIds, user, false);
     }
 
     @Override
@@ -930,10 +985,10 @@ public class SpWarehouseRequestServiceImpl
 
     private Result validateLocation(String warehouseId, String locationId) {
         if (StringUtils.isBlank(warehouseId)) {
-            return Result.failure("璇烽€夋嫨搴撴埧");
+            return Result.failure("请选择库房");
         }
         if (StringUtils.isBlank(locationId)) {
-            return Result.failure("璇烽€夋嫨搴撲綅");
+            return Result.failure("请选择库位");
         }
         SpWarehouse warehouse = warehouseService.getById(warehouseId);
         if (warehouse == null || "1".equals(warehouse.getDeleted()) || "2".equals(warehouse.getDeleted())) {
@@ -960,6 +1015,51 @@ public class SpWarehouseRequestServiceImpl
             }
         }
         return Result.success();
+    }
+
+    private SpWarehouseLocation autoAssignInboundLocation(String preferredWarehouseId, String materialId) {
+        List<SpWarehouse> warehouses;
+        if (StringUtils.isNotBlank(preferredWarehouseId)) {
+            SpWarehouse warehouse = warehouseService.getById(preferredWarehouseId);
+            warehouses = warehouse == null ? new ArrayList<SpWarehouse>() : Collections.singletonList(warehouse);
+        } else {
+            warehouses = warehouseService.list(new QueryWrapper<SpWarehouse>()
+                    .ne("is_deleted", "1")
+                    .ne("is_deleted", "2")
+                    .orderByAsc("warehouse_code"));
+        }
+
+        SpWarehouseLocation sameMaterialFallback = null;
+        for (SpWarehouse warehouse : warehouses) {
+            if (warehouse == null || "1".equals(warehouse.getDeleted()) || "2".equals(warehouse.getDeleted())) {
+                continue;
+            }
+            List<SpWarehouseLocation> locations = locationService.list(new QueryWrapper<SpWarehouseLocation>()
+                    .eq("warehouse_id", warehouse.getId())
+                    .eq("is_deleted", "0")
+                    .ne("status", "2")
+                    .orderByAsc("group_no", "row_no", "layer_no", "column_no"));
+            for (SpWarehouseLocation location : locations) {
+                List<SpInventory> stocks = inventoryService.list(new QueryWrapper<SpInventory>()
+                        .eq("location_id", location.getId())
+                        .eq("is_deleted", "0")
+                        .gt("qty", BigDecimal.ZERO));
+                if (stocks.isEmpty()) {
+                    return location;
+                }
+                boolean sameMaterial = true;
+                for (SpInventory stock : stocks) {
+                    if (!StringUtils.equals(stock.getMaterielId(), materialId)) {
+                        sameMaterial = false;
+                        break;
+                    }
+                }
+                if (sameMaterial && sameMaterialFallback == null) {
+                    sameMaterialFallback = location;
+                }
+            }
+        }
+        return sameMaterialFallback;
     }
 
     private SpInventory findStock(String locationId, String materialId, String batchNo) {

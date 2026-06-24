@@ -58,6 +58,11 @@ public class TreeVO<T> {
     private String code;
 
     /**
+     * 排序号
+     */
+    private Integer sortNum;
+
+    /**
      * 是否有父节点
      */
     private boolean haveParent = false;
@@ -174,5 +179,13 @@ public class TreeVO<T> {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public Integer getSortNum() {
+        return sortNum;
+    }
+
+    public void setSortNum(Integer sortNum) {
+        this.sortNum = sortNum;
     }
 }

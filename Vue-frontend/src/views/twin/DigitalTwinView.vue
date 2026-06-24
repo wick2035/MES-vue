@@ -11,7 +11,7 @@ import {
   Loader2,
 } from 'lucide-vue-next'
 import { getDashboardData } from '@/api/modules/dashboard'
-import { ProductionTwinScene, type TwinStation } from '@/lib/twin/scene'
+import { DEMO_TWIN_STATIONS, ProductionTwinScene, type TwinStation } from '@/lib/twin/scene'
 import type { DashboardData } from '@/types/domain'
 import { notify } from '@/lib/toast'
 
@@ -23,7 +23,7 @@ const loading = ref(true)
 const firstLoad = ref(true)
 const updatedAt = ref('')
 const overview = ref<DashboardData['overview'] | null>(null)
-const stations = ref<TwinStation[]>([])
+const stations = ref<TwinStation[]>(cloneDemoStations())
 
 let scene: ProductionTwinScene | null = null
 let ro: ResizeObserver | null = null
@@ -44,7 +44,14 @@ const runningCount = computed(() => stations.value.filter((s) => s.status === 'r
 const alarmCount = computed(() => stations.value.filter((s) => s.status === 'alarm').length)
 
 /** 由工序流真实数据派生工位状态 */
+function cloneDemoStations(): TwinStation[] {
+  return DEMO_TWIN_STATIONS.map((s) => ({ ...s }))
+}
+
 function deriveStations(pf: DashboardData['processFlow']): TwinStation[] {
+  if (!pf.length) {
+    return cloneDemoStations()
+  }
   return [...pf]
     .sort((a, b) => a.stepNo - b.stepNo)
     .map((p) => {
@@ -64,6 +71,10 @@ async function load() {
     scene?.setStations(stations.value)
     updatedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
   } catch {
+    if (!stations.value.length) {
+      stations.value = cloneDemoStations()
+      scene?.setStations(stations.value)
+    }
     // 错误已全局提示
   } finally {
     loading.value = false
@@ -79,6 +90,7 @@ onMounted(async () => {
   if (canvasEl.value && wrapEl.value) {
     scene = new ProductionTwinScene()
     scene.init(canvasEl.value, wrapEl.value)
+    scene.setStations(stations.value)
     ro = new ResizeObserver(() => scene?.resize())
     ro.observe(wrapEl.value)
   }
@@ -204,7 +216,7 @@ onBeforeUnmount(() => {
               <span class="h-2 w-2 shrink-0 rounded-full" :class="statusDot[s.status]" />
               <span class="min-w-0 flex-1 truncate text-slate-200">{{ s.operDesc || s.oper }}</span>
               <span class="shrink-0 tabular-nums text-slate-400"
-                >{{ s.yieldRate.toFixed(0) }}%</span
+                >{{ s.total > 0 ? s.yieldRate.toFixed(0) + '%' : '暂无' }}</span
               >
               <span
                 class="shrink-0 rounded px-1.5 py-0.5 text-[10px]"

@@ -54,6 +54,19 @@ public class SpFlowController extends BaseController {
 
 
     /**
+     * 流程头信息查询（单条）
+     *
+     * @param id 主键
+     * @return Result 执行结果
+     */
+    @ApiOperation("工艺路线头信息查询")
+    @GetMapping("/detail")
+    @ResponseBody
+    public Result detail(@RequestParam String id) {
+        return Result.success(iSpFlowService.getById(id));
+    }
+
+    /**
      * 流程全部信息查询
      *
      * @return Result 执行结果

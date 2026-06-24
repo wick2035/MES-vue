@@ -31,7 +31,25 @@ export function pageWarehouseRequestItems(params: Record<string, any>) {
 }
 
 export function applyWarehouseRequest(params: Record<string, any>) {
-  return http.post('/warehouse/request/apply', params)
+  return http.postJson('/warehouse/request/apply', params)
+}
+
+export interface AvailableLocation {
+  id: string
+  warehouseId?: string
+  locationCode?: string
+  empty?: boolean
+  qty?: number
+  materialCode?: string
+}
+
+export function availableLocations(params: {
+  warehouseId: string
+  materialId?: string
+  locationCodeLike?: string
+  direction?: 'IN' | 'OUT'
+}) {
+  return http.post<AvailableLocation[]>('/warehouse/common/available-locations', params)
 }
 
 export function confirmWarehouseItem(data: {

@@ -111,12 +111,6 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: { title: '审批中心', icon: 'ClipboardCheck', keepAlive: true },
           },
           {
-            path: 'order',
-            name: 'Order',
-            component: () => import('@/views/order/OrderListView.vue'),
-            meta: { title: '生产工单', icon: 'Factory', keepAlive: true },
-          },
-          {
             path: 'material-plan',
             name: 'MaterialPlan',
             component: () => import('@/views/production/MaterialPlanView.vue'),
@@ -141,10 +135,10 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: { title: '生产计划下发', icon: 'Send', keepAlive: true },
           },
           {
-            path: 'change',
-            name: 'WorkOrderChange',
-            component: () => import('@/views/order/WorkOrderChangeView.vue'),
-            meta: { title: '工单变更', icon: 'FileClock', keepAlive: true },
+            path: 'order',
+            name: 'Order',
+            component: () => import('@/views/order/OrderListView.vue'),
+            meta: { title: '生产工单', icon: 'Factory', keepAlive: true },
           },
           {
             path: 'order/:id',
@@ -185,6 +179,12 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: { title: 'BOM 结构', hidden: true },
           },
           {
+            path: 'bom/:id/tree',
+            name: 'BomTree',
+            component: () => import('@/views/technology/bom/BomTreeView.vue'),
+            meta: { title: 'BOM 结构树', hidden: true },
+          },
+          {
             path: 'oper',
             name: 'Oper',
             component: () => import('@/views/technology/oper/OperListView.vue'),
@@ -195,6 +195,12 @@ export const constantRoutes: RouteRecordRaw[] = [
             name: 'Flow',
             component: () => import('@/views/technology/flow/FlowListView.vue'),
             meta: { title: '工艺路线', icon: 'GitBranch', keepAlive: true },
+          },
+          {
+            path: 'flow/:id',
+            name: 'FlowDetail',
+            component: () => import('@/views/technology/flow/FlowDetailView.vue'),
+            meta: { title: '工艺路线配置', hidden: true },
           },
         ],
       },

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue'
+import { computed, reactive } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRoute } from 'vue-router'
 import { Cpu, RotateCcw, Save, Search } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -79,9 +80,7 @@ async function save(row: ProductionDispatchTask) {
   }
 }
 
-onMounted(async () => {
-  await Promise.all([loadEquipments(), table.load()])
-})
+useAutoRefresh(() => Promise.all([loadEquipments(), table.load()]))
 </script>
 
 <template>
@@ -150,7 +149,7 @@ onMounted(async () => {
         />
       </template>
       <template #action="{ row }">
-        <div class="flex items-center gap-2">
+        <div class="flex min-w-[240px] items-center gap-2">
           <SpCombobox
             :model-value="equipmentMap[row.operPlanId] || ''"
             :options="equipmentOptions"
@@ -160,10 +159,17 @@ onMounted(async () => {
             class="min-w-0 flex-1"
             @update:model-value="equipmentMap[row.operPlanId] = $event as string"
           />
-          <Button size="sm" :disabled="saving[row.operPlanId]" @click="save(row)">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            :disabled="saving[row.operPlanId]"
+            class="shrink-0"
+            aria-label="保存设备派工"
+            title="保存设备派工"
+            @click="save(row)"
+          >
             <Save v-if="!saving[row.operPlanId]" class="h-4 w-4" />
             <Cpu v-else class="h-4 w-4 animate-spin" />
-            保存
           </Button>
         </div>
       </template>

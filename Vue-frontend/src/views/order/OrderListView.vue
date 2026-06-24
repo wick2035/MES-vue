@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRouter } from 'vue-router'
 import {
   Search,
   RotateCcw,
   Eye,
-  CheckCircle2,
   Trash2,
   BadgeCheck,
   PlayCircle,
@@ -22,22 +22,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import SpDataTable from '@/components/common/SpDataTable.vue'
 import SpStatusBadge from '@/components/common/SpStatusBadge.vue'
 import SpConfirm from '@/components/common/SpConfirm.vue'
+import SpChart from '@/components/common/SpChart.vue'
 import { useTable } from '@/composables/useTable'
-import { pageOrders, approveOrder, deleteOrder } from '@/api/modules/order'
+import { pageOrders, deleteOrder } from '@/api/modules/order'
 import { notify } from '@/lib/toast'
 import { statueTone, workTone, completeTone, deliveryTone, orderTypeName } from '@/lib/orderStatus'
 import type { TableColumn } from '@/types/table'
 import type { Order } from '@/types/domain'
+import type {
+  EChartsOption,
+  CustomSeriesRenderItemAPI,
+  CustomSeriesRenderItemParams,
+} from 'echarts'
 
 defineOptions({ name: 'Order' })
 
 const router = useRouter()
 const { loading, list, total, query, load, onPageChange, onSizeChange, search, reset } =
   useTable<Order>(pageOrders, { orderCodeLike: '', materielDescLike: '', statue: undefined })
-onMounted(load)
+useAutoRefresh(load)
 
 // 四联状态汇总（本页工单口径）：已审批 / 未动工 / 待完工 / 待交付
 const summary = computed(() => {
@@ -110,15 +117,87 @@ const columns: TableColumn[] = [
   { key: 'action', title: '操作', slot: 'action', width: '150px', align: 'center' },
 ]
 
-function goDetail(row: Order) {
-  router.push(`/production/order/${row.id}`)
+// 工单主状态 → 甘特条颜色（沿用 statueTone 语义，落到 SpChart 调色板 hex）
+function statueHex(statue?: number): string {
+  switch (statue) {
+    case 1:
+      return '#D97706' // 待审批
+    case 2:
+    case 5:
+      return '#2563EB' // 已审批 / 已下发
+    case 3:
+      return '#16A34A' // 已结束
+    case 4:
+      return '#94A3B8' // 已终结
+    default:
+      return '#94A3B8'
+  }
 }
 
-async function onApprove(row: Order) {
-  if (!row.id) return
-  await approveOrder(row.id)
-  notify.success('审批通过')
-  load()
+// 甘特数据源：当前页中带有合法计划起止时间的工单
+const ganttRows = computed(() =>
+  (list.value ?? [])
+    .map((o) => ({
+      o,
+      s: o.planStartTime ? new Date(o.planStartTime).getTime() : NaN,
+      e: o.planEndTime ? new Date(o.planEndTime).getTime() : NaN,
+    }))
+    .filter((r) => Number.isFinite(r.s) && Number.isFinite(r.e) && r.e >= r.s),
+)
+
+// 订单级甘特图：每个工单一条横条（计划起止），按主状态着色
+const ganttOption = computed<EChartsOption>(() => {
+  const rows = ganttRows.value
+  return {
+    tooltip: {
+      trigger: 'item',
+      formatter: (p) => {
+        const item = Array.isArray(p) ? p[0] : p
+        const r = item ? rows[item.dataIndex] : undefined
+        if (!r) return ''
+        return `${r.o.orderCode ?? ''}<br/>计划：${r.o.planStartTime ?? '—'} ~ ${r.o.planEndTime ?? '—'}<br/>状态：${r.o.mainStatusName ?? '—'}`
+      },
+    },
+    grid: { left: 12, right: 24, top: 12, bottom: 24, containLabel: true },
+    xAxis: { type: 'time' },
+    yAxis: {
+      type: 'category',
+      inverse: true,
+      data: rows.map((r) => r.o.orderCode ?? r.o.id ?? ''),
+    },
+    series: [
+      {
+        type: 'custom',
+        encode: { x: [1, 2], y: 0 },
+        renderItem: (_params: CustomSeriesRenderItemParams, api: CustomSeriesRenderItemAPI) => {
+          const yIdx = api.value(0) as number
+          const start = api.coord([api.value(1), yIdx])
+          const end = api.coord([api.value(2), yIdx])
+          const bandHeight = (api.size?.([0, 1]) as number[])?.[1] ?? 20
+          const h = bandHeight * 0.5
+          return {
+            type: 'rect',
+            shape: {
+              x: start[0],
+              y: start[1] - h / 2,
+              width: Math.max(end[0] - start[0], 2),
+              height: h,
+              r: 3,
+            },
+            style: api.style(),
+          }
+        },
+        data: rows.map((r, i) => ({
+          value: [i, r.s, r.e],
+          itemStyle: { color: statueHex(r.o.statue) },
+        })),
+      },
+    ],
+  }
+})
+
+function goDetail(row: Order) {
+  router.push(`/production/order/${row.id}`)
 }
 
 const confirmOpen = ref(false)
@@ -214,7 +293,7 @@ function onReset() {
       <template #toolbar>
         <span class="text-sm font-medium">生产工单</span>
         <span class="text-xs text-muted-foreground"
-          >工单由生产订单下发产生，此处执行审批与全生命周期流转</span
+          >工单由生产订单下发产生，此处跟踪全生命周期流转</span
         >
       </template>
       <template #statue="{ row }">
@@ -238,15 +317,6 @@ function onReset() {
             v-if="row.statue === 1"
             variant="ghost"
             size="icon-sm"
-            title="审批通过"
-            @click="onApprove(row)"
-          >
-            <CheckCircle2 class="h-4 w-4 text-success" />
-          </Button>
-          <Button
-            v-if="row.statue === 1"
-            variant="ghost"
-            size="icon-sm"
             title="删除"
             @click="askDelete(row)"
           >
@@ -255,6 +325,22 @@ function onReset() {
         </div>
       </template>
     </SpDataTable>
+
+    <Card>
+      <CardHeader>
+        <CardTitle class="text-base">订单排程甘特图</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <SpChart
+          v-if="ganttRows.length"
+          :option="ganttOption"
+          :style="{ height: Math.max(240, ganttRows.length * 34 + 60) + 'px' }"
+        />
+        <div v-else class="py-10 text-center text-sm text-muted-foreground">
+          当前列表无可展示的计划时间
+        </div>
+      </CardContent>
+    </Card>
 
     <SpConfirm
       v-model:open="confirmOpen"

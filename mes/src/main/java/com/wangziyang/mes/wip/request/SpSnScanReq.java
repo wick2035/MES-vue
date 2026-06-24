@@ -6,6 +6,8 @@ public class SpSnScanReq {
 
     private String orderId;
 
+    private String operId;
+
     private String status;
 
     private String remark;
@@ -24,6 +26,14 @@ public class SpSnScanReq {
 
     public void setOrderId(String orderId) {
         this.orderId = orderId;
+    }
+
+    public String getOperId() {
+        return operId;
+    }
+
+    public void setOperId(String operId) {
+        this.operId = operId;
     }
 
     public String getStatus() {

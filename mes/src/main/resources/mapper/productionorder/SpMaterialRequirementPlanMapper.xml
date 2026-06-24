@@ -127,7 +127,8 @@
             GROUP BY materiel_id
         ) inv ON inv.materiel_id = p.material_id
         WHERE <include refid="PlanFilters"/>
-        ORDER BY p.requirement_date ASC, p.material_code ASC, p.update_time DESC
+        ORDER BY (CASE WHEN p.delivery_status = 'WAIT' THEN 0 ELSE 1 END) ASC,
+                 p.requirement_date ASC, p.material_code ASC, p.update_time DESC
     </select>
 
     <select id="weekSummary" resultType="java.util.HashMap">

@@ -10,6 +10,7 @@ import com.wangziyang.mes.technology.mapper.SpFlowOperRelationMapper;
 import com.wangziyang.mes.technology.service.ISpFlowOperRelationService;
 import com.wangziyang.mes.technology.service.ISpFlowService;
 import com.wangziyang.mes.technology.service.ISpOperService;
+import com.wangziyang.mes.technology.vo.FlowStepVo;
 import com.wangziyang.mes.technology.vo.SpOperVo;
 import com.wangziyang.mes.common.Result;
 import org.apache.commons.lang3.StringUtils;
@@ -82,6 +83,67 @@ public class SpFlowOperRelationServiceImpl extends ServiceImpl<SpFlowOperRelatio
     @Override
     public List<SpOperVo> currentOperViewServer(String flowId) throws Exception {
         return spFlowOperRelationMapper.queryOperRelationByFlowId(flowId);
+    }
+
+    @Override
+    public List<FlowStepVo> listSteps(String flowId) {
+        if (StringUtils.isEmpty(flowId)) {
+            return new ArrayList<>();
+        }
+        return spFlowOperRelationMapper.queryStepsByFlowId(flowId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void saveSteps(String flowId, List<String> operIds) {
+        SpFlow flow = iSpFlowService.getById(flowId);
+        if (flow == null) {
+            throw new RuntimeException("工艺路线不存在");
+        }
+        // 先清空旧步骤，再按顺序重建（不触碰 sp_flow.process 备注）
+        spFlowOperRelationMapper.deleteOperRelationByFlowId(flowId);
+        if (CollectionUtil.isEmpty(operIds)) {
+            return;
+        }
+        List<SpFlowOperRelation> relations = new ArrayList<>();
+        int size = operIds.size();
+        for (int i = 0; i < size; i++) {
+            SpOper oper = iSpOperService.getById(operIds.get(i));
+            if (oper == null) {
+                throw new RuntimeException("工序不存在，请刷新后重试");
+            }
+            SpFlowOperRelation relation = new SpFlowOperRelation();
+            relation.setFlowId(flowId);
+            relation.setFlow(flow.getFlow());
+            relation.setOperId(oper.getId());
+            relation.setOper(oper.getOper());
+            if (i > 0) {
+                SpOper pre = iSpOperService.getById(operIds.get(i - 1));
+                relation.setPerOperId(operIds.get(i - 1));
+                relation.setPerOper(pre != null ? pre.getOper() : "");
+            } else {
+                relation.setPerOperId("");
+                relation.setPerOper("");
+            }
+            if (i + 1 < size) {
+                SpOper next = iSpOperService.getById(operIds.get(i + 1));
+                relation.setNextOperId(operIds.get(i + 1));
+                relation.setNextOper(next != null ? next.getOper() : "");
+            } else {
+                relation.setNextOperId("");
+                relation.setNextOper("");
+            }
+            relation.setSortNum(i + 1);
+            if (i == 0) {
+                relation.setOperType("firstOper");
+            } else if (i + 1 == size) {
+                relation.setOperType("lastOper");
+            } else {
+                relation.setOperType("");
+            }
+            relations.add(relation);
+        }
+        saveBatch(relations);
     }
 
     /**

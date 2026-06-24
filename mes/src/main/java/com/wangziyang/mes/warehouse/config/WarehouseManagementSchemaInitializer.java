@@ -136,7 +136,9 @@ public class WarehouseManagementSchemaInitializer implements ApplicationRunner {
     private void migrateColumns() {
         addColumnIfMissing("sp_inventory", "stock_status",
                 "ALTER TABLE `sp_inventory` ADD COLUMN `stock_status` varchar(32) NOT NULL DEFAULT 'AVAILABLE' AFTER `unit`");
-        jdbcTemplate.update("UPDATE `sp_inventory` SET `stock_status` = 'AVAILABLE' WHERE `stock_status` IS NULL OR `stock_status` = ''");
+        jdbcTemplate.update("UPDATE `sp_inventory` SET `stock_status` = 'AVAILABLE' "
+                + "WHERE `stock_status` IS NULL OR `stock_status` = '' "
+                + "OR `stock_status` IN ('0', '正常', '可用')");
         addColumnIfMissing("sp_material_requirement_plan", "outbound_status",
                 "ALTER TABLE `sp_material_requirement_plan` ADD COLUMN `outbound_status` varchar(32) NOT NULL DEFAULT 'NONE' AFTER `inbound_request_no`");
         addColumnIfMissing("sp_material_requirement_plan", "outbound_request_id",

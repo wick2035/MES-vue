@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ChevronLeft, ChevronRight, Inbox } from 'lucide-vue-next'
+import { Motion } from 'motion-v'
 import {
   Table,
   TableBody,
@@ -9,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { SPRING, staggerDelay } from '@/lib/motion'
 import {
   Select,
   SelectContent,
@@ -30,6 +32,8 @@ const props = withDefaults(
     pageSizes?: number[]
     showIndex?: boolean
     rowKey?: string
+    /** 开启行逐项入场动效（motion-v） */
+    animated?: boolean
   }>(),
   {
     loading: false,
@@ -39,8 +43,11 @@ const props = withDefaults(
     pageSizes: () => [10, 20, 50, 100],
     showIndex: true,
     rowKey: 'id',
+    animated: false,
   },
 )
+
+const reduce = usePreferredReducedMotion()
 
 const emit = defineEmits<{
   (e: 'page-change', page: number): void
@@ -91,7 +98,8 @@ function cellText(col: TableColumn, row: any) {
                 'text-right': col.align === 'right',
               }"
             >
-              {{ col.title }}
+              <slot v-if="col.headSlot" :name="col.headSlot" />
+              <template v-else>{{ col.title }}</template>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -104,7 +112,20 @@ function cellText(col: TableColumn, row: any) {
               </div>
             </TableCell>
           </TableRow>
-          <TableRow v-for="(row, idx) in data" :key="row[rowKey] ?? idx" class="hover:bg-accent/40">
+          <component
+            :is="animated ? Motion : TableRow"
+            v-for="(row, idx) in data"
+            :key="row[rowKey] ?? idx"
+            :as="animated ? 'tr' : undefined"
+            :initial="animated && reduce !== 'reduce' ? { opacity: 0, y: 8 } : undefined"
+            :animate="animated ? { opacity: 1, y: 0 } : undefined"
+            :transition="
+              animated
+                ? { ...SPRING, delay: reduce === 'reduce' ? 0 : staggerDelay(idx, 0.03, 0.25) }
+                : undefined
+            "
+            class="border-b transition-colors hover:bg-accent/40 data-[state=selected]:bg-muted"
+          >
             <TableCell v-if="showIndex" class="text-center text-muted-foreground">
               {{ (page - 1) * pageSize + idx + 1 }}
             </TableCell>
@@ -119,7 +140,7 @@ function cellText(col: TableColumn, row: any) {
               <slot v-if="col.slot" :name="col.slot" :row="row" :value="row[col.key]" />
               <template v-else>{{ cellText(col, row) }}</template>
             </TableCell>
-          </TableRow>
+          </component>
         </TableBody>
       </Table>
     </div>

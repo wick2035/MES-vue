@@ -42,6 +42,9 @@
         LEFT JOIN sp_warehouse w ON i.warehouse_id = w.id
         LEFT JOIN sp_warehouse_location l ON i.location_id = l.id
         WHERE i.is_deleted = '0'
+        <if test="req.requestId != null and req.requestId != ''">
+            AND i.request_id = #{req.requestId}
+        </if>
         <if test="req.requestNoLike != null and req.requestNoLike != ''">
             AND r.request_no LIKE CONCAT('%', #{req.requestNoLike}, '%')
         </if>

@@ -47,6 +47,7 @@ public class SysDepartmentServiceImpl extends ServiceImpl<SysDepartmentMapper, S
             tree.setId(dept.getId());
             tree.setPid(dept.getParentId());
             tree.setName(dept.getName());
+            tree.setSortNum(dept.getSortNum());
             nodes.add(tree);
         }
         return TreeUtil.buildList(nodes, "0");

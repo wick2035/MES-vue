@@ -110,26 +110,26 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="wrapEl" class="relative h-full min-h-0 overflow-hidden border bg-[#eef2f8]">
+  <div ref="wrapEl" class="relative h-full min-h-0 overflow-hidden border bg-[#f6f8fb]">
     <canvas ref="canvasEl" class="block h-full w-full" />
 
     <!-- HUD 覆盖层 -->
-    <div class="pointer-events-none absolute inset-0 p-3 text-slate-700 sm:p-4">
+    <div class="pointer-events-none absolute inset-0 p-3 text-slate-800 sm:p-4">
       <!-- 顶部标题 + 库房选择 + 视角 -->
       <div class="flex items-start justify-between gap-3">
         <div
-          class="max-w-[calc(100vw-1.5rem)] rounded-lg border border-slate-200/80 bg-white/86 px-4 py-3 shadow-sp backdrop-blur"
+          class="max-w-[calc(100vw-1.5rem)] rounded-lg border border-white bg-white/95 px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.16)] ring-1 ring-slate-950/5 backdrop-blur-sm"
         >
           <div class="flex items-center gap-2.5">
             <span
-              class="flex h-9 w-9 items-center justify-center rounded-md bg-slate-800 text-slate-100 shadow-sm"
+              class="flex h-9 w-9 items-center justify-center rounded-md bg-[#94afc9] text-slate-800 shadow-sm"
             >
               <Warehouse class="h-5 w-5" />
             </span>
             <div>
-              <h2 class="text-base font-semibold leading-tight text-slate-900">仓储控制台</h2>
-              <p class="flex items-center gap-1.5 text-[11px] text-slate-500">
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <h2 class="text-base font-semibold leading-tight text-slate-950">数字孪生库房</h2>
+              <p class="flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
+                <span class="h-1.5 w-1.5 rounded-full bg-teal-500 shadow-[0_0_10px_rgba(20,184,166,0.75)]" />
                 库位占用实时映射
               </p>
             </div>
@@ -143,8 +143,8 @@ onBeforeUnmount(() => {
               class="rounded-md border px-2.5 py-1 text-xs font-medium transition-colors"
               :class="
                 i === activeIdx
-                  ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-primary/40 hover:text-primary'
+                  ? 'border-[#2563eb] bg-[#2563eb] text-white shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-[#2563eb]/50 hover:text-[#2563eb]'
               "
               @click="selectWarehouse(i)"
             >
@@ -159,8 +159,8 @@ onBeforeUnmount(() => {
               class="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45"
               :class="
                 viewMode === action.key
-                  ? 'border-slate-900 bg-slate-900 text-white'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-900'
+                  ? 'border-[#94afc9] bg-[#94afc9] text-slate-800'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-[#94afc9] hover:text-[#5b7799]'
               "
               :disabled="action.disabled"
               @click="setView(action.key)"
@@ -172,7 +172,7 @@ onBeforeUnmount(() => {
         </div>
 
         <button
-          class="pointer-events-auto flex items-center gap-1.5 rounded-md border border-slate-200 bg-white/86 px-3 py-2 text-xs text-slate-600 shadow-sp backdrop-blur transition-colors hover:bg-white"
+          class="pointer-events-auto flex items-center gap-1.5 rounded-md border border-white bg-white/95 px-3 py-2 text-xs font-medium text-slate-700 shadow-[0_14px_34px_rgba(15,23,42,0.14)] ring-1 ring-slate-950/5 backdrop-blur-sm transition-colors hover:text-[#2563eb]"
           @click="refresh"
         >
           <RefreshCw class="h-3.5 w-3.5" :class="loading && 'animate-spin'" />
@@ -184,43 +184,43 @@ onBeforeUnmount(() => {
       <div class="absolute right-4 top-24 hidden w-64 space-y-3 lg:block">
         <div class="grid grid-cols-2 gap-2">
           <div
-            class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur"
+            class="rounded-lg border border-white bg-white/95 p-3 shadow-[0_18px_42px_rgba(15,23,42,0.16)] ring-1 ring-slate-950/5"
           >
-            <div class="flex items-center gap-1 text-[11px] text-slate-500">
+            <div class="flex items-center gap-1 text-[11px] font-medium text-slate-600">
               <MapPin class="h-3 w-3" />库位总数
             </div>
-            <div class="mt-0.5 text-xl font-semibold text-slate-800">
+            <div class="mt-1 text-2xl font-semibold leading-none text-slate-950">
               {{ active?.summary.locationCount ?? 0 }}
             </div>
           </div>
           <div
-            class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur"
+            class="rounded-lg border border-white bg-white/95 p-3 shadow-[0_18px_42px_rgba(15,23,42,0.16)] ring-1 ring-slate-950/5"
           >
-            <div class="flex items-center gap-1 text-[11px] text-slate-500">
+            <div class="flex items-center gap-1 text-[11px] font-medium text-slate-600">
               <Layers class="h-3 w-3" />已占用
             </div>
-            <div class="mt-0.5 text-xl font-semibold text-blue-600">
+            <div class="mt-1 text-2xl font-semibold leading-none text-[#0f766e]">
               {{ active?.summary.occupiedCount ?? 0 }}
             </div>
           </div>
           <div
-            class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur"
+            class="rounded-lg border border-white bg-white/95 p-3 shadow-[0_18px_42px_rgba(15,23,42,0.16)] ring-1 ring-slate-950/5"
           >
-            <div class="flex items-center gap-1 text-[11px] text-slate-500">
+            <div class="flex items-center gap-1 text-[11px] font-medium text-slate-600">
               <Gauge class="h-3 w-3" />占用率
             </div>
-            <div class="mt-0.5 text-xl font-semibold text-indigo-600">
+            <div class="mt-1 text-2xl font-semibold leading-none text-[#2563eb]">
               {{ (active?.summary.occupancyRate ?? 0).toFixed(1)
-              }}<span class="text-xs text-slate-400">%</span>
+              }}<span class="text-xs font-semibold text-slate-500">%</span>
             </div>
           </div>
           <div
-            class="rounded-lg border border-slate-200/80 bg-white/86 p-3 shadow-sp backdrop-blur"
+            class="rounded-lg border border-white bg-white/95 p-3 shadow-[0_18px_42px_rgba(15,23,42,0.16)] ring-1 ring-slate-950/5"
           >
-            <div class="flex items-center gap-1 text-[11px] text-slate-500">
+            <div class="flex items-center gap-1 text-[11px] font-medium text-slate-600">
               <Boxes class="h-3 w-3" />库存量
             </div>
-            <div class="mt-0.5 text-xl font-semibold text-slate-800 tabular-nums">
+            <div class="mt-1 text-2xl font-semibold leading-none text-slate-950 tabular-nums">
               {{ Number(active?.summary.totalQty ?? 0).toFixed(0) }}
             </div>
           </div>
@@ -228,34 +228,34 @@ onBeforeUnmount(() => {
 
         <div class="grid grid-cols-3 gap-2">
           <div
-            class="rounded-lg border border-slate-200/80 bg-white/86 p-2.5 shadow-sp backdrop-blur"
+            class="rounded-lg border border-white bg-white/95 p-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] ring-1 ring-slate-950/5"
           >
-            <div class="text-[10px] text-slate-500">空闲</div>
-            <div class="mt-0.5 text-lg font-semibold text-slate-700">
+            <div class="text-[10px] font-medium text-slate-600">空闲</div>
+            <div class="mt-0.5 text-xl font-semibold leading-none text-slate-800">
               {{ active?.summary.emptyCount ?? 0 }}
             </div>
           </div>
           <div
-            class="rounded-lg border border-slate-200/80 bg-white/86 p-2.5 shadow-sp backdrop-blur"
+            class="rounded-lg border border-white bg-white/95 p-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] ring-1 ring-slate-950/5"
           >
-            <div class="text-[10px] text-slate-500">禁用</div>
-            <div class="mt-0.5 text-lg font-semibold text-slate-500">
+            <div class="text-[10px] font-medium text-slate-600">禁用</div>
+            <div class="mt-0.5 text-xl font-semibold leading-none text-slate-500">
               {{ active?.summary.disabledCount ?? 0 }}
             </div>
           </div>
           <div
-            class="rounded-lg border border-slate-200/80 bg-white/86 p-2.5 shadow-sp backdrop-blur"
+            class="rounded-lg border border-white bg-white/95 p-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.14)] ring-1 ring-slate-950/5"
           >
-            <div class="text-[10px] text-slate-500">峰值</div>
-            <div class="mt-0.5 text-lg font-semibold text-amber-600">
+            <div class="text-[10px] font-medium text-slate-600">峰值</div>
+            <div class="mt-0.5 text-xl font-semibold leading-none text-[#d97706]">
               {{ Number(active?.summary.maxQty ?? 0).toFixed(0) }}
             </div>
           </div>
         </div>
 
         <!-- 悬停库位详情 -->
-        <div class="rounded-lg border border-slate-200/80 bg-white/88 p-3 shadow-sp backdrop-blur">
-          <div class="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-700">
+        <div class="rounded-lg border border-white bg-white p-3 shadow-[0_18px_42px_rgba(15,23,42,0.16)] ring-1 ring-slate-950/5">
+          <div class="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-800">
             <span>库位详情</span>
             <span
               v-if="detail"
@@ -264,8 +264,8 @@ onBeforeUnmount(() => {
                 detail.disabled
                   ? 'bg-slate-200 text-slate-500'
                   : detail.occupied
-                    ? 'bg-blue-500/15 text-blue-600'
-                    : 'bg-slate-100 text-slate-500'
+                    ? 'bg-teal-500/15 text-[#0f766e]'
+                    : 'bg-slate-100 text-slate-600'
               "
             >
               {{
@@ -275,11 +275,11 @@ onBeforeUnmount(() => {
           </div>
           <template v-if="detail">
             <div class="font-mono text-sm text-slate-900">{{ detail.code || '—' }}</div>
-            <div class="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px] text-slate-500">
+            <div class="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px] font-medium text-slate-600">
               <span>组 {{ detail.group }} · 排 {{ detail.row }}</span>
               <span>层 {{ detail.layer }} · 列 {{ detail.column }}</span>
             </div>
-            <div class="mt-2 rounded-md bg-slate-50 p-2 text-xs text-slate-600">
+            <div class="mt-2 rounded-md bg-slate-100/80 p-2 text-xs text-slate-700">
               <div class="flex items-center justify-between">
                 <span>库存</span>
                 <span class="font-semibold tabular-nums text-slate-900">
@@ -300,30 +300,30 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </template>
-          <p v-else class="text-[11px] text-slate-400">移动鼠标悬停库位查看详情</p>
+          <p v-else class="text-[11px] font-medium text-slate-500">移动鼠标悬停库位查看详情</p>
         </div>
       </div>
 
       <!-- 底部图例 -->
       <div
-        class="absolute bottom-4 left-4 hidden items-center gap-4 rounded-md border border-slate-200/80 bg-white/86 px-3 py-2 text-[11px] text-slate-600 shadow-sp backdrop-blur md:flex"
+        class="absolute bottom-4 left-4 hidden items-center gap-4 rounded-md border border-white bg-white/95 px-3 py-2 text-[11px] font-medium text-slate-700 shadow-[0_14px_34px_rgba(15,23,42,0.14)] ring-1 ring-slate-950/5 md:flex"
       >
         <span class="flex items-center gap-1.5"
-          ><span class="h-2.5 w-2.5 rounded-sm" style="background: #d5dded" />空闲</span
+          ><span class="h-2.5 w-2.5 rounded-sm" style="background: #e2e8f0" />空闲</span
         >
         <span class="flex items-center gap-1.5"
-          ><span class="h-2.5 w-2.5 rounded-sm" style="background: #93c5fd" />低</span
+          ><span class="h-2.5 w-2.5 rounded-sm" style="background: #2dd4bf" />低</span
         >
         <span class="flex items-center gap-1.5"
-          ><span class="h-2.5 w-2.5 rounded-sm" style="background: #3b82f6" />中</span
+          ><span class="h-2.5 w-2.5 rounded-sm" style="background: #2563eb" />中</span
         >
         <span class="flex items-center gap-1.5"
-          ><span class="h-2.5 w-2.5 rounded-sm" style="background: #1d4ed8" />满</span
+          ><span class="h-2.5 w-2.5 rounded-sm" style="background: #f59e0b" />满</span
         >
         <span class="flex items-center gap-1.5"
           ><span class="h-2.5 w-2.5 rounded-sm" style="background: #94a3b8" />禁用</span
         >
-        <span class="ml-1 text-slate-400">拖拽旋转 · 滚轮缩放</span>
+        <span class="ml-1 text-slate-500">货箱数量表示占用量 · 拖拽旋转 · 滚轮缩放</span>
       </div>
     </div>
 

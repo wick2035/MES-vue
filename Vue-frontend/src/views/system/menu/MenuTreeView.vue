@@ -1,25 +1,34 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { RefreshCw, Plus, Pencil, Trash2, ChevronRight, Folder, FileText } from 'lucide-vue-next'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  RefreshCw,
+  Plus,
+  Pencil,
+  Trash2,
+  Menu as MenuIcon,
+  ListTree,
+  Folder,
+  FileText,
+  MousePointerClick,
+} from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import SpFormDialog from '@/components/common/SpFormDialog.vue'
 import SpConfirm from '@/components/common/SpConfirm.vue'
+import SpPageHeader from '@/components/common/SpPageHeader.vue'
+import SpStatCard from '@/components/common/SpStatCard.vue'
+import SpTreeTable from '@/components/common/SpTreeTable.vue'
+import SpStatusBadge from '@/components/common/SpStatusBadge.vue'
 import { getMenuTree, saveMenu, deleteMenu } from '@/api/modules/system'
+import { treeStats, countMenuType } from '@/composables/useTreeStats'
 import { notify } from '@/lib/toast'
-import type { FormField } from '@/types/table'
+import type { FormField, TableColumn } from '@/types/table'
 import type { TreeNode } from '@/types/domain'
 
 defineOptions({ name: 'MenuTree' })
 
-interface FlatNode extends TreeNode {
-  level: number
-  hasChildren: boolean
-}
+type MenuNode = TreeNode & { level?: number; hasChildren?: boolean }
 
 const nodes = ref<TreeNode[]>([])
-const expanded = ref<Set<string>>(new Set())
 const loading = ref(true)
 
 async function load() {
@@ -27,31 +36,50 @@ async function load() {
   try {
     const res = await getMenuTree()
     nodes.value = res.data ?? []
-    // 默认展开第一层
-    nodes.value.forEach((n) => expanded.value.add(n.id))
   } finally {
     loading.value = false
   }
 }
 onMounted(load)
 
-function toggle(id: string) {
-  if (expanded.value.has(id)) expanded.value.delete(id)
-  else expanded.value.add(id)
-}
+// ===== 概览统计 =====
+const stats = computed(() => {
+  const s = treeStats(nodes.value)
+  return [
+    { label: '总菜单数', value: s.total, icon: ListTree, tone: 'primary' as const },
+    { label: '目录数', value: countMenuType(s, 'DIR'), icon: Folder, tone: 'warning' as const },
+    { label: '菜单数', value: countMenuType(s, 'MENU'), icon: FileText, tone: 'success' as const },
+    {
+      label: '按钮权限',
+      value: countMenuType(s, 'BTN'),
+      icon: MousePointerClick,
+      tone: 'muted' as const,
+    },
+  ]
+})
 
-function flatten(list: TreeNode[], level = 0): FlatNode[] {
-  const result: FlatNode[] = []
-  for (const node of list) {
-    const hasChildren = !!node.children?.length
-    result.push({ ...node, level, hasChildren })
-    if (hasChildren && expanded.value.has(node.id)) {
-      result.push(...flatten(node.children!, level + 1))
-    }
-  }
-  return result
+// ===== 表格列 + 类型徽章 =====
+const columns: TableColumn[] = [
+  { key: 'name', title: '名称' },
+  { key: 'code', title: '编码', width: '150px' },
+  { key: 'url', title: '路由路径', width: '200px' },
+  { key: 'type', title: '类型', slot: 'type', width: '90px', align: 'center' },
+  { key: 'sortNum', title: '排序', width: '80px', align: 'center' },
+  { key: 'permission', title: '权限标识', slot: 'permission', width: '180px' },
+  { key: 'action', title: '操作', slot: 'action', width: '130px', align: 'center' },
+]
+type Tone = 'success' | 'warning' | 'danger' | 'info' | 'muted'
+const TYPE_META: Record<string, { label: string; tone: Tone }> = {
+  DIR: { label: '目录', tone: 'info' },
+  '0': { label: '目录', tone: 'info' },
+  MENU: { label: '菜单', tone: 'success' },
+  '1': { label: '菜单', tone: 'success' },
+  BTN: { label: '按钮', tone: 'muted' },
+  '2': { label: '按钮', tone: 'muted' },
 }
-const flatList = computed(() => flatten(nodes.value))
+function typeMeta(t?: string) {
+  return TYPE_META[t ?? ''] ?? { label: t || '—', tone: 'muted' as Tone }
+}
 
 // --- CRUD ---
 const formFields: FormField[] = [
@@ -80,12 +108,12 @@ function resetModel(data: Record<string, any> = {}) {
   Object.keys(formModel).forEach((k) => delete formModel[k])
   Object.assign(formModel, { type: 'MENU', sort: 100 }, data)
 }
-function openCreate(parentNode?: FlatNode) {
+function openCreate(parentNode?: MenuNode) {
   resetModel({ parentId: parentNode?.id ?? null })
   dialogTitle.value = parentNode ? `新增「${parentNode.name}」的子菜单` : '新增根菜单'
   dialogOpen.value = true
 }
-function openEdit(node: FlatNode) {
+function openEdit(node: MenuNode) {
   resetModel({ ...node })
   dialogTitle.value = `编辑「${node.name}」`
   dialogOpen.value = true
@@ -103,8 +131,8 @@ async function onSubmit() {
 }
 
 const confirmOpen = ref(false)
-const target = ref<FlatNode | null>(null)
-function askDelete(node: FlatNode) {
+const target = ref<MenuNode | null>(null)
+function askDelete(node: MenuNode) {
   if (node.hasChildren) {
     notify.error('请先删除子菜单')
     return
@@ -123,56 +151,55 @@ async function onDelete() {
 
 <template>
   <div class="space-y-4">
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between">
-        <CardTitle class="text-base">菜单管理</CardTitle>
-        <div class="flex items-center gap-2">
-          <Button size="sm" @click="openCreate()"><Plus class="h-4 w-4" />新增根菜单</Button>
-          <Button variant="ghost" size="icon-sm" title="刷新" @click="load"
-            ><RefreshCw class="h-4 w-4"
-          /></Button>
+    <SpPageHeader
+      :icon="MenuIcon"
+      title="菜单管理"
+      subtitle="维护系统导航菜单、目录与按钮权限"
+    >
+      <template #actions>
+        <Button @click="openCreate()"><Plus class="h-4 w-4" />新增根菜单</Button>
+        <Button variant="outline" size="icon" title="刷新" @click="load">
+          <RefreshCw class="h-4 w-4" />
+        </Button>
+      </template>
+    </SpPageHeader>
+
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <SpStatCard
+        v-for="(s, i) in stats"
+        :key="s.label"
+        :label="s.label"
+        :value="s.value"
+        :icon="s.icon"
+        :tone="s.tone"
+        :index="i"
+      />
+    </div>
+
+    <SpTreeTable :nodes="nodes" :loading="loading" :columns="columns">
+      <template #toolbar>
+        <span class="text-sm font-medium">菜单结构</span>
+      </template>
+      <template #type="{ value }">
+        <SpStatusBadge :tone="typeMeta(value).tone" :text="typeMeta(value).label" />
+      </template>
+      <template #permission="{ value }">
+        <span class="block truncate text-xs text-muted-foreground">{{ value || '—' }}</span>
+      </template>
+      <template #action="{ node }">
+        <div class="flex items-center justify-center gap-0.5">
+          <Button variant="ghost" size="icon-sm" title="新增子菜单" @click="openCreate(node)">
+            <Plus class="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(node)">
+            <Pencil class="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" title="删除" @click="askDelete(node)">
+            <Trash2 class="h-3.5 w-3.5 text-destructive" />
+          </Button>
         </div>
-      </CardHeader>
-      <CardContent>
-        <Skeleton v-if="loading" class="h-64 w-full" />
-        <ul v-else class="space-y-0.5">
-          <li v-for="node in flatList" :key="node.id">
-            <div
-              class="group flex items-center gap-1.5 rounded px-1 py-1.5 hover:bg-accent"
-              :style="{ paddingLeft: `${node.level * 20 + 4}px` }"
-            >
-              <button class="shrink-0 text-muted-foreground" @click="toggle(node.id)">
-                <ChevronRight
-                  v-if="node.hasChildren"
-                  class="h-4 w-4 transition-transform"
-                  :class="expanded.has(node.id) ? 'rotate-90' : ''"
-                />
-                <span v-else class="inline-block w-4" />
-              </button>
-              <component
-                :is="node.hasChildren ? Folder : FileText"
-                class="h-4 w-4 shrink-0 text-muted-foreground"
-              />
-              <span class="flex-1 text-sm">{{ node.name }}</span>
-              <span class="mr-2 hidden text-xs text-muted-foreground group-hover:inline">{{
-                node.url
-              }}</span>
-              <div class="hidden items-center gap-0.5 group-hover:flex">
-                <Button variant="ghost" size="icon-sm" title="新增子菜单" @click="openCreate(node)">
-                  <Plus class="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon-sm" title="编辑" @click="openEdit(node)">
-                  <Pencil class="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon-sm" title="删除" @click="askDelete(node)">
-                  <Trash2 class="h-3.5 w-3.5 text-destructive" />
-                </Button>
-              </div>
-            </div>
-          </li>
-        </ul>
-      </CardContent>
-    </Card>
+      </template>
+    </SpTreeTable>
 
     <SpFormDialog
       v-model:open="dialogOpen"

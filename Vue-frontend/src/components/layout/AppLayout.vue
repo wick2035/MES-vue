@@ -32,9 +32,11 @@ onBeforeUnmount(() => notifyStore.disconnect())
       <AppTabs />
       <main class="flex-1 overflow-auto bg-background p-4">
         <RouterView v-slot="{ Component, route: r }">
-          <KeepAlive :include="tabsStore.cachedViews">
-            <component :is="Component" :key="r.path" />
-          </KeepAlive>
+          <Transition name="page" mode="out-in" appear>
+            <KeepAlive :include="tabsStore.cachedViews">
+              <component :is="Component" :key="r.path" />
+            </KeepAlive>
+          </Transition>
         </RouterView>
       </main>
     </div>

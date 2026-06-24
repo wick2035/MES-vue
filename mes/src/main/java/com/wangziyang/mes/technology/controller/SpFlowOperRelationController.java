@@ -2,6 +2,8 @@ package com.wangziyang.mes.technology.controller;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wangziyang.mes.common.BasePageReq;
 import com.wangziyang.mes.common.BaseController;
 import com.wangziyang.mes.common.Result;
@@ -10,6 +12,7 @@ import com.wangziyang.mes.technology.entity.SpFlow;
 import com.wangziyang.mes.technology.service.ISpFlowOperRelationService;
 import com.wangziyang.mes.technology.service.ISpFlowService;
 import com.wangziyang.mes.technology.service.ISpOperService;
+import com.wangziyang.mes.technology.vo.FlowStepVo;
 import com.wangziyang.mes.technology.vo.SpOperVo;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,6 +53,12 @@ public class SpFlowOperRelationController extends BaseController {
      */
     @Autowired
     public ISpFlowOperRelationService iSpFlowOperRelationService;
+
+    /**
+     * JSON 解析
+     */
+    @Autowired
+    private ObjectMapper objectMapper;
 
     /**
      * 流程与工序关系管理界面
@@ -135,6 +145,46 @@ public class SpFlowOperRelationController extends BaseController {
         queryWrapper.eq("flow_id", req.getId());
         iSpFlowOperRelationService.remove(queryWrapper);
         return Result.success();
+    }
+
+    /**
+     * 查询某工艺路线的有序步骤（继承工序的部门/班组/加工单元，只读展示）
+     *
+     * @param flowId 流程ID
+     * @return 步骤VO集合
+     */
+    @ApiOperation("工艺路线有序步骤查询")
+    @GetMapping("/steps")
+    @ResponseBody
+    public Result steps(@RequestParam String flowId) {
+        List<FlowStepVo> steps = iSpFlowOperRelationService.listSteps(flowId);
+        return Result.success(steps);
+    }
+
+    /**
+     * 按有序工序ID列表保存工艺路线步骤（重建关系表，不覆盖 process 备注）
+     *
+     * @param flowId      流程ID
+     * @param operIdsJson 有序工序ID数组的 JSON 串
+     * @return 执行结果
+     */
+    @ApiOperation("保存工艺路线有序步骤")
+    @PostMapping("/save-steps")
+    @ResponseBody
+    public Result saveSteps(@RequestParam String flowId,
+                            @RequestParam(required = false, defaultValue = "[]") String operIdsJson) {
+        if (StringUtils.isEmpty(flowId)) {
+            return Result.failure("缺少工艺路线ID");
+        }
+        try {
+            List<String> operIds = StringUtils.isEmpty(operIdsJson)
+                    ? Collections.emptyList()
+                    : objectMapper.readValue(operIdsJson, new TypeReference<List<String>>() {});
+            iSpFlowOperRelationService.saveSteps(flowId, operIds);
+            return Result.success();
+        } catch (Exception e) {
+            return Result.failure("保存工艺路线步骤失败：" + e.getMessage());
+        }
     }
 
 }

@@ -47,4 +47,9 @@ public interface ISpBomService extends IService<SpBom> {
      * 产品BOM软删除，已定版数据不可删除
      */
     void deleteBom(String bomId);
+
+    /**
+     * 生成下一个BOM编码（前缀 BOM + 6位流水），供新建时自动编码
+     */
+    String nextBomCode();
 }

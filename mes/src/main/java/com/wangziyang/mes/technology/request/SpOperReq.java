@@ -13,6 +13,7 @@ public class SpOperReq extends BasePageReq {
     private String operLike;
     private String operDescLike;
     private String unitId;
+    private String deptId;
 
     public String getOperLike() { return operLike; }
     public void setOperLike(String operLike) { this.operLike = operLike; }
@@ -22,4 +23,7 @@ public class SpOperReq extends BasePageReq {
 
     public String getUnitId() { return unitId; }
     public void setUnitId(String unitId) { this.unitId = unitId; }
+
+    public String getDeptId() { return deptId; }
+    public void setDeptId(String deptId) { this.deptId = deptId; }
 }

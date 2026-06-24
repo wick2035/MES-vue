@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import {
   Command,
   CommandEmpty,
+  CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
@@ -102,47 +103,68 @@ function onSelect(option: ComboboxOption) {
         :disabled="disabled"
         :class="
           cn(
-            'h-9 w-full justify-between gap-2 font-normal',
+            'h-9 w-full justify-between gap-2 bg-white px-3 text-left font-normal shadow-none transition-colors hover:bg-white hover:border-primary/40 data-[state=open]:border-primary/60',
             !hasSelection && 'text-muted-foreground',
             props.class,
             props.triggerClass,
           )
         "
       >
-        <span class="truncate">{{ displayText }}</span>
-        <ChevronsUpDown class="h-4 w-4 shrink-0 opacity-50" />
+        <span class="min-w-0 flex-1 truncate text-left">{{ displayText }}</span>
+        <ChevronsUpDown
+          :class="
+            cn(
+              'h-4 w-4 shrink-0 text-muted-foreground opacity-70 transition-transform duration-150',
+              open && 'rotate-180',
+            )
+          "
+        />
       </Button>
     </PopoverTrigger>
     <PopoverContent
-      class="w-[--reka-popover-trigger-width] p-0"
+      class="w-[--reka-popover-trigger-width] min-w-[220px] p-1 shadow-lg"
       align="start"
-      :side-offset="4"
+      :side-offset="6"
     >
-      <Command>
-        <CommandInput :placeholder="searchPlaceholder" />
+      <Command class="rounded-md">
+        <CommandInput :placeholder="searchPlaceholder" class="h-9 py-2" />
         <CommandEmpty>{{ emptyText }}</CommandEmpty>
-        <CommandList>
-          <CommandItem
-            v-for="option in options"
-            :key="option.value"
-            :value="option.value"
-            :disabled="option.disabled"
-            class="gap-2"
-            @select="onSelect(option)"
-          >
-            <Check
-              :class="cn('h-4 w-4 shrink-0', isSelected(option.value) ? 'opacity-100' : 'opacity-0')"
-            />
-            <span class="min-w-0 flex-1 truncate">
-              <span class="block truncate">{{ option.label }}</span>
-              <span
-                v-if="option.description"
-                class="block truncate text-xs text-muted-foreground"
-              >
-                {{ option.description }}
+        <CommandList class="max-h-64 py-1">
+          <CommandGroup class="p-0">
+            <CommandItem
+              v-for="option in options"
+              :key="option.value"
+              :value="option.value"
+              :disabled="option.disabled"
+              :class="
+                cn(
+                  'min-h-11 cursor-pointer gap-3 rounded-md px-2.5 py-2',
+                  isSelected(option.value) && 'bg-accent/60',
+                )
+              "
+              @select="onSelect(option)"
+            >
+              <Check
+                :class="
+                  cn(
+                    'h-4 w-4 shrink-0 text-primary transition-opacity',
+                    isSelected(option.value) ? 'opacity-100' : 'opacity-0',
+                  )
+                "
+              />
+              <span class="min-w-0 flex-1 truncate">
+                <span :class="cn('block truncate leading-5', isSelected(option.value) && 'font-medium')">
+                  {{ option.label }}
+                </span>
+                <span
+                  v-if="option.description"
+                  class="block truncate text-xs leading-4 text-muted-foreground"
+                >
+                  {{ option.description }}
+                </span>
               </span>
-            </span>
-          </CommandItem>
+            </CommandItem>
+          </CommandGroup>
         </CommandList>
       </Command>
     </PopoverContent>

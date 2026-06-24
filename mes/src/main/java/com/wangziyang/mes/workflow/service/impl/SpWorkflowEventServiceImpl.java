@@ -4,14 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wangziyang.mes.common.Result;
 import com.wangziyang.mes.order.entity.SpOrder;
 import com.wangziyang.mes.order.service.ISpOrderService;
 import com.wangziyang.mes.productionorder.entity.SpProductionOrder;
 import com.wangziyang.mes.productionorder.entity.SpProductionOrderItem;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderItemService;
 import com.wangziyang.mes.productionorder.service.ISpProductionOrderService;
-import com.wangziyang.mes.productionorder.service.ISpWorkOrderChangeService;
 import com.wangziyang.mes.productionorder.service.impl.SpProductionOrderServiceImpl;
 import com.wangziyang.mes.workflow.WorkflowConstants;
 import com.wangziyang.mes.workflow.dto.WorkflowNodeDTO;
@@ -44,9 +42,6 @@ public class SpWorkflowEventServiceImpl extends ServiceImpl<SpWorkflowEventMappe
 
     @Autowired
     private ISpProductionOrderService productionOrderService;
-
-    @Autowired
-    private ISpWorkOrderChangeService workOrderChangeService;
 
     @Autowired
     private ISpWorkflowEventLogService eventLogService;
@@ -112,10 +107,6 @@ public class SpWorkflowEventServiceImpl extends ServiceImpl<SpWorkflowEventMappe
                 approveOrder(task);
                 log.setResultStatus("success");
                 log.setResultMsg("订单状态已同步为已审批");
-            } else if (WorkflowConstants.ACTION_WORK_ORDER_CHANGE_APPLY.equals(event.getActionCode())) {
-                applyWorkOrderChange(task);
-                log.setResultStatus("success");
-                log.setResultMsg("工单变更已审批通过并生效");
             } else {
                 log.setResultStatus("skip");
                 log.setResultMsg("未识别的事件模板，已跳过");
@@ -127,6 +118,25 @@ public class SpWorkflowEventServiceImpl extends ServiceImpl<SpWorkflowEventMappe
             throw e;
         }
         eventLogService.save(log);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void rejectOrder(SpWorkflowTask task) {
+        if (task == null || !WorkflowConstants.BUSINESS_ORDER_APPROVAL.equals(task.getBusinessType())) {
+            return;
+        }
+        SpProductionOrderItem current = productionOrderItemService.getOne(new QueryWrapper<SpProductionOrderItem>()
+                .eq("work_order_id", task.getBusinessId())
+                .last("limit 1"), false);
+        if (current == null || StringUtils.isBlank(current.getOrderId())) {
+            return;
+        }
+        // 任一工单被驳回即整单标记为已驳回（与「全部通过才置已审批」对称），使其退出派工/MRP 等后续流程
+        SpProductionOrder update = new SpProductionOrder();
+        update.setId(current.getOrderId());
+        update.setApprovalStatus(SpProductionOrderServiceImpl.APPROVAL_REJECTED);
+        productionOrderService.updateById(update);
     }
 
     private void approveOrder(SpWorkflowTask task) {
@@ -145,16 +155,6 @@ public class SpWorkflowEventServiceImpl extends ServiceImpl<SpWorkflowEventMappe
         update.setApproveTime(task.getCompleteTime());
         orderService.updateById(update);
         syncProductionOrderStatus(order.getId());
-    }
-
-    private void applyWorkOrderChange(SpWorkflowTask task) {
-        if (!WorkflowConstants.BUSINESS_WORK_ORDER_CHANGE.equals(task.getBusinessType())) {
-            return;
-        }
-        Result result = workOrderChangeService.applyApprovedChange(task.getBusinessId(), task.getCompleteTime());
-        if ((Integer) result.get("code") != 0) {
-            throw new RuntimeException(String.valueOf(result.get("msg")));
-        }
     }
 
     private void syncProductionOrderStatus(String workOrderId) {

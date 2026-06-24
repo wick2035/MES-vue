@@ -17,11 +17,6 @@ export interface ProductionOrderAction {
 
 const firstStepActions: ProductionOrderActionKey[] = ['edit', 'confirm', 'submit']
 const assignmentActions: ProductionOrderActionKey[] = ['equipmentDispatch', 'employeeDispatch']
-const assignedActions: ProductionOrderActionKey[] = [
-  'materialPlan',
-  'equipmentDispatch',
-  'employeeDispatch',
-]
 
 function isFirstStep(row: ProductionOrder) {
   return (
@@ -32,6 +27,7 @@ function isFirstStep(row: ProductionOrder) {
   )
 }
 
+// 待派工：已审批、设备/员工派工尚未全部完成
 function isAssignmentStep(row: ProductionOrder) {
   return (
     row.approvalStatus === 'APPROVED' &&
@@ -39,11 +35,9 @@ function isAssignmentStep(row: ProductionOrder) {
   )
 }
 
-function isAssignedOrLater(row: ProductionOrder) {
-  return (
-    row.approvalStatus === 'APPROVED' &&
-    (row.operationStatus === 'ASSIGNED' || row.operationStatus === 'DISPATCHED')
-  )
+// 已派工：派工完成、尚未下发
+function isAssigned(row: ProductionOrder) {
+  return row.approvalStatus === 'APPROVED' && row.operationStatus === 'ASSIGNED'
 }
 
 export function getProductionOrderActions(row: ProductionOrder): ProductionOrderAction[] {
@@ -52,13 +46,13 @@ export function getProductionOrderActions(row: ProductionOrder): ProductionOrder
   if (isFirstStep(row)) {
     actions.push(...firstStepActions)
   } else if (isAssignmentStep(row)) {
+    // 派工阶段：只显示设备/员工派工，派工完成后自动隐藏
     actions.push(...assignmentActions)
-  } else if (isAssignedOrLater(row)) {
-    actions.push(...assignedActions)
-    if (row.operationStatus !== 'DISPATCHED') {
-      actions.push('dispatch')
-    }
+  } else if (isAssigned(row)) {
+    // 派工完成后按 MRP 进度单一切换：未完成显示 MRP，配套出库确认后显示进入下发中心
+    actions.push(row.mrpStatus === 'COMPLETED' ? 'dispatch' : 'materialPlan')
   }
+  // DISPATCHED：流程已完成，不显示流程按钮
 
   actions.push('delete')
   return actions.map((key) => ({ key }))

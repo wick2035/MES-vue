@@ -201,6 +201,73 @@ public class SystemWiringStaticTest {
     }
 
     @Test
+    public void productionDispatchRowsExposeCompletedMrpStatus() throws Exception {
+        String controller = read("src/main/java/com/wangziyang/mes/productionorder/controller/SpProductionPlanCenterController.java");
+        String dispatchView = read("../Vue-frontend/src/views/production/ProductionDispatchView.vue");
+
+        assertTrue(controller.contains("materialPlanService.isProductionOrderMrpCompleted(order.getId())"));
+        assertTrue(controller.contains("row.put(\"mrpStatus\", SpMaterialRequirementPlanServiceImpl.MRP_COMPLETED)"));
+        assertTrue(dispatchView.contains("key: 'mrpStatus'"));
+    }
+
+    @Test
+    public void workOrderChangeFeatureIsNoLongerExposed() throws Exception {
+        String routes = read("../Vue-frontend/src/router/routes.ts");
+        String approvalCenter = read("../Vue-frontend/src/views/approval/ApprovalCenterView.vue");
+        String domainTypes = read("../Vue-frontend/src/types/domain.ts");
+        String workflowConstants = read("src/main/java/com/wangziyang/mes/workflow/WorkflowConstants.java");
+        String workflowInstanceService = read("src/main/java/com/wangziyang/mes/workflow/service/ISpWorkflowInstanceService.java");
+        String workflowTaskService = read("src/main/java/com/wangziyang/mes/workflow/service/impl/SpWorkflowTaskServiceImpl.java");
+        String workflowEventService = read("src/main/java/com/wangziyang/mes/workflow/service/impl/SpWorkflowEventServiceImpl.java");
+        String workflowDefinitionService = read("src/main/java/com/wangziyang/mes/workflow/service/impl/SpWorkflowDefinitionServiceImpl.java");
+        String productionPlanController = read("src/main/java/com/wangziyang/mes/productionorder/controller/SpProductionPlanCenterController.java");
+        String removalScriptPath = "../scripts/sql/remove-work-order-change-upgrade-20260622.sql";
+        assertTrue(Files.exists(Paths.get(removalScriptPath).toAbsolutePath().normalize()));
+        String removalScript = read(removalScriptPath);
+
+        assertFalse(routes.contains("WorkOrderChange"));
+        assertFalse(routes.contains("/production/change"));
+        assertFalse(approvalCenter.contains("WORK_ORDER_CHANGE"));
+        assertFalse(approvalCenter.contains("WorkOrderChange"));
+        assertFalse(domainTypes.contains("interface WorkOrderChange"));
+        assertFalse(workflowConstants.contains("BUSINESS_WORK_ORDER_CHANGE"));
+        assertFalse(workflowConstants.contains("ACTION_WORK_ORDER_CHANGE_APPLY"));
+        assertFalse(workflowInstanceService.contains("startWorkOrderChangeApproval"));
+        assertFalse(workflowTaskService.contains("ISpWorkOrderChangeService"));
+        assertFalse(workflowEventService.contains("applyWorkOrderChange"));
+        assertFalse(workflowDefinitionService.contains("ensureDefaultWorkOrderChange"));
+        assertFalse(productionPlanController.contains("@PostMapping(\"/work-order/update\")"));
+        assertTrue(removalScript.contains("wf_model_work_order_change"));
+        assertTrue(removalScript.contains("sp_work_order_change"));
+        assertFalse(removalScript.toUpperCase().contains("DROP TABLE"));
+    }
+
+    @Test
+    public void productionOrderDeleteCleansProductionManagementChain() throws Exception {
+        String service = read("src/main/java/com/wangziyang/mes/productionorder/service/impl/SpProductionOrderServiceImpl.java");
+        String deleteMethod = slice(service, "public Result deleteOrder(String id)", "public Result createWorkOrder(String id");
+
+        assertFalse(deleteMethod.contains("STATUS_WORK_ORDER_CREATED.equals"));
+        assertFalse(deleteMethod.contains("OP_DISPATCHED.equals"));
+        assertTrue(deleteMethod.contains("cleanupProductionOrderRelations"));
+        assertTrue(deleteMethod.contains("order.setDeleted(\"1\")"));
+        assertTrue(deleteMethod.contains("order.setStatus(STATUS_CANCELLED)"));
+        assertTrue(deleteMethod.contains("order.setApprovalStatus(APPROVAL_CANCELLED)"));
+
+        assertTrue(service.contains("private void cleanupProductionOrderRelations"));
+        assertTrue(service.contains("itemService.remove"));
+        assertTrue(service.contains("operPlanService.update"));
+        assertTrue(service.contains("workOrderService.removeByIds"));
+        assertTrue(service.contains("equipmentAssignService.update"));
+        assertTrue(service.contains("employeeAssignService.update"));
+        assertTrue(service.contains("materialRequirementPlanService.update"));
+        assertTrue(service.contains("inboundRequestService.update"));
+        assertTrue(service.contains("inboundRequestItemService.update"));
+        assertTrue(service.contains("workflowTaskService.update"));
+        assertTrue(service.contains("workflowInstanceService.update"));
+    }
+
+    @Test
     public void warehouseTwinContractExposesRealStorageFieldsAndSmokeCoverage() throws Exception {
         String dashboardController = read("src/main/java/com/wangziyang/mes/digitization/controller/DashboardController.java");
         String domainTypes = read("../Vue-frontend/src/types/domain.ts");
@@ -233,8 +300,87 @@ public class SystemWiringStaticTest {
         assertTrue(smoke.contains("warehouse twin rendered"));
     }
 
+    @Test
+    public void inboundQuantityGuardsRejectZeroDemandSources() throws Exception {
+        String warehouseService = read("src/main/java/com/wangziyang/mes/warehouse/service/impl/SpWarehouseRequestServiceImpl.java");
+        String warehouseController = read("src/main/java/com/wangziyang/mes/warehouse/controller/SpWarehouseCenterController.java");
+        String warehouseApi = read("../Vue-frontend/src/api/modules/warehouse.ts");
+        String bomItemController = read("src/main/java/com/wangziyang/mes/technology/controller/SpBomItemController.java");
+        String bomDetailView = read("../Vue-frontend/src/views/technology/bom/BomDetailView.vue");
+        String mrpService = read("src/main/java/com/wangziyang/mes/productionorder/service/impl/SpMaterialRequirementPlanServiceImpl.java");
+
+        assertFalse(warehouseService.contains("璇烽"));
+        assertFalse(warehouseService.contains("鐢宠"));
+        assertFalse(warehouseService.contains("纭"));
+        assertFalse(warehouseService.contains("鏉ユ"));
+        assertTrue(warehouseService.contains("请选择库房"));
+        assertTrue(warehouseService.contains("请输入申请数量"));
+        assertTrue(warehouseService.contains("申请数量必须大于0"));
+        assertTrue(warehouseService.contains("来源入库申请单总数量必须大于0"));
+        assertTrue(warehouseService.contains("来源入库申请单明细数量必须大于0"));
+
+        assertTrue(warehouseController.contains("@RequestBody SpWarehouseApplyReq req"));
+        assertTrue(warehouseApi.contains("postJson('/warehouse/request/apply'"));
+
+        assertTrue(bomItemController.contains("record.getItemNum().compareTo(BigDecimal.ZERO) <= 0"));
+        assertTrue(bomDetailView.contains("min: 0.0001"));
+        assertTrue(bomDetailView.contains("用量必须大于 0"));
+
+        assertTrue(mrpService.contains("生产订单明细数量必须大于0"));
+        assertTrue(mrpService.contains("BOM子项用量必须大于0"));
+        assertTrue(mrpService.contains("所选物料需求净需求为0，无需生成入库申请"));
+        assertTrue(mrpService.contains("currentNetRequirement(row).compareTo(BigDecimal.ZERO) <= 0"));
+    }
+
+    @Test
+    public void productionTwinFallsBackToIdleStationsWithoutLiveSnRecords() throws Exception {
+        String dashboardController = read("src/main/java/com/wangziyang/mes/digitization/controller/DashboardController.java");
+        String scene = read("../Vue-frontend/src/lib/twin/scene.ts");
+        String twinView = read("../Vue-frontend/src/views/twin/DigitalTwinView.vue");
+
+        assertTrue(dashboardController.contains("buildProcessFlowFromOperPlans"));
+        assertTrue(dashboardController.contains("buildProcessFlowFromProductFlows"));
+        assertTrue(dashboardController.contains("buildIdleFlowFromAnyAvailableFlow"));
+        assertTrue(dashboardController.contains("buildProcessFlowFromLockedRoutes"));
+        assertTrue(dashboardController.contains("productionOrderOperPlanService"));
+        assertTrue(dashboardController.contains("flowOperRelationService"));
+        assertTrue(dashboardController.contains("materileService"));
+        assertTrue(dashboardController.contains("processRouteService"));
+
+        assertTrue(scene.contains("const hasLiveProcessData = list.some((st) => st.total > 0)"));
+        assertTrue(scene.contains("if (hasLiveProcessData)"));
+        assertTrue(scene.contains("st.total > 0 ? `良率 ${st.yieldRate.toFixed(1)}%` : '暂无'"));
+        assertTrue(scene.contains("buildProductionDownlights"));
+        assertTrue(scene.contains("new THREE.SpotLight"));
+        assertTrue(scene.contains("DEMO_TWIN_STATIONS"));
+        assertTrue(scene.contains("makeLightPoolMaterial"));
+        assertTrue(scene.contains("makeWorkZoneWashMaterial"));
+        assertTrue(scene.contains("makeWorkZoneVolumeMaterial"));
+        assertTrue(scene.contains("new THREE.PointLight(0xf1f7ff"));
+        assertTrue(scene.contains("sceneDisposables"));
+        assertTrue(scene.contains("stationDisposables"));
+        assertFalse(scene.contains("ConeGeometry"));
+        assertFalse(scene.contains("makeDownlightCone"));
+        assertFalse(scene.contains("SphereGeometry(0.38"));
+        assertFalse(scene.contains("makeGlowSprite"));
+        assertTrue(twinView.contains("cloneDemoStations"));
+        assertTrue(twinView.contains("DEMO_TWIN_STATIONS"));
+        assertTrue(scene.contains("const lineZ = -0.75"));
+        assertFalse(scene.contains("cone.rotation.x = Math.PI"));
+
+        assertTrue(twinView.contains("s.total > 0 ? s.yieldRate.toFixed(0) + '%' : '暂无'"));
+    }
+
     private String read(String path) throws Exception {
         Path resolved = Paths.get(path).toAbsolutePath().normalize();
         return new String(Files.readAllBytes(resolved), StandardCharsets.UTF_8);
+    }
+
+    private String slice(String text, String begin, String end) {
+        int start = text.indexOf(begin);
+        assertTrue("Missing begin marker: " + begin, start >= 0);
+        int stop = text.indexOf(end, start + begin.length());
+        assertTrue("Missing end marker: " + end, stop >= 0);
+        return text.substring(start, stop);
     }
 }

@@ -16,8 +16,4 @@ public interface ISpWorkflowDefinitionService extends IService<SpWorkflowDefinit
     SpWorkflowDefinition ensureDefaultOrderApprovalDefinition();
 
     SpWorkflowModel ensureDefaultOrderApprovalModel();
-
-    SpWorkflowDefinition ensureDefaultWorkOrderChangeDefinition();
-
-    SpWorkflowModel ensureDefaultWorkOrderChangeModel();
 }

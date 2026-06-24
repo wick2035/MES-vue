@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref, computed } from 'vue'
+import { Motion } from 'motion-v'
+import { SPRING, staggerDelay } from '@/lib/motion'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRouter } from 'vue-router'
 import {
   Boxes,
@@ -14,6 +17,12 @@ import {
   Rocket,
   Trash2,
   Users,
+  Package,
+  ClipboardList,
+  CalendarDays,
+  FileText,
+  Layers,
+  Inbox,
 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,6 +45,7 @@ import {
   confirmProductionOrder,
   createWorkOrder,
   deleteProductionOrder,
+  calculateMaterialPlan,
 } from '@/api/modules/productionOrder'
 import { notify } from '@/lib/toast'
 import { getProductionOrderActions } from '@/lib/productionOrderActions'
@@ -52,7 +62,7 @@ const { loading, list, total, query, load, onPageChange, onSizeChange, search, r
     customerNameLike: '',
     productLike: '',
   })
-onMounted(load)
+useAutoRefresh(load)
 
 const sourceMap: Record<string, string> = { DEMAND: '需求', FORECAST: '预测' }
 const statusMap: Record<string, string> = {
@@ -119,6 +129,10 @@ const itemsOpen = ref(false)
 const itemsLoading = ref(false)
 const itemRows = ref<ProductionOrderItem[]>([])
 const itemsOrderNo = ref('')
+const reduce = usePreferredReducedMotion()
+const totalQty = computed(() =>
+  itemRows.value.reduce((s, it) => s + (Number(it.qty) || 0), 0),
+)
 async function viewItems(row: ProductionOrder) {
   itemsOrderNo.value = row.orderNo || ''
   itemsOpen.value = true
@@ -173,9 +187,28 @@ function askConfirm(row: ProductionOrder) {
   })
 }
 function askDelete(row: ProductionOrder) {
-  ask('删除订单', `确定删除订单「${row.orderNo}」吗？此操作不可恢复。`, async () => {
+  ask('删除订单', `确定删除订单「${row.orderNo}」吗？将同步清理生产工单、派工、MRP 与入库申请。`, async () => {
     await deleteProductionOrder(row.id!)
     notify.success('删除成功')
+  })
+}
+
+// MRP：未运算过先运算，再跳转物料需求计划；已运算过直接跳转，避免覆盖已下发/出库状态
+const mrpRunning = ref('')
+async function goMaterialPlan(row: ProductionOrder) {
+  if (!row.id) return
+  if (!row.mrpStatus || row.mrpStatus === 'NONE') {
+    mrpRunning.value = row.id
+    try {
+      await calculateMaterialPlan(row.id)
+      notify.success('MRP运算完成')
+    } finally {
+      mrpRunning.value = ''
+    }
+  }
+  router.push({
+    path: '/production/material-plan',
+    query: { orderId: row.id, orderNo: row.orderNo },
   })
 }
 
@@ -285,14 +318,10 @@ function onReset() {
               variant="ghost"
               size="icon-sm"
               title="MRP物料计划"
-              @click="
-                router.push({
-                  path: '/production/material-plan',
-                  query: { orderId: row.id, orderNo: row.orderNo },
-                })
-              "
+              :disabled="mrpRunning === row.id"
+              @click="goMaterialPlan(row)"
             >
-              <Boxes class="h-4 w-4 text-primary" />
+              <Boxes class="h-4 w-4 text-primary" :class="mrpRunning === row.id && 'animate-pulse'" />
             </Button>
             <Button
               v-else-if="action.key === 'equipmentDispatch'"
@@ -351,45 +380,104 @@ function onReset() {
 
     <!-- 明细查看 -->
     <Dialog v-model:open="itemsOpen">
-      <DialogContent class="max-h-[80vh] max-w-2xl overflow-y-auto">
+      <DialogContent class="max-h-[80vh] max-w-xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>订单明细 · {{ itemsOrderNo }}</DialogTitle>
-          <DialogDescription class="sr-only">产品明细列表</DialogDescription>
+          <div class="flex items-center gap-3">
+            <div
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+            >
+              <ClipboardList class="h-5 w-5" />
+            </div>
+            <div class="min-w-0">
+              <DialogTitle class="leading-tight">订单明细</DialogTitle>
+              <DialogDescription class="mt-0.5 truncate text-xs">
+                <span class="font-mono text-foreground/70">{{ itemsOrderNo || '—' }}</span>
+                <span class="mx-1.5 text-border">·</span>{{ itemRows.length }} 项<span
+                  class="mx-1.5 text-border"
+                  >·</span
+                >共 <span class="font-medium text-foreground/80 tabular-nums">{{ totalQty }}</span> 件
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
-        <div class="overflow-x-auto rounded-lg border">
-          <table class="w-full text-sm">
-            <thead class="bg-muted/60 text-xs text-muted-foreground">
-              <tr>
-                <th class="px-3 py-2 text-left font-medium">产品物料</th>
-                <th class="px-3 py-2 text-left font-medium">产品名称</th>
-                <th class="px-3 py-2 text-left font-medium">BOM</th>
-                <th class="px-3 py-2 text-right font-medium">数量</th>
-                <th class="px-3 py-2 text-left font-medium">计划交付</th>
-                <th class="px-3 py-2 text-left font-medium">工单</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="itemsLoading">
-                <td colspan="6" class="px-3 py-6 text-center text-muted-foreground">加载中…</td>
-              </tr>
-              <tr v-else-if="itemRows.length === 0">
-                <td colspan="6" class="px-3 py-6 text-center text-muted-foreground">暂无明细</td>
-              </tr>
-              <tr v-for="(it, i) in itemRows" :key="i" class="border-t">
-                <td class="px-3 py-2">{{ it.productMateriel || '—' }}</td>
-                <td class="px-3 py-2">{{ it.productName || '—' }}</td>
-                <td class="px-3 py-2">
+
+        <!-- 加载态 -->
+        <div
+          v-if="itemsLoading"
+          class="flex items-center justify-center py-12 text-sm text-muted-foreground"
+        >
+          加载中…
+        </div>
+
+        <!-- 空态 -->
+        <div
+          v-else-if="itemRows.length === 0"
+          class="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground"
+        >
+          <Inbox class="h-8 w-8" />
+          <span class="text-sm">暂无明细</span>
+        </div>
+
+        <!-- 卡片列表 -->
+        <div v-else class="space-y-3">
+          <Motion
+            v-for="(it, i) in itemRows"
+            :key="i"
+            :initial="reduce === 'reduce' ? false : { opacity: 0, y: 8 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ ...SPRING, delay: reduce === 'reduce' ? 0 : staggerDelay(i) }"
+            class="rounded-xl border bg-card p-4 shadow-sp transition-shadow hover:shadow-sp-lg"
+          >
+            <!-- 顶部：产品名 + 物料编码 -->
+            <div class="flex items-center gap-3">
+              <div
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+              >
+                <Cpu class="h-5 w-5" />
+              </div>
+              <div class="min-w-0">
+                <div class="truncate font-semibold leading-tight">
+                  {{ it.productName || it.productMateriel || '—' }}
+                </div>
+                <div class="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                  {{ it.productMateriel || '—' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="my-3 border-t" />
+
+            <!-- meta 网格 -->
+            <div class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+              <div class="min-w-0 space-y-1">
+                <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Layers class="h-3.5 w-3.5" />BOM
+                </div>
+                <div class="truncate font-mono text-sm" :title="it.bomCode || ''">
                   {{ it.bomCode || '—'
-                  }}<span v-if="it.bomVersion" class="text-muted-foreground">
-                    / {{ it.bomVersion }}</span
-                  >
-                </td>
-                <td class="px-3 py-2 text-right tabular-nums">{{ it.qty ?? '—' }}</td>
-                <td class="px-3 py-2">{{ it.planDeliveryDate || '—' }}</td>
-                <td class="px-3 py-2">{{ it.workOrderCode || '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
+                  }}<span v-if="it.bomVersion" class="text-muted-foreground"> / v{{ it.bomVersion }}</span>
+                </div>
+              </div>
+              <div class="space-y-1">
+                <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Package class="h-3.5 w-3.5" />数量
+                </div>
+                <div class="font-medium tabular-nums">{{ it.qty ?? '—' }}</div>
+              </div>
+              <div class="space-y-1">
+                <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                  <CalendarDays class="h-3.5 w-3.5" />计划交付
+                </div>
+                <div class="tabular-nums">{{ it.planDeliveryDate || '—' }}</div>
+              </div>
+              <div class="min-w-0 space-y-1">
+                <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                  <FileText class="h-3.5 w-3.5" />工单
+                </div>
+                <div class="break-all font-mono text-sm">{{ it.workOrderCode || '—' }}</div>
+              </div>
+            </div>
+          </Motion>
         </div>
       </DialogContent>
     </Dialog>

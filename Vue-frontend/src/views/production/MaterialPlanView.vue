@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { useRoute } from 'vue-router'
-import { Boxes, Calculator, PackageCheck, RotateCcw, Search, Send } from 'lucide-vue-next'
+import { Calculator, RotateCcw, Search, Send } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,10 +10,7 @@ import SpDataTable from '@/components/common/SpDataTable.vue'
 import SpStatusBadge from '@/components/common/SpStatusBadge.vue'
 import { useTable } from '@/composables/useTable'
 import {
-  applyKittingOutbound,
   calculateMaterialPlan,
-  generateInboundRequest,
-  generateKittingOutbound,
   pageMaterialPlans,
   releaseMaterialPlans,
 } from '@/api/modules/productionOrder'
@@ -35,7 +33,7 @@ const table = reactive(
 )
 
 const columns: TableColumn[] = [
-  { key: 'select', title: '选择', slot: 'select', width: '64px', align: 'center' },
+  { key: 'select', title: '选择', slot: 'select', headSlot: 'selectHead', width: '64px', align: 'center' },
   { key: 'productionOrderNo', title: '生产订单', width: '160px' },
   {
     key: 'productName',
@@ -50,13 +48,11 @@ const columns: TableColumn[] = [
   { key: 'netRequirement', title: '净需求', slot: 'net', align: 'right', width: '100px' },
   { key: 'requirementDate', title: '需求日期', width: '120px' },
   { key: 'deliveryStatus', title: '下发', slot: 'delivery', width: '90px', align: 'center' },
-  { key: 'inboundStatus', title: '入库', slot: 'inbound', width: '90px', align: 'center' },
-  { key: 'outboundStatus', title: '出库', slot: 'outbound', width: '90px', align: 'center' },
-  { key: 'action', title: '操作', slot: 'action', width: '110px', align: 'center' },
 ]
 
 const hasOrderContext = computed(() => !!table.query.productionOrderId)
 const statusText: Record<string, string> = {
+  WAIT: '待下发',
   NONE: '未处理',
   RELEASED: '已下发',
   GENERATED: '已生成',
@@ -73,6 +69,17 @@ function toggle(id: string | undefined, checked: boolean) {
   selected.value = checked
     ? Array.from(new Set([...selected.value, id]))
     : selected.value.filter((v) => v !== id)
+}
+
+// 全选（按当前页）
+const allSelected = computed(
+  () => table.list.length > 0 && table.list.every((r) => !!r.id && selected.value.includes(r.id)),
+)
+const someSelected = computed(
+  () => !allSelected.value && table.list.some((r) => !!r.id && selected.value.includes(r.id)),
+)
+function toggleAll(checked: boolean) {
+  selected.value = checked ? table.list.map((r) => r.id!).filter(Boolean) : []
 }
 
 function ids(row?: MaterialRequirementPlan) {
@@ -107,24 +114,6 @@ function release(row?: MaterialRequirementPlan) {
   run('MRP下发', () => releaseMaterialPlans(values))
 }
 
-function inbound(row?: MaterialRequirementPlan) {
-  const values = ensureSelected(row)
-  if (!values) return
-  run('生成入库申请', () => generateInboundRequest(values))
-}
-
-function kitting(row?: MaterialRequirementPlan) {
-  const values = ensureSelected(row)
-  if (!values) return
-  run('申请配套出库', () => applyKittingOutbound(values))
-}
-
-function kittingRequest(row?: MaterialRequirementPlan) {
-  const values = ensureSelected(row)
-  if (!values) return
-  run('生成配套出库单', () => generateKittingOutbound(values))
-}
-
 function calculate() {
   if (!table.query.productionOrderId) {
     notify.info('从生产订单进入，或填写生产订单ID后再运算')
@@ -133,7 +122,7 @@ function calculate() {
   run('MRP运算', () => calculateMaterialPlan(String(table.query.productionOrderId)))
 }
 
-onMounted(table.load)
+useAutoRefresh(() => table.load())
 </script>
 
 <template>
@@ -178,9 +167,14 @@ onMounted(table.load)
       @size-change="table.onSizeChange"
     >
       <template #toolbar>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-sm font-medium">物料需求计划</span>
-          <span class="text-xs text-muted-foreground">已选 {{ selected.length }} 项</span>
+        <div class="flex flex-col">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium">物料需求计划</span>
+            <span class="text-xs text-muted-foreground">已选 {{ selected.length }} 项</span>
+          </div>
+          <span class="hidden text-xs text-muted-foreground sm:inline">
+            计算需求并下发；入库、配套出库到「出入库管理」处理
+          </span>
         </div>
         <div class="flex flex-wrap gap-2">
           <Button
@@ -191,23 +185,17 @@ onMounted(table.load)
           >
             <Send class="h-4 w-4" />批量下发
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            :disabled="!selected.length || !!operating"
-            @click="inbound()"
-          >
-            <PackageCheck class="h-4 w-4" />生成入库
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            :disabled="!selected.length || !!operating"
-            @click="kitting()"
-          >
-            <Boxes class="h-4 w-4" />配套出库
-          </Button>
         </div>
+      </template>
+      <template #selectHead>
+        <input
+          type="checkbox"
+          class="h-4 w-4 rounded border-input accent-primary"
+          aria-label="全选当前页物料计划"
+          :checked="allSelected"
+          :indeterminate="someSelected"
+          @change="toggleAll(($event.target as HTMLInputElement).checked)"
+        />
       </template>
       <template #select="{ row }">
         <input
@@ -249,31 +237,6 @@ onMounted(table.load)
           :tone="value === 'RELEASED' ? 'success' : 'warning'"
           :text="statusText[value] || value || '未处理'"
         />
-      </template>
-      <template #inbound="{ value }">
-        <SpStatusBadge
-          :tone="value === 'COMPLETED' || value === 'CONFIRMED' ? 'success' : 'muted'"
-          :text="statusText[value] || value || '未处理'"
-        />
-      </template>
-      <template #outbound="{ value }">
-        <SpStatusBadge
-          :tone="value === 'COMPLETED' || value === 'CONFIRMED' ? 'success' : 'muted'"
-          :text="statusText[value] || value || '未处理'"
-        />
-      </template>
-      <template #action="{ row }">
-        <Button
-          size="sm"
-          variant="ghost"
-          class="h-8 px-2 text-xs text-primary hover:bg-primary/10 hover:text-primary"
-          title="生成配套出库单"
-          :disabled="!!operating"
-          @click="kittingRequest(row)"
-        >
-          <Send class="h-4 w-4" />
-          出库单
-        </Button>
       </template>
     </SpDataTable>
   </div>

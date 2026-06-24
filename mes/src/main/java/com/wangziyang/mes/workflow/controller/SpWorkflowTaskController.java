@@ -105,7 +105,7 @@ public class SpWorkflowTaskController extends WorkflowBaseController {
         List<String> roleCodes = currentRoleCodes();
         qw.and(w -> {
             if (user != null) {
-                w.eq("assignee_type", WorkflowConstants.ASSIGNEE_USER).eq("assignee_id", user.getId());
+                w.eq("assignee_id", user.getId());
             } else {
                 w.eq("assignee_type", WorkflowConstants.ASSIGNEE_USER).eq("assignee_id", "__none__");
             }

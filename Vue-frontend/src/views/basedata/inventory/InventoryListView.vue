@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { PackageMinus, Search, RotateCcw } from 'lucide-vue-next'
+import { PackageMinus, PackagePlus, Search, RotateCcw } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import SpDataTable from '@/components/common/SpDataTable.vue'
-import SpConfirm from '@/components/common/SpConfirm.vue'
 import SpStatusBadge from '@/components/common/SpStatusBadge.vue'
+import WarehouseManualRequestDialog from '@/components/warehouse/WarehouseManualRequestDialog.vue'
 import { useTable } from '@/composables/useTable'
-import { pageInventories, deleteInventory } from '@/api/modules/inventory'
-import { notify } from '@/lib/toast'
+import { pageInventories } from '@/api/modules/inventory'
 import type { TableColumn } from '@/types/table'
 import type { Inventory } from '@/types/domain'
 
@@ -31,17 +30,38 @@ const columns: TableColumn[] = [
   { key: 'action', title: '操作', slot: 'action', width: '90px', align: 'center' },
 ]
 
-const confirmOpen = ref(false)
-const target = ref<Inventory | null>(null)
-function askDelete(row: Inventory) {
-  target.value = row
-  confirmOpen.value = true
+const stockStatusText: Record<string, string> = {
+  AVAILABLE: '可用',
+  '0': '可用',
+  正常: '可用',
+  可用: '可用',
 }
-async function onDelete() {
-  if (!target.value?.id) return
-  await deleteInventory(target.value.id)
-  notify.success('出库成功')
-  confirmOpen.value = false
+
+function isAvailableStatus(value?: string) {
+  return !value || stockStatusText[value] === '可用'
+}
+
+function statusText(value?: string) {
+  return value ? stockStatusText[value] || value : '可用'
+}
+
+const requestOpen = ref(false)
+const requestDirection = ref<'IN' | 'OUT'>('IN')
+const requestInitial = ref<Partial<Inventory> | null>(null)
+
+function openInbound() {
+  requestDirection.value = 'IN'
+  requestInitial.value = null
+  requestOpen.value = true
+}
+
+function openOutbound(row: Inventory) {
+  requestDirection.value = 'OUT'
+  requestInitial.value = { ...row }
+  requestOpen.value = true
+}
+
+function onRequestSaved() {
   load()
 }
 function onReset() {
@@ -90,25 +110,28 @@ function onReset() {
     >
       <template #toolbar>
         <span class="text-sm font-medium">库存列表</span>
+        <Button size="sm" @click="openInbound">
+          <PackagePlus class="h-4 w-4" />新建入库
+        </Button>
       </template>
       <template #status="{ value }">
         <SpStatusBadge
-          :tone="value === '正常' || value === '0' ? 'success' : 'warning'"
-          :text="value || '正常'"
+          :tone="isAvailableStatus(value) ? 'success' : 'warning'"
+          :text="statusText(value)"
         />
       </template>
       <template #action="{ row }">
-        <Button variant="ghost" size="icon-sm" title="出库" @click="askDelete(row)">
-          <PackageMinus class="h-4 w-4 text-destructive" />
+        <Button variant="ghost" size="icon-sm" title="创建出库申请" @click="openOutbound(row)">
+          <PackageMinus class="h-4 w-4 text-warning" />
         </Button>
       </template>
     </SpDataTable>
 
-    <SpConfirm
-      v-model:open="confirmOpen"
-      title="库存出库"
-      :description="`确定对物料「${target?.materielDesc ?? ''}」(库位 ${target?.locationCode ?? '-'}) 出库吗？`"
-      @confirm="onDelete"
+    <WarehouseManualRequestDialog
+      v-model:open="requestOpen"
+      :direction="requestDirection"
+      :initial="requestInitial"
+      @saved="onRequestSaved"
     />
   </div>
 </template>

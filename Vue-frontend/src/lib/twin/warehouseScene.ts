@@ -15,6 +15,7 @@ interface WarehouseLayout {
   totalX: number
   totalZ: number
   rackHeight: number
+  cell: number
 }
 
 /**
@@ -39,12 +40,16 @@ export class WarehouseTwinScene {
   private hovered: THREE.Mesh | null = null
   private hoverCb: ((loc: TwinLocation | null) => void) | null = null
   private layout: WarehouseLayout | null = null
+  private clock = new THREE.Clock()
+  private dockDoors: THREE.Mesh[] = []
+  private patrolAgv: THREE.Group | null = null
+  private patrolPath: THREE.Vector3[] = []
 
   // 共享几何：库位拾取盒（透明，仅用于射线命中）+ 货箱/托盘
   private pickGeo = new THREE.BoxGeometry(1, 1, 1)
   private hoverGeo = new THREE.BoxGeometry(1.08, 1.08, 1.08)
   private hoverMat = new THREE.MeshBasicMaterial({
-    color: 0xf59e0b,
+    color: 0x0f766e,
     wireframe: true,
     transparent: true,
     opacity: 0.95,
@@ -53,17 +58,17 @@ export class WarehouseTwinScene {
   private hoverFrame = new THREE.Mesh(this.hoverGeo, this.hoverMat)
   // 共享结构件材质（统一冷灰钢调，去撞色）
   private steelMat = new THREE.MeshStandardMaterial({
-    color: 0x9aa6b6,
+    color: 0x748392,
     metalness: 0.35,
     roughness: 0.55,
   }) // 立柱/踢脚：浅钢灰
   private beamMat = new THREE.MeshStandardMaterial({
-    color: 0x5f6b7a,
+    color: 0x334155,
     metalness: 0.3,
     roughness: 0.6,
   }) // 横梁：深钢灰（与立柱低对比两色）
   private palletMat = new THREE.MeshStandardMaterial({
-    color: 0xc2b39a,
+    color: 0xb89b72,
     metalness: 0.04,
     roughness: 0.92,
   }) // 木托盘：中性木灰
@@ -72,6 +77,19 @@ export class WarehouseTwinScene {
     opacity: 0,
     depthWrite: false,
   }) // 拾取盒
+  private cartonTex: THREE.Texture | null = null
+  private rackTex: THREE.Texture | null = null
+  private floorTex: THREE.Texture | null = null
+  private cartonMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    metalness: 0,
+    roughness: 0.85,
+  })
+  private deckMat = new THREE.MeshStandardMaterial({
+    color: 0x9aa3af,
+    metalness: 0.32,
+    roughness: 0.42,
+  })
   private goodsPalette: Record<string, THREE.MeshStandardMaterial> = {}
 
   init(canvas: HTMLCanvasElement, container: HTMLElement) {
@@ -90,8 +108,8 @@ export class WarehouseTwinScene {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
     this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color(0xeef1f6)
-    this.scene.fog = new THREE.Fog(0xeef1f6, 80, 170)
+    this.scene.background = new THREE.Color(0xf6f8fb)
+    this.scene.fog = new THREE.Fog(0xf6f8fb, 92, 190)
 
     this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 400)
     this.camera.position.set(28, 26, 34)
@@ -107,6 +125,7 @@ export class WarehouseTwinScene {
     this.controls.target.set(0, 3, 0)
 
     this.buildLights()
+    this.loadTextures()
     this.buildFloor()
     this.buildGoodsPalette()
     this.hoverFrame.visible = false
@@ -118,12 +137,38 @@ export class WarehouseTwinScene {
     this.animate()
   }
 
+  private loadTextures() {
+    const loader = new THREE.TextureLoader()
+    const maxAnisotropy = this.renderer.capabilities.getMaxAnisotropy()
+    const load = (url: string, repeat?: [number, number]) => {
+      const tex = loader.load(url)
+      tex.colorSpace = THREE.SRGBColorSpace
+      tex.anisotropy = maxAnisotropy
+      if (repeat) {
+        tex.wrapS = THREE.RepeatWrapping
+        tex.wrapT = THREE.RepeatWrapping
+        tex.repeat.set(repeat[0], repeat[1])
+      }
+      return tex
+    }
+
+    this.cartonTex = load('/twin/box.png')
+    this.rackTex = load('/twin/rack.png')
+    this.floorTex = load('/twin/floor.jpg', [24, 18])
+    this.cartonMat.map = this.cartonTex
+    this.cartonMat.needsUpdate = true
+    this.deckMat.map = this.rackTex
+    this.deckMat.needsUpdate = true
+    this.beamMat.map = this.rackTex
+    this.beamMat.needsUpdate = true
+  }
+
   private buildLights() {
-    const hemi = new THREE.HemisphereLight(0xffffff, 0xc4ccd8, 0.85)
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xb9c5d3, 0.9)
     this.scene.add(hemi)
-    const ambient = new THREE.AmbientLight(0xffffff, 0.25)
+    const ambient = new THREE.AmbientLight(0xffffff, 0.3)
     this.scene.add(ambient)
-    const dir = new THREE.DirectionalLight(0xffffff, 1.05)
+    const dir = new THREE.DirectionalLight(0xffffff, 1.12)
     dir.position.set(26, 38, 22)
     dir.castShadow = true
     dir.shadow.mapSize.set(2048, 2048)
@@ -136,7 +181,7 @@ export class WarehouseTwinScene {
     dir.shadow.bias = -0.0005
     dir.shadow.normalBias = 0.02
     this.scene.add(dir)
-    const fill = new THREE.DirectionalLight(0xdce6ff, 0.3)
+    const fill = new THREE.DirectionalLight(0xdff8f5, 0.38)
     fill.position.set(-22, 18, -18)
     this.scene.add(fill)
   }
@@ -144,7 +189,8 @@ export class WarehouseTwinScene {
   private buildFloor() {
     const floorGeo = new THREE.PlaneGeometry(240, 180)
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0xeef1f6,
+      color: 0xf7f9fc,
+      map: this.floorTex,
       metalness: 0.04,
       roughness: 0.96,
     })
@@ -153,17 +199,15 @@ export class WarehouseTwinScene {
     floor.position.y = -0.01
     floor.receiveShadow = true
     this.scene.add(floor)
-    this.disposables.push(floorGeo, floorMat)
 
-    const grid = new THREE.GridHelper(240, 96, 0xcdd6e2, 0xe2e8f1)
+    const grid = new THREE.GridHelper(240, 96, 0xb8c3d1, 0xdbe3ec)
     ;(grid.material as THREE.Material).transparent = true
-    ;(grid.material as THREE.Material).opacity = 0.32
+    ;(grid.material as THREE.Material).opacity = 0.3
     this.scene.add(grid)
-    this.disposables.push(grid.geometry, grid.material as THREE.Material)
   }
 
   private buildGoodsPalette() {
-    // 单一蓝色色阶（低→中→满），与底部图例一致，去自发光更克制
+    // 清晰状态色阶（低→中→满），与 HUD 图例一致，避免整屏偏灰。
     const make = (color: number) =>
       new THREE.MeshStandardMaterial({
         color,
@@ -171,9 +215,9 @@ export class WarehouseTwinScene {
         roughness: 0.68,
       })
     this.goodsPalette = {
-      low: make(0x93c5fd),
-      mid: make(0x3b82f6),
-      high: make(0x1d4ed8),
+      low: make(0x2dd4bf),
+      mid: make(0x2563eb),
+      high: make(0xf59e0b),
     }
     Object.values(this.goodsPalette).forEach((m) => this.disposables.push(m))
   }
@@ -202,12 +246,12 @@ export class WarehouseTwinScene {
     const maxLayer = Math.max(wh.dims?.layer || 1, ...locs.map((l) => l.layer))
     const maxColumn = Math.max(wh.dims?.column || 1, ...locs.map((l) => l.column))
 
-    const cell = 1.0
-    const gap = 0.4
+    const cell = 1.35
+    const gap = 0.62
     const stepX = cell + gap
-    const stepY = cell + 0.5 // 层高（含横梁余量）
+    const stepY = cell + 0.82 // 层高（含横梁余量）
     const stepZ = cell + gap
-    const groupGap = stepZ * 2.0 // 组间通道更宽，可走 AGV
+    const groupGap = stepZ * 2.35 // 组间通道更宽，可走 AGV
 
     const rowsPerGroup = maxRow
     const totalZ = maxGroup * (rowsPerGroup * stepZ) + (maxGroup - 1) * groupGap
@@ -228,6 +272,7 @@ export class WarehouseTwinScene {
       totalX,
       totalZ,
       rackHeight,
+      cell,
     }
 
     // 1) 逐个库位放置：拾取盒（透明，命中用）+ 占用则放托盘货箱
@@ -265,7 +310,7 @@ export class WarehouseTwinScene {
     }
 
     // 3) 通道黄线 + 装卸区 + 环境
-    this.buildAisleMarkings(maxGroup, rowsPerGroup, stepZ, groupGap, offsetZ, totalX)
+    this.buildAisleMarkings(maxGroup, rowsPerGroup, stepZ, groupGap, offsetZ, totalX, totalZ)
     this.buildWarehouseEnvironment(totalX, totalZ, rackHeight)
     this.buildRackLabels(
       maxGroup,
@@ -279,7 +324,7 @@ export class WarehouseTwinScene {
       groupGap,
       totalX,
     )
-    this.buildWarehouseVehicles(totalX, totalZ)
+    this.buildPatrolAgv(totalX, totalZ)
 
     // 相机自适应
     this.setView('overview')
@@ -327,7 +372,7 @@ export class WarehouseTwinScene {
     const col = Math.max(1, loc.column)
     return new THREE.Vector3(
       layout.offsetX + (col - 1) * layout.stepX,
-      (layer - 1) * layout.stepY + 0.5 + 0.05,
+      (layer - 1) * layout.stepY + layout.cell / 2 + 0.05,
       layout.offsetZ +
         (g - 1) * (layout.maxRow * layout.stepZ + layout.groupGap) +
         (r - 1) * layout.stepZ,
@@ -376,6 +421,16 @@ export class WarehouseTwinScene {
     }
     this.disposables.push(beamGeo)
 
+    // 每层承托层板，避免货箱悬空，并增强真实高位货架质感
+    const deckGeo = new THREE.BoxGeometry(colSpan, 0.04, cell)
+    for (let layer = 0; layer < maxLayer; layer++) {
+      const deck = new THREE.Mesh(deckGeo, this.deckMat)
+      deck.position.set((xStart + xEnd) / 2, layer * stepY + baseY + 0.02, cz)
+      deck.receiveShadow = true
+      this.rackGroup.add(deck)
+    }
+    this.disposables.push(deckGeo)
+
     // 后背对角斜撑（X 形）
     const diagLen = Math.sqrt(totalH * totalH + colSpan * colSpan)
     const diagGeo = new THREE.BoxGeometry(0.04, diagLen, 0.04)
@@ -403,7 +458,7 @@ export class WarehouseTwinScene {
     this.disposables.push(kickGeo)
   }
 
-  /** 占用库位货物：木托盘 + 货箱（按占用等级着色，high 双层堆叠） */
+  /** 占用库位货物：木托盘 + 纸箱堆叠，顶部标签保留占用等级 */
   private buildCellGoods(
     x: number,
     y: number,
@@ -412,7 +467,7 @@ export class WarehouseTwinScene {
     level: 'low' | 'mid' | 'high',
   ) {
     // 木托盘
-    const palletGeo = new THREE.BoxGeometry(cell * 0.9, 0.12, cell * 0.9)
+    const palletGeo = new THREE.BoxGeometry(cell * 0.96, 0.14, cell * 0.96)
     const pallet = new THREE.Mesh(palletGeo, this.palletMat)
     pallet.position.set(x, y - cell / 2 + 0.06, z)
     pallet.castShadow = true
@@ -420,40 +475,60 @@ export class WarehouseTwinScene {
     this.rackGroup.add(pallet)
     this.disposables.push(palletGeo)
 
-    const goodsMat = this.goodsPalette[level]
-    const heightMap = { low: 0.42, mid: 0.6, high: 0.72 }
-    const gh = heightMap[level]
+    const labelMat = this.goodsPalette[level]
+    const seedBase = `${x.toFixed(2)}:${y.toFixed(2)}:${z.toFixed(2)}`
+    const highCount = seeded(`${seedBase}:count`) > 0.55 ? 4 : 3
+    const countMap = { low: 1, mid: 2, high: highCount }
+    const count = countMap[level]
+    const baseTop = y - cell / 2 + 0.14
+    const baseH = cell * 0.4
+    const placements =
+      count === 1
+        ? [{ px: 0, pz: 0, stack: 0 }]
+        : count === 2
+          ? [
+              { px: -0.24, pz: -0.05, stack: 0 },
+              { px: 0.24, pz: 0.05, stack: 0 },
+            ]
+          : count === 3
+            ? [
+                { px: -0.25, pz: -0.06, stack: 0 },
+                { px: 0.25, pz: 0.06, stack: 0 },
+                { px: 0.02, pz: 0, stack: 1 },
+              ]
+            : [
+                { px: -0.25, pz: -0.07, stack: 0 },
+                { px: 0.25, pz: 0.07, stack: 0 },
+                { px: -0.22, pz: 0.06, stack: 1 },
+                { px: 0.22, pz: -0.06, stack: 1 },
+              ]
 
-    // 主货箱
-    const stableVariation = seeded(`${x.toFixed(2)}:${y.toFixed(2)}:${z.toFixed(2)}`)
-    const w1 = cell * (0.72 + stableVariation * 0.12)
-    const d1 = cell * 0.8
-    const box1Geo = new THREE.BoxGeometry(w1, gh, d1)
-    const box1 = new THREE.Mesh(box1Geo, goodsMat)
-    box1.position.set(x, y - cell / 2 + 0.12 + gh / 2, z)
-    box1.castShadow = true
-    this.rackGroup.add(box1)
-    this.disposables.push(box1Geo)
+    placements.forEach((place, index) => {
+      const v = seeded(`${seedBase}:box:${index}`)
+      const w = cell * (0.44 + v * 0.09)
+      const d = cell * (0.55 + seeded(`${seedBase}:depth:${index}`) * 0.1)
+      const h = baseH * (0.92 + seeded(`${seedBase}:height:${index}`) * 0.16)
+      const boxGeo = new THREE.BoxGeometry(w, h, d)
+      const box = new THREE.Mesh(boxGeo, this.cartonMat)
+      const stackY = baseTop + place.stack * (baseH + 0.055)
+      box.position.set(x + place.px * cell, stackY + h / 2, z + place.pz * cell)
+      box.rotation.y = (v - 0.5) * 0.12
+      box.castShadow = true
+      box.receiveShadow = true
+      this.rackGroup.add(box)
+      this.disposables.push(boxGeo)
 
-    // 边线描边
-    const edges = new THREE.LineSegments(
-      new THREE.EdgesGeometry(box1Geo),
-      new THREE.LineBasicMaterial({ color: 0x1e3a8a, transparent: true, opacity: 0.3 }),
-    )
-    edges.position.copy(box1.position)
-    this.rackGroup.add(edges)
-    this.disposables.push(edges.geometry, edges.material as THREE.Material)
-
-    // high 等级再堆一个小箱
-    if (level === 'high') {
-      const w2 = cell * 0.5
-      const box2Geo = new THREE.BoxGeometry(w2, 0.32, cell * 0.5)
-      const box2 = new THREE.Mesh(box2Geo, goodsMat)
-      box2.position.set(x + cell * 0.12, y - cell / 2 + 0.12 + gh + 0.16, z)
-      box2.castShadow = true
-      this.rackGroup.add(box2)
-      this.disposables.push(box2Geo)
-    }
+      const labelGeo = new THREE.BoxGeometry(w * 0.58, 0.025, 0.055)
+      const label = new THREE.Mesh(labelGeo, labelMat)
+      label.position.set(
+        box.position.x,
+        box.position.y + h / 2 + 0.02,
+        box.position.z - d / 2 + 0.045,
+      )
+      label.rotation.y = box.rotation.y
+      this.rackGroup.add(label)
+      this.disposables.push(labelGeo)
+    })
   }
 
   private buildDisabledMark(x: number, y: number, z: number, cell: number) {
@@ -473,6 +548,7 @@ export class WarehouseTwinScene {
     groupGap: number,
     offsetZ: number,
     totalX: number,
+    totalZ: number,
   ) {
     const lineMat = new THREE.MeshStandardMaterial({
       color: 0xe0b34a,
@@ -496,40 +572,44 @@ export class WarehouseTwinScene {
     }
     this.disposables.push(lineGeo, lineMat)
 
-    // 装卸区（场景前方）
-    const zoneZ = offsetZ - rowsPerGroup * stepZ - 2
+    // 装卸区对齐前墙月台门外侧，保持“车辆在门外靠月台”的空间关系
+    const spanZ = Math.max(totalZ + 20, 24)
+    const zoneW = 11.8
+    const zoneD = 4.8
+    const zoneX = 0
+    const zoneZ = -spanZ / 2 - zoneD / 2 - 0.9
     const zoneMat = new THREE.MeshStandardMaterial({
       color: 0x22c55e,
       transparent: true,
       opacity: 0.12,
     })
-    const zoneGeo = new THREE.PlaneGeometry(6, 4)
+    const zoneGeo = new THREE.PlaneGeometry(zoneW, zoneD)
     const zone = new THREE.Mesh(zoneGeo, zoneMat)
     zone.rotation.x = -Math.PI / 2
-    zone.position.set(-totalX / 2 - 5, 0.013, zoneZ)
+    zone.position.set(zoneX, 0.013, zoneZ)
     this.rackGroup.add(zone)
     this.disposables.push(zoneGeo, zoneMat)
 
     // 装卸区边框
     const borderMat = new THREE.MeshStandardMaterial({ color: 0x16a34a })
-    const hGeo = new THREE.BoxGeometry(6, 0.015, 0.08)
-    const vGeo = new THREE.BoxGeometry(0.08, 0.015, 4)
+    const hGeo = new THREE.BoxGeometry(zoneW, 0.015, 0.08)
+    const vGeo = new THREE.BoxGeometry(0.08, 0.015, zoneD)
     const positions: [THREE.BoxGeometry, number, number][] = [
-      [hGeo, 0, -2],
-      [hGeo, 0, 2],
-      [vGeo, -3, 0],
-      [vGeo, 3, 0],
+      [hGeo, 0, -zoneD / 2],
+      [hGeo, 0, zoneD / 2],
+      [vGeo, -zoneW / 2, 0],
+      [vGeo, zoneW / 2, 0],
     ]
     for (const [geo, dx, dz] of positions) {
       const border = new THREE.Mesh(geo, borderMat)
-      border.position.set(-totalX / 2 - 5 + dx, 0.014, zoneZ + dz)
+      border.position.set(zoneX + dx, 0.014, zoneZ + dz)
       this.rackGroup.add(border)
     }
     this.disposables.push(hGeo, vGeo, borderMat)
 
     // 装卸区标签
     const label = this.makeTextSprite('装卸区')
-    label.position.set(-totalX / 2 - 5, 2.2, zoneZ)
+    label.position.set(zoneX, 2.2, zoneZ)
     label.scale.set(3.2, 1.6, 1)
     this.rackGroup.add(label)
   }
@@ -570,63 +650,8 @@ export class WarehouseTwinScene {
     }
   }
 
-  private buildWarehouseVehicles(totalX: number, totalZ: number) {
-    this.buildForklift(-totalX / 2 - 1.8, -totalZ / 2 - 4)
-    this.buildAgv(totalX / 2 + 1.8, -totalZ / 2 + 2.2)
-  }
-
-  private buildForklift(x: number, z: number) {
+  private buildPatrolAgv(totalX: number, totalZ: number) {
     const group = new THREE.Group()
-    group.position.set(x, 0, z)
-    group.rotation.y = -0.25
-    const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0xc99a3f,
-      metalness: 0.2,
-      roughness: 0.52,
-    })
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x2a3340, roughness: 0.55 })
-    const forkMat = new THREE.MeshStandardMaterial({
-      color: 0x475569,
-      metalness: 0.72,
-      roughness: 0.34,
-    })
-    const bodyGeo = new THREE.BoxGeometry(1.55, 0.72, 1.12)
-    const cabGeo = new THREE.BoxGeometry(0.82, 1.05, 0.9)
-    const mastGeo = new THREE.BoxGeometry(0.11, 1.95, 0.11)
-    const forkGeo = new THREE.BoxGeometry(1.55, 0.06, 0.1)
-    const wheelGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.18, 16)
-
-    const body = new THREE.Mesh(bodyGeo, bodyMat)
-    body.position.y = 0.46
-    const cab = new THREE.Mesh(cabGeo, bodyMat)
-    cab.position.set(-0.25, 1.14, 0)
-    group.add(body, cab)
-    for (const wx of [-0.55, 0.55]) {
-      for (const wz of [-0.42, 0.42]) {
-        const wheel = new THREE.Mesh(wheelGeo, darkMat)
-        wheel.rotation.x = Math.PI / 2
-        wheel.position.set(wx, 0.22, wz)
-        group.add(wheel)
-      }
-    }
-    for (const mx of [0.78, 1.02]) {
-      const mast = new THREE.Mesh(mastGeo, forkMat)
-      mast.position.set(mx, 1.05, 0)
-      group.add(mast)
-    }
-    for (const fz of [-0.26, 0.26]) {
-      const fork = new THREE.Mesh(forkGeo, forkMat)
-      fork.position.set(1.48, 0.32, fz)
-      group.add(fork)
-    }
-    this.rackGroup.add(group)
-    this.disposables.push(bodyMat, darkMat, forkMat, bodyGeo, cabGeo, mastGeo, forkGeo, wheelGeo)
-  }
-
-  private buildAgv(x: number, z: number) {
-    const group = new THREE.Group()
-    group.position.set(x, 0, z)
-    group.rotation.y = Math.PI / 2
     const bodyMat = new THREE.MeshStandardMaterial({
       color: 0x5b7e8c,
       metalness: 0.3,
@@ -637,22 +662,56 @@ export class WarehouseTwinScene {
       emissive: 0x6aa6ba,
       emissiveIntensity: 0.25,
     })
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x26313d, roughness: 0.6 })
     const bodyGeo = new THREE.BoxGeometry(1.7, 0.32, 1.0)
     const lampGeo = new THREE.BoxGeometry(0.18, 0.08, 0.72)
+    const wheelGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.12, 16)
     const body = new THREE.Mesh(bodyGeo, bodyMat)
     body.position.y = 0.18
     const lamp = new THREE.Mesh(lampGeo, glowMat)
     lamp.position.set(0.82, 0.39, 0)
     group.add(body, lamp)
+    for (const wx of [-0.58, 0.58]) {
+      for (const wz of [-0.42, 0.42]) {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat)
+        wheel.rotation.z = Math.PI / 2
+        wheel.position.set(wx, 0.12, wz)
+        group.add(wheel)
+      }
+    }
+
+    const cargoGeo = new THREE.BoxGeometry(0.58, 0.32, 0.5)
+    const cargo = new THREE.Mesh(cargoGeo, this.cartonMat)
+    cargo.position.set(-0.18, 0.52, 0)
+    cargo.castShadow = true
+    group.add(cargo)
+    group.traverse((obj) => {
+      const mesh = obj as THREE.Mesh
+      if (mesh.isMesh) {
+        mesh.castShadow = true
+        mesh.receiveShadow = true
+      }
+    })
+
+    const x = totalX / 2 + 3.15
+    const z = totalZ / 2 + 3.15
+    this.patrolPath = [
+      new THREE.Vector3(-x, 0, -z),
+      new THREE.Vector3(x, 0, -z),
+      new THREE.Vector3(x, 0, z),
+      new THREE.Vector3(-x, 0, z),
+    ]
+    group.position.copy(this.patrolPath[0])
+    this.patrolAgv = group
     this.rackGroup.add(group)
-    this.disposables.push(bodyMat, glowMat, bodyGeo, lampGeo)
+    this.disposables.push(bodyMat, glowMat, wheelMat, bodyGeo, lampGeo, wheelGeo, cargoGeo)
   }
 
   /** 环境：外墙立柱 + 顶部钢构 + 照明灯排 */
   private buildWarehouseEnvironment(totalX: number, totalZ: number, rackHeight: number) {
     const roofY = Math.max(rackHeight + 4, 9)
-    const spanX = totalX + 12
-    const spanZ = totalZ + 12
+    const spanX = Math.max(totalX + 20, 28)
+    const spanZ = Math.max(totalZ + 20, 24)
 
     // 外墙立柱
     const colGeo = new THREE.BoxGeometry(0.55, roofY, 0.55)
@@ -668,8 +727,9 @@ export class WarehouseTwinScene {
       [halfX, -halfZ],
       [-halfX, halfZ],
       [halfX, halfZ],
-      [0, -halfZ],
       [0, halfZ],
+      [-halfX * 0.45, halfZ],
+      [halfX * 0.45, halfZ],
     ]
     for (const [cx, cz] of colPositions) {
       const col = new THREE.Mesh(colGeo, colMat)
@@ -725,6 +785,11 @@ export class WarehouseTwinScene {
       transparent: true,
       opacity: 0.42,
     })
+    const doorHeight = 3.1
+    const doorWidth = 3.4
+    const doorStep = 4.25
+    const firstDoorX = -doorStep
+    const dockZ = -halfZ - 0.08
     const backWallGeo = new THREE.BoxGeometry(spanX, roofY, 0.18)
     const backWall = new THREE.Mesh(backWallGeo, wallMat)
     backWall.position.set(0, roofY / 2, halfZ)
@@ -735,25 +800,122 @@ export class WarehouseTwinScene {
       sideWall.position.set(sx, roofY / 2, 0)
       this.rackGroup.add(sideWall)
     }
-    this.disposables.push(wallMat, backWallGeo, sideWallGeo)
 
-    const doorGeo = new THREE.BoxGeometry(3.4, 3.1, 0.16)
+    // 前墙按月台门洞分段建模，避免“只有门框没有墙”的空架子观感
+    const frontWallGeos: THREE.BoxGeometry[] = []
+    const frontWallZ = -halfZ
+    const lowerWallHeight = doorHeight + 0.35
+    const doorOpenings = [0, 1, 2].map((i) => {
+      const center = firstDoorX + i * doorStep
+      return {
+        left: center - doorWidth / 2 - 0.24,
+        right: center + doorWidth / 2 + 0.24,
+      }
+    })
+    let cursor = -halfX
+    const addFrontWallSegment = (left: number, right: number) => {
+      const width = right - left
+      if (width <= 0.25) return
+      const geo = new THREE.BoxGeometry(width, lowerWallHeight, 0.18)
+      const wall = new THREE.Mesh(geo, wallMat)
+      wall.position.set((left + right) / 2, lowerWallHeight / 2, frontWallZ)
+      this.rackGroup.add(wall)
+      frontWallGeos.push(geo)
+    }
+    for (const opening of doorOpenings) {
+      addFrontWallSegment(cursor, opening.left)
+      cursor = opening.right
+    }
+    addFrontWallSegment(cursor, halfX)
+
+    const topWallHeight = Math.max(0.2, roofY - lowerWallHeight)
+    const frontTopWallGeo = new THREE.BoxGeometry(spanX, topWallHeight, 0.18)
+    const frontTopWall = new THREE.Mesh(frontTopWallGeo, wallMat)
+    frontTopWall.position.set(0, lowerWallHeight + topWallHeight / 2, frontWallZ)
+    this.rackGroup.add(frontTopWall)
+    frontWallGeos.push(frontTopWallGeo)
+
+    this.disposables.push(wallMat, backWallGeo, sideWallGeo, ...frontWallGeos)
+
+    const doorGeo = new THREE.BoxGeometry(3.4, doorHeight, 0.16)
     const doorMat = new THREE.MeshStandardMaterial({
       color: 0x64748b,
       metalness: 0.42,
       roughness: 0.36,
     })
-    const dockZ = -halfZ - 0.08
+    const frameMat = new THREE.MeshStandardMaterial({
+      color: 0x475569,
+      metalness: 0.46,
+      roughness: 0.4,
+    })
+    const lintelGeo = new THREE.BoxGeometry(3.8, 0.16, 0.22)
+    const sideFrameGeo = new THREE.BoxGeometry(0.16, 3.42, 0.22)
     for (let i = 0; i < 3; i++) {
       const door = new THREE.Mesh(doorGeo, doorMat)
-      door.position.set(-halfX + 3.2 + i * 3.8, 1.55, dockZ)
+      door.position.set(firstDoorX + i * doorStep, doorHeight / 2, dockZ)
+      door.userData.topY = doorHeight
+      door.userData.height = doorHeight
+      door.userData.phase = i * 1.35
+      door.castShadow = true
       this.rackGroup.add(door)
+      this.dockDoors.push(door)
+
+      const lintel = new THREE.Mesh(lintelGeo, frameMat)
+      lintel.position.set(door.position.x, doorHeight + 0.12, dockZ - 0.01)
+      const leftFrame = new THREE.Mesh(sideFrameGeo, frameMat)
+      leftFrame.position.set(door.position.x - 1.78, doorHeight / 2, dockZ - 0.01)
+      const rightFrame = new THREE.Mesh(sideFrameGeo, frameMat)
+      rightFrame.position.set(door.position.x + 1.78, doorHeight / 2, dockZ - 0.01)
+      this.rackGroup.add(lintel, leftFrame, rightFrame)
+
       const label = this.makeTextSprite(`月台 ${i + 1}`)
-      label.position.set(door.position.x, 3.35, dockZ - 0.05)
+      label.position.set(door.position.x, 3.75, dockZ - 0.05)
       label.scale.set(2.1, 0.9, 1)
       this.rackGroup.add(label)
     }
-    this.disposables.push(doorGeo, doorMat)
+    this.disposables.push(doorGeo, doorMat, frameMat, lintelGeo, sideFrameGeo)
+  }
+
+  private updateDockDoors(t: number) {
+    for (const door of this.dockDoors) {
+      const cycle = (t + (door.userData.phase as number)) % 8
+      let open = 0
+      if (cycle < 3) {
+        open = smoothstep(cycle / 3)
+      } else if (cycle < 5) {
+        open = 1
+      } else {
+        open = 1 - smoothstep((cycle - 5) / 3)
+      }
+      const height = door.userData.height as number
+      const topY = door.userData.topY as number
+      const scaleY = THREE.MathUtils.lerp(1, 0.06, open)
+      door.scale.y = scaleY
+      door.position.y = topY - (height * scaleY) / 2
+    }
+  }
+
+  private updatePatrolAgv(t: number) {
+    if (!this.patrolAgv || this.patrolPath.length < 2) return
+    const lengths = this.patrolPath.map((point, index) =>
+      point.distanceTo(this.patrolPath[(index + 1) % this.patrolPath.length]),
+    )
+    const total = lengths.reduce((sum, length) => sum + length, 0)
+    let travel = (t * 2.4) % total
+    for (let i = 0; i < this.patrolPath.length; i++) {
+      const segment = lengths[i]
+      if (travel > segment) {
+        travel -= segment
+        continue
+      }
+      const from = this.patrolPath[i]
+      const to = this.patrolPath[(i + 1) % this.patrolPath.length]
+      const alpha = segment === 0 ? 0 : travel / segment
+      this.patrolAgv.position.lerpVectors(from, to, alpha)
+      const dir = new THREE.Vector3().subVectors(to, from).normalize()
+      this.patrolAgv.rotation.y = Math.atan2(-dir.z, dir.x)
+      break
+    }
   }
 
   private makeTextSprite(text: string): THREE.Sprite {
@@ -804,7 +966,10 @@ export class WarehouseTwinScene {
 
   private animate = () => {
     this.raf = requestAnimationFrame(this.animate)
+    const t = this.clock.getElapsedTime()
     this.updateHover()
+    this.updateDockDoors(t)
+    this.updatePatrolAgv(t)
     this.controls.update()
     this.renderer.render(this.scene, this.camera)
   }
@@ -822,6 +987,9 @@ export class WarehouseTwinScene {
   private clearRacks() {
     this.hovered = null
     this.hoverFrame.visible = false
+    this.dockDoors = []
+    this.patrolAgv = null
+    this.patrolPath = []
     for (const child of [...this.rackGroup.children]) {
       this.rackGroup.remove(child)
     }
@@ -834,8 +1002,13 @@ export class WarehouseTwinScene {
       this.beamMat,
       this.palletMat,
       this.pickMat,
+      this.cartonMat,
+      this.deckMat,
+      this.cartonTex,
+      this.rackTex,
+      this.floorTex,
       ...Object.values(this.goodsPalette),
-    ])
+    ].filter(Boolean) as object[])
     const remain: { dispose(): void }[] = []
     for (const d of this.disposables) {
       if (keep.has(d as object)) {
@@ -862,6 +1035,11 @@ export class WarehouseTwinScene {
     this.beamMat.dispose()
     this.palletMat.dispose()
     this.pickMat.dispose()
+    this.cartonMat.dispose()
+    this.deckMat.dispose()
+    this.cartonTex?.dispose()
+    this.rackTex?.dispose()
+    this.floorTex?.dispose()
     Object.values(this.goodsPalette).forEach((m) => m.dispose())
     this.scene?.traverse((obj) => {
       const mesh = obj as THREE.Mesh
@@ -882,6 +1060,11 @@ function seeded(input: string): number {
     h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)
   }
   return ((h >>> 0) % 1000) / 1000
+}
+
+function smoothstep(t: number): number {
+  const x = THREE.MathUtils.clamp(t, 0, 1)
+  return x * x * (3 - 2 * x)
 }
 
 function roundRect(

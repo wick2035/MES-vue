@@ -102,7 +102,7 @@ public class SpMaterialRequirementPlanController extends BaseController {
         Result result = materialPlanService.generateInboundRequest(req == null ? null : req.getIds(), currentUser());
         Object code = result.get("code");
         if (code instanceof Integer && ((Integer) code) == 0) {
-            warehouseRequestService.syncPlanInboundRequests();
+            warehouseRequestService.syncPlanInboundRequests(currentUser());
         }
         return result;
     }

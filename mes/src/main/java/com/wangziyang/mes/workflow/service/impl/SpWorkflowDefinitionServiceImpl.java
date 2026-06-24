@@ -162,55 +162,6 @@ public class SpWorkflowDefinitionServiceImpl extends ServiceImpl<SpWorkflowDefin
         return model;
     }
 
-    @Override
-    public SpWorkflowDefinition ensureDefaultWorkOrderChangeDefinition() {
-        SpWorkflowDefinition definition = activeDefinition(WorkflowConstants.BUSINESS_WORK_ORDER_CHANGE);
-        if (definition != null) {
-            return definition;
-        }
-        SpWorkflowModel model = ensureDefaultWorkOrderChangeModel();
-        Result result = publish(model.getId());
-        Object data = result.get("data");
-        if (data instanceof SpWorkflowDefinition) {
-            return (SpWorkflowDefinition) data;
-        }
-        return activeDefinition(WorkflowConstants.BUSINESS_WORK_ORDER_CHANGE);
-    }
-
-    @Override
-    public SpWorkflowModel ensureDefaultWorkOrderChangeModel() {
-        SpWorkflowCategory category = categoryService.getOne(new QueryWrapper<SpWorkflowCategory>()
-                .eq("category_code", WorkflowConstants.DEFAULT_CATEGORY_CODE)
-                .last("limit 1"));
-        if (category == null) {
-            category = new SpWorkflowCategory();
-            category.setParentId("0");
-            category.setCategoryName("生产流程");
-            category.setCategoryCode(WorkflowConstants.DEFAULT_CATEGORY_CODE);
-            category.setSortNum(30);
-            category.setStatus(WorkflowConstants.STATUS_NORMAL);
-            category.setRemark("生产流程默认分类");
-            categoryService.save(category);
-        }
-
-        SpWorkflowModel model = modelService.getOne(new QueryWrapper<SpWorkflowModel>()
-                .eq("model_code", WorkflowConstants.WORK_ORDER_CHANGE_MODEL_CODE)
-                .last("limit 1"));
-        if (model != null) {
-            return model;
-        }
-        model = new SpWorkflowModel();
-        model.setCategoryId(category.getId());
-        model.setModelCode(WorkflowConstants.WORK_ORDER_CHANGE_MODEL_CODE);
-        model.setModelName("已下达工单变更审批流程");
-        model.setBusinessType(WorkflowConstants.BUSINESS_WORK_ORDER_CHANGE);
-        model.setNodeJson(defaultWorkOrderChangeNodeJson());
-        model.setStatus("draft");
-        model.setRemark("已动工工单修改时由生产主管审批，审批通过后自动应用变更");
-        modelService.save(model);
-        return model;
-    }
-
     private int nextVersion(String definitionCode) {
         SpWorkflowDefinition last = getOne(new QueryWrapper<SpWorkflowDefinition>()
                 .eq("definition_code", definitionCode)
@@ -254,40 +205,6 @@ public class SpWorkflowDefinitionServiceImpl extends ServiceImpl<SpWorkflowDefin
             event.setEventType(WorkflowConstants.EVENT_COMPLETE);
             event.setActionCode(WorkflowConstants.ACTION_ORDER_APPROVE);
             event.setActionName("订单审批通过");
-            approval.getEvents().add(event);
-            nodes.add(approval);
-
-            WorkflowNodeDTO end = new WorkflowNodeDTO();
-            end.setNodeKey("end");
-            end.setNodeName("审批完成");
-            end.setNodeType(WorkflowConstants.NODE_END);
-            nodes.add(end);
-            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(nodes);
-        } catch (Exception e) {
-            return "[]";
-        }
-    }
-
-    private String defaultWorkOrderChangeNodeJson() {
-        try {
-            List<WorkflowNodeDTO> nodes = new ArrayList<>();
-            WorkflowNodeDTO start = new WorkflowNodeDTO();
-            start.setNodeKey("start");
-            start.setNodeName("提交变更");
-            start.setNodeType(WorkflowConstants.NODE_START);
-            nodes.add(start);
-
-            WorkflowNodeDTO approval = new WorkflowNodeDTO();
-            approval.setNodeKey("work_order_change_approve");
-            approval.setNodeName("工单变更审批");
-            approval.setNodeType(WorkflowConstants.NODE_APPROVAL);
-            approval.setAssigneeType(WorkflowConstants.ASSIGNEE_ROLE);
-            approval.setAssigneeId(WorkflowConstants.ROLE_PRODUCTION_MANAGER);
-            approval.setAssigneeName("生产主管");
-            WorkflowNodeEventDTO event = new WorkflowNodeEventDTO();
-            event.setEventType(WorkflowConstants.EVENT_COMPLETE);
-            event.setActionCode(WorkflowConstants.ACTION_WORK_ORDER_CHANGE_APPLY);
-            event.setActionName("工单变更审批通过并生效");
             approval.getEvents().add(event);
             nodes.add(approval);
 

@@ -125,9 +125,16 @@ public class SpMaterialRequirementPlanServiceImpl
             }
             LocalDate requirementDate = readRequirementDate(item);
             BigDecimal qty = new BigDecimal(item.getQty() == null ? 0 : item.getQty());
+            if (qty.compareTo(BigDecimal.ZERO) <= 0) {
+                return Result.failure("生产订单明细数量必须大于0：" + StringUtils.defaultString(item.getProductName(), item.getProductMateriel()));
+            }
             String serialNo = productSerialNo(order.getOrderNo(), i + 1);
             String rootPath = bom.getBomCode() + "(" + bom.getMaterielCode() + ")";
-            expandBom(order, item, serialNo, bom, qty, requirementDate, 1, rootPath, drafts, new HashSet<String>());
+            try {
+                expandBom(order, item, serialNo, bom, qty, requirementDate, 1, rootPath, drafts, new HashSet<String>());
+            } catch (IllegalArgumentException ex) {
+                return Result.failure(ex.getMessage());
+            }
         }
         if (drafts.isEmpty()) {
             return Result.failure("BOM中没有可生成物料需求计划的子项");
@@ -264,11 +271,17 @@ public class SpMaterialRequirementPlanServiceImpl
             if (INBOUND_GENERATED.equals(row.getInboundStatus())) {
                 return Result.failure("已生成入库申请单，不能重复生成：" + row.getMaterialCode());
             }
+            if (currentNetRequirement(row).compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
             String key = row.getProductionOrderId() + "::" + row.getCalcBatchNo();
             if (!group.containsKey(key)) {
                 group.put(key, new ArrayList<SpMaterialRequirementPlan>());
             }
             group.get(key).add(row);
+        }
+        if (group.isEmpty()) {
+            return Result.failure("所选物料需求净需求为0，无需生成入库申请");
         }
 
         List<String> requestNos = new ArrayList<>();
@@ -407,10 +420,13 @@ public class SpMaterialRequirementPlanServiceImpl
             if (StringUtils.isBlank(item.getMaterielItemCode())) {
                 continue;
             }
-            BigDecimal usage = item.getItemNum() == null ? BigDecimal.ZERO : item.getItemNum();
-            BigDecimal gross = factor.multiply(usage);
             String materialCode = item.getMaterielItemCode();
             String nextPath = path + " > " + materialCode;
+            BigDecimal usage = item.getItemNum();
+            if (usage == null || usage.compareTo(BigDecimal.ZERO) <= 0) {
+                returnInvalidBomUsage(nextPath);
+            }
+            BigDecimal gross = factor.multiply(usage);
             SpBom childBom = resolveChildBom(item);
             if (childBom != null) {
                 expandBom(order, orderItem, serialNo, childBom, gross, requirementDate,
@@ -441,6 +457,10 @@ public class SpMaterialRequirementPlanServiceImpl
         }
     }
 
+    private void returnInvalidBomUsage(String bomPath) {
+        throw new IllegalArgumentException("BOM子项用量必须大于0：" + bomPath);
+    }
+
     private SpMaterialRequirementPlan toPlan(RequirementDraft draft, String batchNo, String calcTime) {
         SpMaterile material = findMaterile(draft.materialCode);
         BigDecimal available = availableStock(material);
@@ -448,10 +468,8 @@ public class SpMaterialRequirementPlanServiceImpl
                 ? BigDecimal.ZERO : new BigDecimal(material.getSafetyStock());
         int leadTime = material == null || material.getLeadTime() == null || material.getLeadTime() < 1
                 ? DEFAULT_LEAD_TIME : material.getLeadTime();
-        BigDecimal net = draft.grossRequirement.subtract(available).add(safety);
-        if (net.compareTo(BigDecimal.ZERO) < 0) {
-            net = BigDecimal.ZERO;
-        }
+        // 净需求按毛需求计算（始终等于毛需求，不再扣减库存/安全库存），库存扣减交由配套出库环节处理
+        BigDecimal net = draft.grossRequirement;
 
         SpMaterialRequirementPlan plan = new SpMaterialRequirementPlan();
         plan.setProductionOrderId(draft.order.getId());
@@ -637,8 +655,8 @@ public class SpMaterialRequirementPlanServiceImpl
     }
 
     private BigDecimal calculateNetRequirement(SpMaterialRequirementPlan row, BigDecimal available) {
-        BigDecimal net = nvl(row.getGrossRequirement()).add(nvl(row.getSafetyStock())).subtract(nvl(available));
-        return net.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : net;
+        // 净需求始终等于毛需求（不再扣减库存/安全库存），available 仅用于快照展示
+        return nvl(row.getGrossRequirement());
     }
 
     private SpMaterile resolvePlanMaterial(SpMaterialRequirementPlan row) {

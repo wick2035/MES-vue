@@ -6,6 +6,8 @@ export interface TableColumn {
   align?: 'left' | 'center' | 'right'
   /** 指定后用同名插槽渲染单元格 */
   slot?: string
+  /** 指定后用同名插槽渲染表头（无则渲染 title） */
+  headSlot?: string
   /** 文本格式化（无插槽时） */
   formatter?: (row: any, value: any) => string
 }

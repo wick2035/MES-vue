@@ -105,8 +105,32 @@ public class SpBomController extends BaseController {
     @PostMapping("/add-or-update")
     @ResponseBody
     public Result addOrUpdate(SpBom spBom) {
+        // 新建：自动生成编码并补全默认状态，做到“新建即可用”
+        if (StringUtils.isEmpty(spBom.getId())) {
+            if (StringUtils.isEmpty(spBom.getBomCode())) {
+                spBom.setBomCode(iSpBomService.nextBomCode());
+            }
+            if (spBom.getBomLevel() == null) {
+                spBom.setBomLevel(0);
+            }
+            if (StringUtils.isEmpty(spBom.getVersionNumber())) {
+                spBom.setVersionNumber("1");
+            }
+            if (StringUtils.isEmpty(spBom.getDeleted())) {
+                spBom.setDeleted("0");
+            }
+            if (StringUtils.isEmpty(spBom.getLockStatus())) {
+                spBom.setLockStatus("draft");
+            }
+            if (StringUtils.isEmpty(spBom.getValidity())) {
+                spBom.setValidity("有效");
+            }
+            if (StringUtils.isEmpty(spBom.getState())) {
+                spBom.setState("creat");
+            }
+        }
         iSpBomService.saveOrUpdate(spBom);
-        return Result.success();
+        return Result.success(spBom.getBomCode());
     }
 
     @ApiOperation("保存BOM头及全部子项（事务）")

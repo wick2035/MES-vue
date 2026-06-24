@@ -23,11 +23,11 @@ public interface ISpWarehouseRequestService extends IService<SpWarehouseRequest>
 
     Result confirmItem(SpWarehouseConfirmReq req, SysUser user);
 
-    Result syncPlanInboundRequests();
+    Result syncPlanInboundRequests(SysUser user);
 
     Result syncPlanInboundRequest(String sourceRequestId);
 
-    Result syncKittingOutboundRequests();
+    Result syncKittingOutboundRequests(SysUser user);
 
     Result applyKittingOutboundRequest(List<String> planIds, SysUser user);
 

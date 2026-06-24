@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { AlertTriangle, RotateCcw, Search, Send } from 'lucide-vue-next'
+import { reactive, ref } from 'vue'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
+import { AlertTriangle, CheckCircle2, Clock, RotateCcw, Search, Send } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
@@ -16,12 +17,20 @@ import type { TableColumn } from '@/types/table'
 
 defineOptions({ name: 'ProductionDispatch' })
 
+type DispatchStatus = 'ASSIGNED' | 'DISPATCHED'
+
 const router = useRouter()
 const route = useRoute()
+const activeStatus = ref<DispatchStatus>('ASSIGNED')
+const statusTabs: Array<{ key: DispatchStatus; label: string; icon: typeof Clock }> = [
+  { key: 'ASSIGNED', label: '待下发', icon: Clock },
+  { key: 'DISPATCHED', label: '已下发', icon: CheckCircle2 },
+]
 const table = reactive(
   useTable<ProductionDispatchRow>(pageProductionDispatch, {
     orderNoLike: String(route.query.orderNo || ''),
     productLike: '',
+    dispatchStatus: 'ASSIGNED',
   }),
 )
 const saving = ref('')
@@ -48,6 +57,15 @@ const columns: TableColumn[] = [
   { key: 'action', title: '操作', slot: 'action', width: '160px', align: 'center' },
 ]
 
+function switchStatus(status: DispatchStatus) {
+  if (activeStatus.value === status) return
+  activeStatus.value = status
+  table.query.dispatchStatus = status
+  table.query.current = 1
+  blockers.value = []
+  table.load()
+}
+
 async function dispatch(row: ProductionDispatchRow) {
   if (!row.id) return
   saving.value = row.id
@@ -63,11 +81,24 @@ async function dispatch(row: ProductionDispatchRow) {
   }
 }
 
-onMounted(table.load)
+useAutoRefresh(() => table.load())
 </script>
 
 <template>
   <div class="space-y-4">
+    <div class="flex items-center gap-2 rounded-lg border bg-card p-1 shadow-sp">
+      <Button
+        v-for="tab in statusTabs"
+        :key="tab.key"
+        :variant="activeStatus === tab.key ? 'default' : 'ghost'"
+        class="h-9 flex-1 justify-center sm:flex-none sm:px-5"
+        @click="switchStatus(tab.key)"
+      >
+        <component :is="tab.icon" class="h-4 w-4" />
+        {{ tab.label }}
+      </Button>
+    </div>
+
     <div class="flex flex-wrap items-end gap-3 border bg-card p-4 shadow-sp">
       <div class="space-y-1">
         <Label class="text-xs text-muted-foreground">订单</Label>
@@ -122,9 +153,13 @@ onMounted(table.load)
     >
       <template #toolbar>
         <span class="text-sm font-medium">生产计划下发</span>
-        <span class="hidden text-xs text-muted-foreground sm:inline"
-          >审批、派工、配套出库完成后正式下发工单</span
-        >
+        <span class="hidden text-xs text-muted-foreground sm:inline">
+          {{
+            activeStatus === 'ASSIGNED'
+              ? '审批、派工、配套出库完成后正式下发工单'
+              : '已完成下发的生产计划记录'
+          }}
+        </span>
       </template>
       <template #operation="{ value }">
         <SpStatusBadge
@@ -139,9 +174,15 @@ onMounted(table.load)
         />
       </template>
       <template #action="{ row }">
-        <Button size="sm" :disabled="saving === row.id" @click="dispatch(row)">
+        <Button
+          v-if="activeStatus === 'ASSIGNED'"
+          size="sm"
+          :disabled="saving === row.id"
+          @click="dispatch(row)"
+        >
           <Send class="h-4 w-4" :class="saving === row.id && 'animate-pulse'" />计划下发
         </Button>
+        <SpStatusBadge v-else tone="success" text="已下发" />
       </template>
     </SpDataTable>
   </div>

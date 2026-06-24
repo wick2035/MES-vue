@@ -22,7 +22,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,22 +74,22 @@ public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordM
             return Result.failure("工单未绑定工艺路线");
         }
 
-        List<SpFlowOperRelation> route = routeByFlowId(order.getFlowId());
+        List<SpFlowOperRelation> route = resolveRoute(order);
         if (route.isEmpty()) {
             return Result.failure("工单工艺路线没有配置工序");
         }
 
         String sn = req.getSn().trim();
         Set<String> completedOperIds = completedOperIds(order.getId(), sn);
-        SpFlowOperRelation current = route.stream()
-                .filter(r -> !completedOperIds.contains(r.getOperId()))
-                .findFirst()
-                .orElse(null);
+        boolean manualOverride = StringUtils.isNotBlank(req.getOperId());
+        SpFlowOperRelation current = manualOverride
+                ? findRouteOper(route, req.getOperId().trim())
+                : nextUnfinishedOper(route, completedOperIds);
         if (current == null) {
-            return Result.failure("该 SN 已完成当前工单全部工序");
+            return Result.failure(manualOverride ? "所选工序不属于当前工单路线" : "该 SN 已完成当前工单全部工序");
         }
 
-        if ("OK".equals(status) && hasOkRecord(order.getId(), sn, current.getOperId())) {
+        if (!manualOverride && "OK".equals(status) && hasOkRecord(order.getId(), sn, current.getOperId())) {
             return Result.failure("该 SN 当前工序已采集 OK，不能重复过站");
         }
 
@@ -103,10 +110,7 @@ public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordM
         if ("OK".equals(status)) {
             completedOperIds.add(current.getOperId());
         }
-        SpFlowOperRelation next = route.stream()
-                .filter(r -> !completedOperIds.contains(r.getOperId()))
-                .findFirst()
-                .orElse(null);
+        SpFlowOperRelation next = nextUnfinishedOper(route, completedOperIds);
 
         Map<String, Object> data = new HashMap<>();
         data.put("record", record);
@@ -126,6 +130,7 @@ public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordM
         Set<String> completedOperIds = StringUtils.isBlank(sn)
                 ? Collections.emptySet()
                 : completedOperIds(orderId, sn.trim());
+        SpFlowOperRelation current = nextUnfinishedOper(route, completedOperIds);
         return route.stream().map(r -> {
             Map<String, Object> row = new HashMap<>();
             row.put("operId", r.getOperId());
@@ -133,6 +138,7 @@ public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordM
             row.put("operDesc", operDesc(r));
             row.put("stepNo", r.getSortNum());
             row.put("done", completedOperIds.contains(r.getOperId()));
+            row.put("current", current != null && StringUtils.equals(current.getOperId(), r.getOperId()));
             return row;
         }).collect(Collectors.toList());
     }
@@ -140,6 +146,13 @@ public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordM
     @Override
     public List<SpFlowOperRelation> route(String orderId) {
         SpOrder order = orderService.getById(orderId);
+        if (order == null || StringUtils.isBlank(order.getFlowId())) {
+            return Collections.emptyList();
+        }
+        return routeByFlowId(order.getFlowId());
+    }
+
+    private List<SpFlowOperRelation> resolveRoute(SpOrder order) {
         if (order == null || StringUtils.isBlank(order.getFlowId())) {
             return Collections.emptyList();
         }
@@ -159,6 +172,7 @@ public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordM
                 .eq("lock_status", "locked")
                 .isNotNull("oper_id")
                 .ne("oper_id", "")
+                .orderByAsc("seq_no")
                 .orderByAsc("route_code"));
         if (routes == null || routes.isEmpty()) {
             return Collections.emptyList();
@@ -171,16 +185,43 @@ public class SpSnProcessRecordServiceImpl extends ServiceImpl<SpSnProcessRecordM
             rel.setFlowId(flowId);
             rel.setOperId(route.getOperId());
             rel.setOper(oper == null ? route.getOperId() : oper.getOper());
-            rel.setSortNum(sort++);
+            rel.setSortNum(route.getSeqNo() == null ? sort : route.getSeqNo());
+            sort++;
             fallback.add(rel);
         }
         return fallback;
     }
 
+    private SpFlowOperRelation nextUnfinishedOper(List<SpFlowOperRelation> route, Set<String> completedOperIds) {
+        if (route == null || route.isEmpty()) {
+            return null;
+        }
+        Set<String> completed = completedOperIds == null ? Collections.emptySet() : completedOperIds;
+        return route.stream()
+                .filter(r -> StringUtils.isNotBlank(r.getOperId()))
+                .filter(r -> !completed.contains(r.getOperId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private SpFlowOperRelation findRouteOper(List<SpFlowOperRelation> route, String operId) {
+        if (route == null || route.isEmpty() || StringUtils.isBlank(operId)) {
+            return null;
+        }
+        return route.stream()
+                .filter(r -> StringUtils.equals(operId, r.getOperId()))
+                .findFirst()
+                .orElse(null);
+    }
+
     private Set<String> completedOperIds(String orderId, String sn) {
         QueryWrapper<SpSnProcessRecord> qw = new QueryWrapper<>();
         qw.eq("order_id", orderId).eq("sn", sn).eq("status", "OK");
-        return list(qw).stream().map(SpSnProcessRecord::getOperId).collect(Collectors.toSet());
+        List<SpSnProcessRecord> records = list(qw);
+        if (records == null || records.isEmpty()) {
+            return new HashSet<>();
+        }
+        return records.stream().map(SpSnProcessRecord::getOperId).collect(Collectors.toSet());
     }
 
     private boolean hasOkRecord(String orderId, String sn, String operId) {
